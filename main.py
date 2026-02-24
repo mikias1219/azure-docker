@@ -1,29 +1,45 @@
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from app import db, crud, schemas, auth
-import logging
 import sys
+import os
+import time
 
-# Configure logging to stderr for reliable Azure capture
-logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(levelname)s: %(message)s')
-logger = logging.getLogger(__name__)
+print("LOG: Starting app initialization...", flush=True)
+time.sleep(2) # Give ACI logging time
+
+try:
+    print("LOG: Importing dependencies...", flush=True)
+    from fastapi import FastAPI, Depends, HTTPException, status
+    from fastapi.security import OAuth2PasswordRequestForm
+    print("LOG: FastAPI/OAuth2 imported.", flush=True)
+    
+    from app import db, crud, schemas, auth
+    print("LOG: App modules imported.", flush=True)
+except Exception as e:
+    print(f"ERROR: Import failure: {e}", flush=True)
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
 
 app = FastAPI()
+print("LOG: FastAPI object created.", flush=True)
 
 @app.on_event("startup")
 async def startup():
-    logger.info("Application starting up...")
+    print("LOG: Startup event triggered.", flush=True)
     try:
+        print("LOG: Initializing tables...", flush=True)
         db.create_tables()
-        logger.info("Database tables verified/created.")
+        print("LOG: Tables initialized successfully.", flush=True)
     except Exception as e:
-        logger.error(f"Error creating tables: {e}")
+        print(f"ERROR: Table initialization failure: {e}", flush=True)
+        # traceback.print_exc()
     
     try:
+        print("LOG: Connecting to database...", flush=True)
         await db.database.connect()
-        logger.info("Connected to database.")
+        print("LOG: Database connected successfully.", flush=True)
     except Exception as e:
-        logger.error(f"Error connecting to database: {e}")
+        print(f"ERROR: Database connection failure: {e}", flush=True)
+        # traceback.print_exc()
 
 @app.on_event("shutdown")
 async def shutdown():
