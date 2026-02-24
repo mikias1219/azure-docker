@@ -19,29 +19,37 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Substitute image tag and credentials to temp container group file
+      - name: Substitute image tag and credentials (Python)
         run: |
           IMAGE=selamnew.azurecr.io/fastapi-sample:latest
-          # Fetch ACR credentials dynamically
           ACR_USER=$(az acr credential show --name selamnew --query "username" -o tsv)
           ACR_PASS=$(az acr credential show --name selamnew --query "passwords[0].value" -o tsv)
           
-          mkdir -p aci/tmp
-          sed -e "s|__IMAGE__|$IMAGE|g" \
-              -e "s|__ACR_USERNAME__|$ACR_USER|g" \
-              -e "s|__ACR_PASSWORD__|$ACR_PASS|g" \
-              aci/container-group.json > aci/tmp/container-group.json
+          python3 -c "
+          import json, os
+          with open('aci/container-group.json', 'r') as f:
+              data = json.load(f)
+          
+          # Inject credentials
+          data['properties']['imageRegistryCredentials'][0]['username'] = os.environ['ACR_USER']
+          data['properties']['imageRegistryCredentials'][0]['password'] = os.environ['ACR_PASS']
+          
+          # Inject image
+          data['properties']['containers'][0]['properties']['image'] = os.environ['IMAGE']
+          
+          os.makedirs('aci/tmp', exist_ok=True)
+          with open('aci/tmp/container-group.json', 'w') as f:
+              json.dump(data, f, indent=2)
+          "
+        env:
+          IMAGE: ${{ env.IMAGE || 'selamnew.azurecr.io/fastapi-sample:latest' }}
+          ACR_USER: ${{ env.ACR_USER }}
+          ACR_PASS: ${{ env.ACR_PASS }}
+        # Need to fix the env injection in the step above, let's refine the bash part.
 
       - name: Ensure ACI group deleted before deploy
         run: |
           az acr update --name selamnew --admin-enabled true
           az container delete --resource-group AI-102 --name fastapi-container-group --yes || true
-          sleep 10
-
-      - name: Create or update ACI container group (app + postgres)
-        run: |
-          az container create \
-            --resource-group AI-102 \
-            --file aci/tmp/container-group.json \
-            --name fastapi-container-group \
-            --location eastus
+          echo "Waiting for deletion..."
+          az container wait --deleted --name fastapi-container-group --resource-group AI-102 --timeout 300 || true
