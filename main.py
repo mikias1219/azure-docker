@@ -1,10 +1,29 @@
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from app import db, crud, schemas, auth
+import sys
+print("Python version:", sys.version)
+print("Starting imports...")
+
+try:
+    from fastapi import FastAPI, Depends, HTTPException, status
+    print("FastAPI imported.")
+    from fastapi.security import OAuth2PasswordRequestForm
+    print("OAuth2 imported.")
+    from app import db
+    print("app.db imported.")
+    from app import crud
+    print("app.crud imported.")
+    from app import schemas
+    print("app.schemas imported.")
+    from app import auth
+    print("app.auth imported.")
+except Exception as e:
+    print(f"Import error: {e}")
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
 
 app = FastAPI()
 
-print("Application is starting up...")
+print("Application object created.")
 
 @app.on_event("startup")
 async def startup():
