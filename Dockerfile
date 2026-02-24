@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/python:0-3.11
+FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
