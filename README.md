@@ -1,5 +1,7 @@
 # FastAPI sample (Docker + ACR)
 
+[![ACR Build](https://github.com/mikias1219/azure-docker/actions/workflows/acr-build.yml/badge.svg)](https://github.com/mikias1219/azure-docker/actions/workflows/acr-build.yml)
+
 This repository contains a minimal FastAPI app and instructions to build and push a container image to Azure Container Registry `selamnew.azurecr.io`.
 
 Local build & push (assumes you have `az` and `docker` installed):
