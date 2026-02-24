@@ -5,7 +5,7 @@
       {
         "name": "fastapi-app",
         "properties": {
-          "image": "selamnew.azurecr.io/fastapi-sample:64161d382b20622eda7666d3b653b11c60f0a163",
+          "image": "selamnew.azurecr.io/fastapi-sample:latest",
           "resources": {
             "requests": {
               "cpu": 1,
