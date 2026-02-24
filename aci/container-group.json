@@ -18,7 +18,7 @@
             }
           ],
           "environmentVariables": [
-            {
+            {  
               "name": "DATABASE_URL",
               "value": "postgresql://postgres:postgrespw@localhost:5432/postgres"
             }
