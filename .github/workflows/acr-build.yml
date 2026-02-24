@@ -51,6 +51,7 @@ jobs:
             --name "$NAME" \
             --image "$IMAGE" \
             --ports 80 \
+            --os-type Linux \
             --ip-address Public \
             --registry-login-server selamnew.azurecr.io \
             --registry-username "$ACR_USER" \
