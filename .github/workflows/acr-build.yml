@@ -30,9 +30,9 @@ jobs:
 
       - name: Create container group definition (Python)
         run: |
-          IMAGE=selamnew.azurecr.io/fastapi-sample:latest
-          ACR_USER=$(az acr credential show --name selamnew --query "username" -o tsv)
-          ACR_PASS=$(az acr credential show --name selamnew --query "passwords[0].value" -o tsv)
+          export IMAGE=selamnew.azurecr.io/fastapi-sample:latest
+          export ACR_USER=$(az acr credential show --name selamnew --query "username" -o tsv)
+          export ACR_PASS=$(az acr credential show --name selamnew --query "passwords[0].value" -o tsv)
           
           python3 -c "
           import json, os
@@ -47,10 +47,6 @@ jobs:
           with open('aci/tmp/container-group.json', 'w') as f:
               json.dump(data, f, indent=2)
           "
-        env:
-          IMAGE: selamnew.azurecr.io/fastapi-sample:latest
-          ACR_USER: ${{ env.ACR_USER }}
-          ACR_PASS: ${{ env.ACR_PASS }}
 
       - name: Deploy to Azure Container Instances
         run: |

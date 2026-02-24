@@ -5,10 +5,25 @@ from app import db, crud, schemas, auth
 app = FastAPI()
 
 
+print("Application is starting up...")
+
 @app.on_event("startup")
 async def startup():
-    db.create_tables()
-    await db.database.connect()
+    print("Running database table creation...")
+    try:
+        db.create_tables()
+        print("Database tables created successfully.")
+    except Exception as e:
+        print(f"Error creating tables: {e}")
+        raise e
+    
+    print("Connecting to database...")
+    try:
+        await db.database.connect()
+        print("Connected to database successfully.")
+    except Exception as e:
+        print(f"Error connecting to database: {e}")
+        raise e
 
 
 @app.on_event("shutdown")
