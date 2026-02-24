@@ -1,15 +1,18 @@
+import sys
+import os
+import time
+import logging
+
+# Extreme early logging
+print("LOG: Container starting, sleeping for 10s to let Postgres ready...", file=sys.stderr, flush=True)
+time.sleep(10)
+
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-import logging
-import sys
 from app import db, crud, schemas, auth
 
-# Configure logging to stderr for reliable Azure capture
-logging.basicConfig(
-    level=logging.INFO,
-    stream=sys.stderr,
-    format='%(levelname)s: %(message)s'
-)
+# Configure logging
+logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="FastAPI Azure Sample")
@@ -17,17 +20,34 @@ app = FastAPI(title="FastAPI Azure Sample")
 @app.on_event("startup")
 async def startup():
     logger.info("Application starting up...")
-    try:
-        db.create_tables()
-        logger.info("Database tables verified/created.")
-    except Exception as e:
-        logger.error(f"Failed to create tables: {e}")
     
-    try:
-        await db.database.connect()
-        logger.info("Connected to database successfully.")
-    except Exception as e:
-        logger.error(f"Failed to connect to database: {e}")
+    # Retry logic for table creation
+    for i in range(5):
+        try:
+            logger.info(f"Attempting to create tables (attempt {i+1})...")
+            db.create_tables()
+            logger.info("Database tables verified/created.")
+            break
+        except Exception as e:
+            logger.error(f"Failed to create tables: {e}")
+            if i == 4:
+                logger.critical("Final table creation attempt failed.")
+            else:
+                time.sleep(5)
+    
+    # Retry logic for connection
+    for i in range(5):
+        try:
+            logger.info(f"Attempting to connect to database (attempt {i+1})...")
+            await db.database.connect()
+            logger.info("Connected to database successfully.")
+            return
+        except Exception as e:
+            logger.error(f"Failed to connect to database: {e}")
+            if i == 4:
+                logger.critical("Final database connection attempt failed.")
+            else:
+                time.sleep(5)
 
 @app.on_event("shutdown")
 async def shutdown():
