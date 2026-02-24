@@ -1,53 +1,42 @@
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+import logging
 import sys
-import os
-import time
+from app import db, crud, schemas, auth
 
-print("LOG: Starting app initialization...", flush=True)
-time.sleep(2) # Give ACI logging time
+# Configure logging to stderr for reliable Azure capture
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stderr,
+    format='%(levelname)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-try:
-    print("LOG: Importing dependencies...", flush=True)
-    from fastapi import FastAPI, Depends, HTTPException, status
-    from fastapi.security import OAuth2PasswordRequestForm
-    print("LOG: FastAPI/OAuth2 imported.", flush=True)
-    
-    from app import db, crud, schemas, auth
-    print("LOG: App modules imported.", flush=True)
-except Exception as e:
-    print(f"ERROR: Import failure: {e}", flush=True)
-    import traceback
-    traceback.print_exc()
-    sys.exit(1)
-
-app = FastAPI()
-print("LOG: FastAPI object created.", flush=True)
+app = FastAPI(title="FastAPI Azure Sample")
 
 @app.on_event("startup")
 async def startup():
-    print("LOG: Startup event triggered.", flush=True)
+    logger.info("Application starting up...")
     try:
-        print("LOG: Initializing tables...", flush=True)
         db.create_tables()
-        print("LOG: Tables initialized successfully.", flush=True)
+        logger.info("Database tables verified/created.")
     except Exception as e:
-        print(f"ERROR: Table initialization failure: {e}", flush=True)
-        # traceback.print_exc()
+        logger.error(f"Failed to create tables: {e}")
     
     try:
-        print("LOG: Connecting to database...", flush=True)
         await db.database.connect()
-        print("LOG: Database connected successfully.", flush=True)
+        logger.info("Connected to database successfully.")
     except Exception as e:
-        print(f"ERROR: Database connection failure: {e}", flush=True)
-        # traceback.print_exc()
+        logger.error(f"Failed to connect to database: {e}")
 
 @app.on_event("shutdown")
 async def shutdown():
     await db.database.disconnect()
+    logger.info("Database connection closed.")
 
 @app.get("/")
 async def read_root():
-    return {"message": "Hello from FastAPI on Azure ACI! The Neural stack is finally stable!"}
+    return {"message": "Hello from FastAPI on Azure ACI! The environment is stable."}
 
 @app.get("/health")
 async def health():
@@ -61,8 +50,7 @@ async def register(user: schemas.UserCreate):
     existing_email = await crud.get_user_by_email(user.email)
     if existing_email:
         raise HTTPException(status_code=400, detail="Email already registered")
-    created = await crud.create_user(user.username, user.email, user.password)
-    return {"id": created["id"], "username": created["username"], "email": created["email"]}
+    return await crud.create_user(user.username, user.email, user.password)
 
 @app.post("/token", response_model=schemas.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -74,12 +62,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @app.get("/me", response_model=schemas.UserOut)
 async def read_me(current_user=Depends(auth.get_current_user)):
-    return {"id": current_user["id"], "username": current_user["username"], "email": current_user["email"]}
+    return current_user
 
 @app.post("/notes", response_model=schemas.NoteOut)
 async def create_note(note: schemas.NoteCreate, current_user=Depends(auth.get_current_user)):
-    created = await crud.create_note_for_user(current_user["id"], note.title, note.content)
-    return created
+    return await crud.create_note_for_user(current_user["id"], note.title, note.content)
 
 @app.get("/notes", response_model=list[schemas.NoteOut])
 async def list_notes(current_user=Depends(auth.get_current_user)):
@@ -89,20 +76,20 @@ async def list_notes(current_user=Depends(auth.get_current_user)):
 async def get_note(note_id: int, current_user=Depends(auth.get_current_user)):
     note = await crud.get_note(note_id)
     if not note or note["owner_id"] != current_user["id"]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
     return note
 
 @app.put("/notes/{note_id}", response_model=schemas.NoteOut)
 async def update_note_endpoint(note_id: int, note_in: schemas.NoteCreate, current_user=Depends(auth.get_current_user)):
     note = await crud.get_note(note_id)
     if not note or note["owner_id"] != current_user["id"]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
     return await crud.update_note(note_id, note_in.title, note_in.content)
 
 @app.delete("/notes/{note_id}")
 async def delete_note_endpoint(note_id: int, current_user=Depends(auth.get_current_user)):
     note = await crud.get_note(note_id)
     if not note or note["owner_id"] != current_user["id"]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Note not found")
     await crud.delete_note(note_id)
     return {"ok": True}
