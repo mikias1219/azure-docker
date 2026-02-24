@@ -19,10 +19,20 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Substitute image tag to temp container group file
+        run: |
+          IMAGE=selamnew.azurecr.io/fastapi-sample:latest
+          mkdir -p aci/tmp
+          sed "s|__IMAGE__|$IMAGE|g" aci/container-group.json > aci/tmp/container-group.json
+
       - name: Create or update ACI container group (app + postgres)
         run: |
           az container create \
             --resource-group AI-102 \
-            --file aci/container-group.json \
+            --file aci/tmp/container-group.json \
             --name fastapi-container-group \
-            --no-wait
+            --registry-login-server selamnew.azurecr.io \
+            --registry-username ${{ secrets.ACR_USERNAME }} \
+            --registry-password ${{ secrets.ACR_PASSWORD }} \
+            --location eastus 
+
