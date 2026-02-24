@@ -16,4 +16,4 @@ COPY . /app
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-CMD ["python3", "-u", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["sh", "-c", "echo 'LOG: [sh] Starting container shell...' && exec python3 -u -m uvicorn main:app --host 0.0.0.0 --port 80"]
