@@ -27,3 +27,33 @@ jobs:
           az acr build --resource-group AI-102 --registry selamnew \
             --image fastapi-sample:latest \
             --image fastapi-sample:${{ github.sha }} .
+
+      - name: Deploy to Azure Container Instances
+        env:
+          ACR_USER: ${{ secrets.ACR_USERNAME }}
+          ACR_PASS: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          set -euo pipefail
+          IMAGE=selamnew.azurecr.io/fastapi-sample:${{ github.sha }}
+          RG=AI-102
+          NAME=fastapi-sample-acicontainer
+
+          echo "Deploying $IMAGE to ACI $NAME in $RG"
+
+          # If container exists, delete (to ensure fresh image is used)
+          if az container show --resource-group "$RG" --name "$NAME" >/dev/null 2>&1; then
+            echo "Container exists; deleting $NAME"
+            az container delete --resource-group "$RG" --name "$NAME" --yes
+          fi
+
+          az container create \
+            --resource-group "$RG" \
+            --name "$NAME" \
+            --image "$IMAGE" \
+            --ports 80 \
+            --ip-address Public \
+            --registry-login-server selamnew.azurecr.io \
+            --registry-username "$ACR_USER" \
+            --registry-password "$ACR_PASS"
+
+          echo "Deployment complete."
