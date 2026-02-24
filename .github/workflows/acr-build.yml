@@ -1,0 +1,28 @@
+name: Build and push to ACR via Azure
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  acr-build:
+    name: Build with ACR Tasks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (service principal)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      - name: Build and push image using ACR
+        run: |
+          az acr build --resource-group AI-102 --registry selamnew \
+            --image fastapi-sample:latest \
+            --image fastapi-sample:${{ github.sha }} .
