@@ -1,71 +1,45 @@
-name: Build and push to ACR via Azure
-
-permissions:
-  id-token: write
-  contents: read
+name: Azure ACR + ACI Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  acr-build:
-    name: Build with ACR Tasks
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure Login (service principal)
+      - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Build and push image using ACR
+      - name: Build & Push App Image
         run: |
-          az acr build --resource-group AI-102 --registry selamnew \
-            --image fastapi-sample:latest \
-            --image fastapi-sample:${{ github.sha }} .
+          az acr login --name selamnew
+          docker build -t selamnew.azurecr.io/fastapi-sample:latest .
+          docker push selamnew.azurecr.io/fastapi-sample:latest
 
-      - name: Import Postgres into ACR
+      - name: Import Postgres to ACR
         run: |
-          set -euo pipefail
-          echo "Importing postgres:15 into selamnew ACR (idempotent)"
           az acr import --name selamnew --resource-group AI-102 --source docker.io/library/postgres:15 --image postgres:15 || true
 
-      - name: Deploy templated ACI container group (app + postgres)
+      - name: Create container group definition
         run: |
-          set -euo pipefail
-          IMAGE=selamnew.azurecr.io/fastapi-sample:${{ github.sha }}
-          RG=AI-102
-          NAME=fastapi-container-group
+          IMAGE=selamnew.azurecr.io/fastapi-sample:latest
+          sed "s|__IMAGE__|$IMAGE|g" aci/container-group.json > aci/tmp/container-group.json
 
-          echo "Preparing container-group JSON for $IMAGE"
-          mkdir -p aci/tmp
-          sed "s|__IMAGE__|${IMAGE}|g" aci/container-group.json > aci/tmp/container-group.json
-
-          echo "Fetching ACR admin credentials"
-          ACR_USER=$(az acr credential show --name selamnew --query "username" -o tsv)
-          ACR_PASS=$(az acr credential show --name selamnew --query "passwords[0].value" -o tsv)
-
-          if [ -z "$ACR_USER" ] || [ -z "$ACR_PASS" ]; then
-            echo "Failed to fetch ACR credentials. Ensure admin user is enabled for the registry or set ACR_USERNAME/ACR_PASSWORD secrets."
-            exit 1
-          fi
-
-          # If group exists, delete to ensure fresh deployment
-          if az container show --resource-group "$RG" --name "$NAME" >/dev/null 2>&1; then
-            echo "Container group exists; deleting $NAME"
-            az container delete --resource-group "$RG" --name "$NAME" --yes
-          fi
-
+      - name: Deploy to Azure Container Instances
+        run: |
+          az container delete --resource-group AI-102 --name fastapi-container-group --yes || true
           az container create \
-            --resource-group "$RG" \
+            --resource-group AI-102 \
             --file aci/tmp/container-group.json \
-            --name "$NAME" \
+            --name fastapi-container-group \
             --registry-login-server selamnew.azurecr.io \
-            --registry-username "$ACR_USER" \
-            --registry-password "$ACR_PASS"
-
-          echo "Deployment complete."
+            --registry-username ${{ secrets.ACR_USERNAME }} \
+            --registry-password ${{ secrets.ACR_PASSWORD }} \
+            --location eastus
