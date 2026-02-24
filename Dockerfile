@@ -16,4 +16,4 @@ COPY . /app
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-CMD ["sh", "-c", "echo 'LOG: File structure:' && ls -R && echo 'LOG: Starting app...' && python3 -u -m uvicorn main:app --host 0.0.0.0 --port 80 --log-level debug"]
+CMD ["python3", "-u", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]

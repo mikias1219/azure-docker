@@ -5,6 +5,7 @@ uvicorn[standard]
 databases[postgresql]
 SQLAlchemy
 asyncpg
+psycopg2-binary
 passlib[bcrypt]
 python-jose[cryptography]
 python-multipart
