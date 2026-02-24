@@ -1,2 +1,10 @@
 fastapi
 uvicorn[standard]
+
+# Database and auth
+databases[postgresql]
+SQLAlchemy
+asyncpg
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart

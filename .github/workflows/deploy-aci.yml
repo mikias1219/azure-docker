@@ -1,0 +1,28 @@
+name: Deploy ACI (App + Postgres)
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create or update ACI container group (app + postgres)
+        run: |
+          az container create \
+            --resource-group AI-102 \
+            --file aci/container-group.json \
+            --name fastapi-container-group \
+            --no-wait

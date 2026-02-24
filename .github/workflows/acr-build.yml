@@ -28,7 +28,7 @@ jobs:
             --image fastapi-sample:latest \
             --image fastapi-sample:${{ github.sha }} .
 
-      - name: Deploy to Azure Container Instances
+      - name: Deploy templated ACI container group (app + postgres)
         env:
           ACR_USER: ${{ secrets.ACR_USERNAME }}
           ACR_PASS: ${{ secrets.ACR_PASSWORD }}
@@ -36,25 +36,22 @@ jobs:
           set -euo pipefail
           IMAGE=selamnew.azurecr.io/fastapi-sample:${{ github.sha }}
           RG=AI-102
-          NAME=fastapi-sample-acicontainer
+          NAME=fastapi-container-group
 
-          echo "Deploying $IMAGE to ACI $NAME in $RG"
+          echo "Preparing container-group JSON for $IMAGE"
+          mkdir -p aci/tmp
+          sed "s|__IMAGE__|${IMAGE}|g" aci/container-group.json > aci/tmp/container-group.json
 
-          # If container exists, delete (to ensure fresh image is used)
+          # If group exists, delete to ensure fresh deployment
           if az container show --resource-group "$RG" --name "$NAME" >/dev/null 2>&1; then
-            echo "Container exists; deleting $NAME"
+            echo "Container group exists; deleting $NAME"
             az container delete --resource-group "$RG" --name "$NAME" --yes
           fi
 
           az container create \
             --resource-group "$RG" \
+            --file aci/tmp/container-group.json \
             --name "$NAME" \
-            --image "$IMAGE" \
-            --ports 80 \
-            --os-type Linux \
-            --cpu 1 \
-            --memory 1.5 \
-            --ip-address Public \
             --registry-login-server selamnew.azurecr.io \
             --registry-username "$ACR_USER" \
             --registry-password "$ACR_PASS"
