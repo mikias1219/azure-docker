@@ -1,33 +1,9 @@
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+import logging
 import sys
-import os
 import time
-
-# ABSOLUTELY FIRST THING: print to both stdout and stderr
-print("LOG: [stdout] Container entrypoint starting...", flush=True)
-print("LOG: [stderr] Container entrypoint starting...", file=sys.stderr, flush=True)
-
-# Give Azure Log Analytics a moment to breathe
-time.sleep(2)
-
-print(f"LOG: ENV: DATABASE_URL={os.getenv('DATABASE_URL')}", file=sys.stderr, flush=True)
-print(f"LOG: PWD: {os.getcwd()}", file=sys.stderr, flush=True)
-print(f"LOG: LISTING: {os.listdir('.')}", file=sys.stderr, flush=True)
-
-try:
-    print("LOG: Importing basic dependencies...", file=sys.stderr, flush=True)
-    from fastapi import FastAPI, Depends, HTTPException, status
-    from fastapi.security import OAuth2PasswordRequestForm
-    import logging
-    print("LOG: Basic dependencies imported.", file=sys.stderr, flush=True)
-    
-    print("LOG: Importing app modules...", file=sys.stderr, flush=True)
-    from app import db, crud, schemas, auth
-    print("LOG: App modules imported.", file=sys.stderr, flush=True)
-except Exception as e:
-    print(f"CRITICAL ERROR during import: {e}", file=sys.stderr, flush=True)
-    import traceback
-    traceback.print_exc(file=sys.stderr)
-    sys.exit(1)
+from app import db, crud, schemas, auth
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(levelname)s: %(message)s')
@@ -37,37 +13,22 @@ app = FastAPI(title="FastAPI Azure Sample")
 
 @app.on_event("startup")
 async def startup():
-    logger.info("Application startup event triggered.")
+    logger.info("Application starting up...")
     
-    # Retry logic for table creation
-    for i in range(5):
+    # Robust startup: retry connection if DB is still initializing
+    max_retries = 5
+    for i in range(max_retries):
         try:
-            logger.info(f"Attempting to create tables (attempt {i+1})...")
             db.create_tables()
-            logger.info("Database tables verified/created.")
-            break
-        except Exception as e:
-            logger.error(f"Failed to create tables: {e}")
-            if i == 4:
-                logger.critical("Final table creation attempt failed.")
-                # sys.exit(1) # Consider exiting if tables can't be created
-            else:
-                time.sleep(5)
-    
-    # Retry logic for database connection
-    for i in range(5):
-        try:
-            logger.info(f"Attempting to connect to database (attempt {i+1})...")
             await db.database.connect()
-            logger.info("Connected to database successfully.")
+            logger.info("Database connected and tables verified.")
             return
         except Exception as e:
-            logger.error(f"Failed to connect to database: {e}")
-            if i == 4:
-                logger.critical("Final database connection attempt failed.")
-                # sys.exit(1)
-            else:
+            logger.warning(f"Database not ready (attempt {i+1}/{max_retries}): {e}")
+            if i < max_retries - 1:
                 time.sleep(5)
+            else:
+                logger.critical("Could not connect to database after several attempts.")
 
 @app.on_event("shutdown")
 async def shutdown():
