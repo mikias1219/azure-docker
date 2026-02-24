@@ -27,6 +27,7 @@ jobs:
 
       - name: Ensure ACI group deleted before deploy
         run: |
+          az acr update --name selamnew --admin-enabled true
           az container delete --resource-group AI-102 --name fastapi-container-group --yes || true
           sleep 30
           az container wait --deleted --name fastapi-container-group --resource-group AI-102 || true

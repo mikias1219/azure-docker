@@ -1,18 +1,3 @@
-from fastapi import FastAPI
-
-app = FastAPI()
-
-
-@app.get("/")
-async def read_root():
-    return {"message": "Hello from FastAPI on Azure ACR!   and Neural stack is awesome!"}
-
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
-
-
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from app import db, crud, schemas, auth
@@ -101,17 +86,3 @@ async def delete_note_endpoint(note_id: int, current_user=Depends(auth.get_curre
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     await crud.delete_note(note_id)
     return {"ok": True}
-
-
-app = FastAPI()
-
-
-@app.get("/")
-async def read_root():
-    return {"message": "Hello from FastAPI on Azure ACR!   and Neural stack is awesome!"}
-
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
-    

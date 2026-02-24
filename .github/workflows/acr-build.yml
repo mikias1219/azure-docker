@@ -25,11 +25,13 @@ jobs:
 
       - name: Import Postgres to ACR
         run: |
+          az acr update --name selamnew --admin-enabled true
           az acr import --name selamnew --resource-group AI-102 --source docker.io/library/postgres:15 --image postgres:15 || true
 
       - name: Create container group definition
         run: |
           IMAGE=selamnew.azurecr.io/fastapi-sample:latest
+          mkdir -p aci/tmp
           sed "s|__IMAGE__|$IMAGE|g" aci/container-group.json > aci/tmp/container-group.json
 
       - name: Deploy to Azure Container Instances
