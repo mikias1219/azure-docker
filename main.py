@@ -1,51 +1,66 @@
 import sys
-import logging
 import time
+import os
 
-# Configure logging to stderr for reliable Azure log capture
-logging.basicConfig(level=logging.DEBUG, stream=sys.stderr, format='%(levelname)s: %(message)s')
-logger = logging.getLogger(__name__)
+print("LOG: Python binary:", sys.executable, flush=True)
+print("LOG: Python version:", sys.version, flush=True)
+print("LOG: Current directory:", os.getcwd(), flush=True)
+print("LOG: Directory contents:", os.listdir('.'), flush=True)
 
-logger.info("Python version: %s", sys.version)
-logger.info("Starting imports...")
+# Small delay to let ACI capture logs
+time.sleep(5)
+
+print("LOG: Starting imports...", flush=True)
 
 try:
+    print("LOG: Importing FastAPI...", flush=True)
     from fastapi import FastAPI, Depends, HTTPException, status
-    logger.info("FastAPI imported.")
+    print("LOG: FastAPI imported.", flush=True)
+    
+    print("LOG: Importing OAuth2...", flush=True)
     from fastapi.security import OAuth2PasswordRequestForm
-    logger.info("OAuth2 imported.")
+    print("LOG: OAuth2 imported.", flush=True)
+    
+    print("LOG: Importing app.db...", flush=True)
     from app import db
-    logger.info("app.db imported.")
+    print("LOG: app.db imported.", flush=True)
+    
+    print("LOG: Importing app.crud...", flush=True)
     from app import crud
-    logger.info("app.crud imported.")
+    print("LOG: app.crud imported.", flush=True)
+    
+    print("LOG: Importing app.schemas...", flush=True)
     from app import schemas
-    logger.info("app.schemas imported.")
+    print("LOG: app.schemas imported.", flush=True)
+    
+    print("LOG: Importing app.auth...", flush=True)
     from app import auth
-    logger.info("app.auth imported.")
+    print("LOG: app.auth imported.", flush=True)
 except Exception as e:
-    logger.error("Import error: %s", e, exc_info=True)
+    print(f"ERROR: Import failure: {e}", flush=True)
+    import traceback
+    traceback.print_exc()
     sys.exit(1)
 
 app = FastAPI()
-logger.info("Application object created.")
+print("LOG: Application object created.", flush=True)
 
 @app.on_event("startup")
 async def startup():
-    logger.info("Running database table creation...")
+    print("LOG: Startup event...", flush=True)
     try:
+        print("LOG: Running table creation...", flush=True)
         db.create_tables()
-        logger.info("Database tables created successfully.")
+        print("LOG: Tables created.", flush=True)
     except Exception as e:
-        logger.error("Error creating tables: %s", e, exc_info=True)
-        # We don't raise here yet to see if connection works anyway
+        print(f"ERROR: Table creation failure: {e}", flush=True)
     
-    logger.info("Connecting to database...")
     try:
+        print("LOG: Connecting to database...", flush=True)
         await db.database.connect()
-        logger.info("Connected to database successfully.")
+        print("LOG: Database connected.", flush=True)
     except Exception as e:
-        logger.error("Error connecting to database: %s", e, exc_info=True)
-        # raise e
+        print(f"ERROR: Database connection failure: {e}", flush=True)
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -53,7 +68,7 @@ async def shutdown():
 
 @app.get("/")
 async def read_root():
-    return {"message": "Hello from FastAPI on Azure ACI! The Neural stack is finally stable!"}
+    return {"message": "Hello from FastAPI on Azure ACI!"}
 
 @app.get("/health")
 async def health():
@@ -61,14 +76,7 @@ async def health():
 
 @app.post("/register", response_model=schemas.UserOut)
 async def register(user: schemas.UserCreate):
-    existing = await crud.get_user_by_username(user.username)
-    if existing:
-        raise HTTPException(status_code=400, detail="Username already registered")
-    existing_email = await crud.get_user_by_email(user.email)
-    if existing_email:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    created = await crud.create_user(user.username, user.email, user.password)
-    return {"id": created["id"], "username": created["username"], "email": created["email"]}
+    return await crud.create_user(user.username, user.email, user.password)
 
 @app.post("/token", response_model=schemas.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -90,25 +98,3 @@ async def create_note(note: schemas.NoteCreate, current_user=Depends(auth.get_cu
 @app.get("/notes", response_model=list[schemas.NoteOut])
 async def list_notes(current_user=Depends(auth.get_current_user)):
     return await crud.get_notes_for_user(current_user["id"])
-
-@app.get("/notes/{note_id}", response_model=schemas.NoteOut)
-async def get_note(note_id: int, current_user=Depends(auth.get_current_user)):
-    note = await crud.get_note(note_id)
-    if not note or note["owner_id"] != current_user["id"]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return note
-
-@app.put("/notes/{note_id}", response_model=schemas.NoteOut)
-async def update_note_endpoint(note_id: int, note_in: schemas.NoteCreate, current_user=Depends(auth.get_current_user)):
-    note = await crud.get_note(note_id)
-    if not note or note["owner_id"] != current_user["id"]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    return await crud.update_note(note_id, note_in.title, note_in.content)
-
-@app.delete("/notes/{note_id}")
-async def delete_note_endpoint(note_id: int, current_user=Depends(auth.get_current_user)):
-    note = await crud.get_note(note_id)
-    if not note or note["owner_id"] != current_user["id"]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    await crud.delete_note(note_id)
-    return {"ok": True}
