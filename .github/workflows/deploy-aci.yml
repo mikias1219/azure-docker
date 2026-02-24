@@ -19,11 +19,14 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Substitute image tag to temp container group file
+      - name: Substitute image tag and credentials to temp container group file
         run: |
           IMAGE=selamnew.azurecr.io/fastapi-sample:latest
           mkdir -p aci/tmp
-          sed "s|__IMAGE__|$IMAGE|g" aci/container-group.json > aci/tmp/container-group.json
+          sed -e "s|__IMAGE__|$IMAGE|g" \
+              -e "s|__ACR_USERNAME__|${{ secrets.ACR_USERNAME }}|g" \
+              -e "s|__ACR_PASSWORD__|${{ secrets.ACR_PASSWORD }}|g" \
+              aci/container-group.json > aci/tmp/container-group.json
 
       - name: Ensure ACI group deleted before deploy
         run: |

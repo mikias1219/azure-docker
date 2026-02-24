@@ -1,6 +1,13 @@
 {
   "location": "eastus",
   "properties": {
+    "imageRegistryCredentials": [
+      {
+        "server": "selamnew.azurecr.io",
+        "username": "__ACR_USERNAME__",
+        "password": "__ACR_PASSWORD__"
+      }
+    ],
     "containers": [
       {
         "name": "fastapi-app",
