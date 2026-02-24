@@ -1,29 +1,33 @@
 import sys
-print("Python version:", sys.version)
-print("Starting imports...")
+import logging
+
+# Configure logging to stderr
+logging.basicConfig(level=logging.DEBUG, stream=sys.stderr)
+logger = logging.getLogger(__name__)
+
+logger.info("Python version: %s", sys.version)
+logger.info("Starting imports...")
 
 try:
     from fastapi import FastAPI, Depends, HTTPException, status
-    print("FastAPI imported.")
+    logger.info("FastAPI imported.")
     from fastapi.security import OAuth2PasswordRequestForm
-    print("OAuth2 imported.")
+    logger.info("OAuth2 imported.")
     from app import db
-    print("app.db imported.")
+    logger.info("app.db imported.")
     from app import crud
-    print("app.crud imported.")
+    logger.info("app.crud imported.")
     from app import schemas
-    print("app.schemas imported.")
+    logger.info("app.schemas imported.")
     from app import auth
-    print("app.auth imported.")
+    logger.info("app.auth imported.")
 except Exception as e:
-    print(f"Import error: {e}")
-    import traceback
-    traceback.print_exc()
+    logger.error("Import error: %s", e, exc_info=True)
     sys.exit(1)
 
 app = FastAPI()
 
-print("Application object created.")
+logger.info("Application object created.")
 
 @app.on_event("startup")
 async def startup():
