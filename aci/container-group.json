@@ -28,7 +28,7 @@
       {
         "name": "postgres",
         "properties": {
-          "image": "postgres:15",
+          "image": "selamnew.azurecr.io/postgres:15",
           "resources": {
             "requests": {
               "cpu": 0.5,

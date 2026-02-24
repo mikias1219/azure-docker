@@ -20,7 +20,7 @@ jobs:
       - name: Azure Login (service principal)
         uses: azure/login@v2
         with:
-          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}"}'
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Build and push image using ACR
         run: |
@@ -28,10 +28,13 @@ jobs:
             --image fastapi-sample:latest \
             --image fastapi-sample:${{ github.sha }} .
 
+      - name: Import Postgres into ACR
+        run: |
+          set -euo pipefail
+          echo "Importing postgres:15 into selamnew ACR (idempotent)"
+          az acr import --name selamnew --resource-group AI-102 --source docker.io/library/postgres:15 --image postgres:15 || true
+
       - name: Deploy templated ACI container group (app + postgres)
-        env:
-          ACR_USER: ${{ secrets.ACR_USERNAME }}
-          ACR_PASS: ${{ secrets.ACR_PASSWORD }}
         run: |
           set -euo pipefail
           IMAGE=selamnew.azurecr.io/fastapi-sample:${{ github.sha }}
@@ -41,6 +44,15 @@ jobs:
           echo "Preparing container-group JSON for $IMAGE"
           mkdir -p aci/tmp
           sed "s|__IMAGE__|${IMAGE}|g" aci/container-group.json > aci/tmp/container-group.json
+
+          echo "Fetching ACR admin credentials"
+          ACR_USER=$(az acr credential show --name selamnew --query "username" -o tsv)
+          ACR_PASS=$(az acr credential show --name selamnew --query "passwords[0].value" -o tsv)
+
+          if [ -z "$ACR_USER" ] || [ -z "$ACR_PASS" ]; then
+            echo "Failed to fetch ACR credentials. Ensure admin user is enabled for the registry or set ACR_USERNAME/ACR_PASSWORD secrets."
+            exit 1
+          fi
 
           # If group exists, delete to ensure fresh deployment
           if az container show --resource-group "$RG" --name "$NAME" >/dev/null 2>&1; then
