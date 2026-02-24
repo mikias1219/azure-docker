@@ -25,6 +25,12 @@ jobs:
           mkdir -p aci/tmp
           sed "s|__IMAGE__|$IMAGE|g" aci/container-group.json > aci/tmp/container-group.json
 
+      - name: Ensure ACI group deleted before deploy
+        run: |
+          az container delete --resource-group AI-102 --name fastapi-container-group --yes || true
+          sleep 30
+          az container wait --deleted --name fastapi-container-group --resource-group AI-102 || true
+
       - name: Create or update ACI container group (app + postgres)
         run: |
           az container create \
@@ -34,5 +40,4 @@ jobs:
             --registry-login-server selamnew.azurecr.io \
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
-            --location eastus 
-
+            --location eastus
