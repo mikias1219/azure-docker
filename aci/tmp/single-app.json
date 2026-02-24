@@ -1,0 +1,20 @@
+{
+  "location": "eastus",
+  "properties": {
+    "containers": [
+      {
+        "name": "fastapi-app",
+        "properties": {
+          "image": "selamnew.azurecr.io/fastapi-sample:latest",
+          "resources": {
+            "requests": { "cpu": 1, "memoryInGb": 1.5 }
+          },
+          "ports": [{ "port": 80 }],
+          "environmentVariables": [ { "name": "DATABASE_URL", "value": "postgresql://postgres:postgrespw@127.0.0.1:5432/postgres" } ]
+        }
+      }
+    ],
+    "osType": "Linux",
+    "ipAddress": { "type": "Public", "ports": [{ "protocol": "tcp", "port": 80 }] }
+  }
+}
