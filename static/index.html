@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastAPI Azure Sample</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-gradient"></div>
+    
+    <div class="container">
+        <header>
+            <span class="badge">Azure Container Instances</span>
+            <h1>FastAPI & Cloud</h1>
+            <p class="hero-subtitle">A high-performance boilerplate for Python applications deployed on Azure. Secure, scalable, and ready for production.</p>
+            <div class="actions">
+                <a href="/docs" class="btn btn-primary">API Documentation</a>
+            </div>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h3>Built with FastAPI</h3>
+                <p>Speedy development and high performance with modern Python features. Type checking, auto-docs, and async support out of the box.</p>
+            </div>
+            <div class="card">
+                <h3>Cloud Native</h3>
+                <p>Optimized for Docker and Azure Container Instances. Includes a robust CI/CD pipeline with GitHub Actions for automated deployments.</p>
+            </div>
+            <div class="card">
+                <h3>Secure Auth</h3>
+                <p>JWT-based authentication implemented using OAuth2. Protect your endpoints and manage users with ease.</p>
+            </div>
+            <div class="card" id="status-card">
+                <h3>System Status</h3>
+                <p>Service is currently <span style="color: #4ade80; font-weight: 600;">online</span>. Environment is stable and database is connected.</p>
+                <div id="api-check"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 FastAPI Azure Practice. Built with ❤️ and Antigravity.
+    </footer>
+
+    <script>
+        // Simple health check interaction
+        fetch('/health')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'healthy') {
+                    console.log('Backend is healthy!');
+                }
+            })
+            .catch(err => {
+                const statusSpan = document.querySelector('#status-card span');
+                statusSpan.textContent = 'offline';
+                statusSpan.style.color = '#f87171';
+            });
+    </script>
+</body>
+</html>

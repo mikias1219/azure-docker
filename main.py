@@ -1,5 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 import logging
 import sys
 import time
@@ -10,6 +13,12 @@ logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(levelname)s
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="FastAPI Azure Sample")
+
+# Ensure static directory exists
+os.makedirs("static", exist_ok=True)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.on_event("startup")
 async def startup():
@@ -37,7 +46,7 @@ async def shutdown():
 
 @app.get("/")
 async def read_root():
-    return {"message": "Hello from FastAPI on Azure ACI! The environment is stable."}
+    return FileResponse("static/index.html")
 
 @app.get("/health")
 async def health():

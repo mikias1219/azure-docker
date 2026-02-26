@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+aiofiles==23.2.1
 
 # Database and auth
 databases[postgresql]
