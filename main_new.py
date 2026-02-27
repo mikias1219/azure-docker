@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
@@ -45,9 +44,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Templates
-templates = Jinja2Templates(directory="templates")
 
 # Static files
 app.mount("/_next", StaticFiles(directory="static/_next"), name="next-static")
@@ -125,6 +121,11 @@ async def register_user(user: schemas.UserCreate, db: Session = Depends(get_db))
 
 @app.get("/users/me", response_model=schemas.User)
 async def read_users_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
+
+@app.get("/me", response_model=schemas.User)
+async def read_me(current_user: models.User = Depends(get_current_user)):
+    """Current user (same as /users/me) for frontend compatibility."""
     return current_user
 
 # Document endpoints

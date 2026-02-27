@@ -13,8 +13,8 @@
     <div class="background-gradient"></div>
     
     <div class="container">
-        <!-- Auth Section -->
-        <div id="auth-section" class="auth-container">
+        <!-- Auth Section (hidden until shown by JS to prevent blink) -->
+        <div id="auth-section" class="auth-container" style="display: none;">
             <div class="auth-tabs">
                 <button class="tab-btn active" onclick="showTab('signin')">Sign In</button>
                 <button class="tab-btn" onclick="showTab('register')">Register</button>
@@ -126,8 +126,8 @@
             </div>
         </div>
         
-        <!-- Landing Section (shown when not authenticated) -->
-        <div id="landing-section" class="landing-container">
+        <!-- Landing Section (hidden until shown by JS to prevent blink) -->
+        <div id="landing-section" class="landing-container" style="display: none;">
             <header>
                 <span class="badge">Azure Container Instances</span>
                 <h1>FastAPI & Cloud</h1>
@@ -165,13 +165,26 @@
 
     <script>
         let currentToken = localStorage.getItem('access_token');
-        
-        // Initialize page
+        let documentsLoadStarted = false;
+
+        function showOnly(sectionId) {
+            ['landing-section', 'auth-section', 'dashboard-section'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.style.display = (id === sectionId) ? 'block' : 'none';
+            });
+        }
+
+        // Initialize page once - show one view to prevent blink
         document.addEventListener('DOMContentLoaded', function() {
             if (currentToken) {
-                showDashboard();
+                showOnly('dashboard-section');
+                loadUserInfo();
+                if (!documentsLoadStarted) {
+                    documentsLoadStarted = true;
+                    loadDocuments();
+                }
             } else {
-                showLanding();
+                showOnly('landing-section');
             }
             setupEventListeners();
         });
@@ -219,22 +232,20 @@
         }
         
         function showAuth() {
-            document.getElementById('landing-section').style.display = 'none';
-            document.getElementById('auth-section').style.display = 'block';
+            showOnly('auth-section');
         }
-        
+
         function showLanding() {
-            document.getElementById('landing-section').style.display = 'block';
-            document.getElementById('auth-section').style.display = 'none';
-            document.getElementById('dashboard-section').style.display = 'none';
+            showOnly('landing-section');
         }
-        
+
         function showDashboard() {
-            document.getElementById('landing-section').style.display = 'none';
-            document.getElementById('auth-section').style.display = 'none';
-            document.getElementById('dashboard-section').style.display = 'block';
+            showOnly('dashboard-section');
             loadUserInfo();
-            loadDocuments();
+            if (!documentsLoadStarted) {
+                documentsLoadStarted = true;
+                loadDocuments();
+            }
         }
         
         function showTab(tabName) {
@@ -319,53 +330,62 @@
         async function loadUserInfo() {
             try {
                 const response = await fetch('/me', {
-                    headers: {
-                        'Authorization': `Bearer ${currentToken}`
-                    }
+                    headers: { 'Authorization': 'Bearer ' + currentToken }
                 });
-                
+                if (response.status === 401) {
+                    localStorage.removeItem('access_token');
+                    currentToken = null;
+                    showLanding();
+                    return;
+                }
                 if (response.ok) {
                     const user = await response.json();
-                    document.getElementById('user-name').textContent = user.username;
+                    var el = document.getElementById('user-name');
+                    if (el) el.textContent = user.username;
                 }
             } catch (error) {
                 console.error('Failed to load user info:', error);
             }
         }
-        
+
         async function loadDocuments() {
             try {
                 const response = await fetch('/documents', {
-                    headers: {
-                        'Authorization': `Bearer ${currentToken}`
-                    }
+                    headers: { 'Authorization': 'Bearer ' + currentToken }
                 });
-                
-                if (response.ok) {
-                    const documents = await response.json();
-                    const documentList = document.getElementById('document-list');
-                    
-                    if (documents.length === 0) {
-                        documentList.innerHTML = '<p>No documents yet. Upload your first document above!</p>';
-                    } else {
-                        documentList.innerHTML = documents.map(doc => `
-                            <div class="document-item">
-                                <div class="document-info">
-                                    <h4>${doc.original_filename}</h4>
-                                    <p>Type: ${doc.file_type} | Size: ${formatFileSize(doc.file_size)}</p>
-                                    <p>Uploaded: ${new Date(doc.created_at).toLocaleString()}</p>
-                                </div>
-                                <div class="document-actions">
-                                    <button class="btn btn-secondary" onclick="viewDocument(${doc.id})">View</button>
-                                    <button class="btn btn-secondary" onclick="deleteDocument(${doc.id})">Delete</button>
-                                </div>
-                            </div>
-                        `).join('');
-                    }
+                if (response.status === 401) {
+                    localStorage.removeItem('access_token');
+                    currentToken = null;
+                    showLanding();
+                    return;
+                }
+                if (!response.ok) {
+                    document.getElementById('document-list').innerHTML = '<p>Failed to load documents.</p>';
+                    return;
+                }
+                const documents = await response.json();
+                var documentList = document.getElementById('document-list');
+                if (!documentList) return;
+                if (documents.length === 0) {
+                    documentList.innerHTML = '<p>No documents yet. Upload your first document above!</p>';
+                } else {
+                    documentList.innerHTML = documents.map(function(doc) {
+                        return '<div class="document-item">' +
+                            '<div class="document-info">' +
+                            '<h4>' + (doc.original_filename || '').replace(/</g, '&lt;') + '</h4>' +
+                            '<p>Type: ' + (doc.file_type || '') + ' | Size: ' + formatFileSize(doc.file_size || 0) + '</p>' +
+                            '<p>Uploaded: ' + (doc.created_at ? new Date(doc.created_at).toLocaleString() : '') + '</p>' +
+                            '</div>' +
+                            '<div class="document-actions">' +
+                            '<button class="btn btn-secondary" onclick="viewDocument(' + doc.id + ')">View</button>' +
+                            '<button class="btn btn-secondary" onclick="deleteDocument(' + doc.id + ')">Delete</button>' +
+                            '</div></div>';
+                    }).join('');
                 }
             } catch (error) {
                 console.error('Failed to load documents:', error);
-                document.getElementById('document-list').innerHTML = '<p>Failed to load documents.</p>';
+                var list = document.getElementById('document-list');
+                if (list) list.innerHTML = '<p>Failed to load documents.</p>';
             }
         }
         
@@ -413,19 +433,13 @@
             }
         }
         
-        function showDocumentResults(document) {
-            const resultsSection = document.getElementById('results-section');
-            resultsSection.style.display = 'block';
-            
-            // Show extracted text
-            document.getElementById('extracted-text').innerHTML = `
-                <p>${document.extracted_text || 'No text extracted yet. Analysis in progress...'}</p>
-            `;
-            
-            // Show AI analysis
-            document.getElementById('ai-analysis').innerHTML = `
-                <p>${document.ai_analysis || 'AI analysis not available yet. Processing...'}</p>
-            `;
+        function showDocumentResults(doc) {
+            var resultsSection = document.getElementById('results-section');
+            if (resultsSection) resultsSection.style.display = 'block';
+            var extractedEl = document.getElementById('extracted-text');
+            var analysisEl = document.getElementById('ai-analysis');
+            if (extractedEl) extractedEl.innerHTML = '<p>' + (doc.extracted_text || 'No text extracted yet. Analysis in progress...').replace(/</g, '&lt;') + '</p>';
+            if (analysisEl) analysisEl.innerHTML = '<p>' + (doc.ai_analysis || 'AI analysis not available yet. Processing...').replace(/</g, '&lt;') + '</p>';
         }
         
         async function handleFileUpload(file) {

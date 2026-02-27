@@ -22,13 +22,18 @@ export default function HomePage() {
     }
   }, [isAuthenticated, loading, router, isClient]);
 
-  if (!isClient || loading) {
+  // Always show spinner until navigation completes (never flash blank)
+  if (!isClient || loading || hasRedirectedRef.current) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" aria-hidden="true" />
       </div>
     );
   }
 
-  return null;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" aria-hidden="true" />
+    </div>
+  );
 }
