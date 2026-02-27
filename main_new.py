@@ -50,6 +50,7 @@ app.add_middleware(
 templates = Jinja2Templates(directory="templates")
 
 # Static files
+app.mount("/_next", StaticFiles(directory="static/_next"), name="next-static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Serve frontend
