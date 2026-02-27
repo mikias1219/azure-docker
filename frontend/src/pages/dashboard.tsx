@@ -21,12 +21,11 @@ export default function DashboardPage() {
     setIsClient(true);
   }, []);
 
-  if (!user) {
-    if (isClient) {
+  useEffect(() => {
+    if (isClient && !user) {
       router.push('/login');
     }
-    return null;
-  }
+  }, [user, isClient, router]);
 
   if (!isClient) {
     return (
@@ -34,6 +33,10 @@ export default function DashboardPage() {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   const handleUpload = async (file: File) => {
