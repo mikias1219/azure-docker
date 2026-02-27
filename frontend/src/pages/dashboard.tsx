@@ -23,7 +23,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (isClient && !user) {
-      router.push('/login');
+      router.replace('/login');
     }
   }, [user, isClient, router]);
 
@@ -130,6 +130,7 @@ export default function DashboardPage() {
               documents={documents}
               loading={loading}
               onSelectDocument={setSelectedDocument}
+              onGoToUpload={() => setActiveTab('upload')}
             />
           </div>
         )}

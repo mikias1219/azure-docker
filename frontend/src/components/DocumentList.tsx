@@ -9,9 +9,10 @@ interface DocumentListProps {
   documents: Document[];
   loading: boolean;
   onSelectDocument: (document: Document) => void;
+  onGoToUpload?: () => void;
 }
 
-export function DocumentList({ documents, loading, onSelectDocument }: DocumentListProps) {
+export function DocumentList({ documents, loading, onSelectDocument, onGoToUpload }: DocumentListProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredDocuments = documents.filter((doc) =>
@@ -68,8 +69,8 @@ export function DocumentList({ documents, loading, onSelectDocument }: DocumentL
               ? 'Upload your first document to get started with AI-powered analysis'
               : 'Try adjusting your search terms'}
           </p>
-          {documents.length === 0 && (
-            <Button onClick={() => window.location.href = '/dashboard?tab=upload'}>
+          {documents.length === 0 && onGoToUpload && (
+            <Button onClick={onGoToUpload}>
               Upload Document
             </Button>
           )}

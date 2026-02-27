@@ -28,7 +28,5 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-export interface UploadResponse {
-  message: string;
-  document_id: number;
-}
+/** Upload endpoint returns the created document (DocumentOut) */
+export type UploadResponse = Document;

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Router from 'next/router';
 import { User, Document, AuthResponse, ApiResponse, UploadResponse } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -19,13 +20,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor to handle auth errors
+// Response interceptor: client-side redirect on 401 (no full page reload)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token');
-      window.location.href = '/login';
+      if (typeof window !== 'undefined' && !Router.asPath.startsWith('/login')) {
+        Router.replace('/login');
+      }
     }
     return Promise.reject(error);
   }

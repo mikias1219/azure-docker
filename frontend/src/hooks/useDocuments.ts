@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Document } from '@/types';
 import { documentsApi } from '@/lib/api';
 
@@ -7,18 +7,9 @@ export function useDocuments() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const initialFetchDoneRef = useRef(false);
 
-  useEffect(() => {
-    // Only fetch documents if user is authenticated
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      fetchDocuments();
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true);
       const docs = await documentsApi.getDocuments();
@@ -28,7 +19,33 @@ export function useDocuments() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    if (initialFetchDoneRef.current) return;
+    initialFetchDoneRef.current = true;
+    let cancelled = false;
+    setLoading(true);
+    documentsApi
+      .getDocuments()
+      .then((docs) => {
+        if (!cancelled) setDocuments(docs);
+      })
+      .catch((err) => {
+        if (!cancelled) console.error('Failed to fetch documents:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const uploadDocument = async (file: File) => {
     try {
@@ -38,7 +55,7 @@ export function useDocuments() {
       const response = await documentsApi.upload(file);
       await fetchDocuments();
       
-      return { success: true, documentId: response.document_id };
+      return { success: true, documentId: response.id };
     } catch (error: any) {
       return { 
         success: false, 

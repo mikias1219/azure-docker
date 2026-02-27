@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -6,18 +6,19 @@ export default function HomePage() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
+  const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   useEffect(() => {
-    if (isClient && !loading) {
-      if (isAuthenticated) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
-      }
+    if (!isClient || loading || hasRedirectedRef.current) return;
+    hasRedirectedRef.current = true;
+    if (isAuthenticated) {
+      router.replace('/dashboard');
+    } else {
+      router.replace('/login');
     }
   }, [isAuthenticated, loading, router, isClient]);
 

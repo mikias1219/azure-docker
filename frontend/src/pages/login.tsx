@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
@@ -17,13 +17,13 @@ export default function LoginPage() {
   
   const { login, register, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
+  const hasRedirectedRef = useRef(false);
 
-  // Avoid rendering the login form and navigating during render;
-  // redirect once auth state is known to prevent a visible "blink".
+  // Redirect to dashboard only once when we know user is authenticated (no blink loop).
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      router.replace('/dashboard');
-    }
+    if (authLoading || !isAuthenticated || hasRedirectedRef.current) return;
+    hasRedirectedRef.current = true;
+    router.replace('/dashboard');
   }, [authLoading, isAuthenticated, router]);
 
   if (authLoading || isAuthenticated) {
@@ -45,7 +45,7 @@ export default function LoginPage() {
         if (!result.success) {
           setError(result.error || 'Login failed');
         } else {
-          router.push('/dashboard');
+          router.replace('/dashboard');
         }
       } else {
         const result = await register(username, email, password);
@@ -55,7 +55,7 @@ export default function LoginPage() {
           // After successful registration, log them in
           const loginResult = await login(username, password);
           if (loginResult.success) {
-            router.push('/dashboard');
+            router.replace('/dashboard');
           } else {
             setError('Registration successful but login failed. Please try logging in.');
           }
