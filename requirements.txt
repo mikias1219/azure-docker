@@ -20,3 +20,8 @@ openai
 
 # Environment variables
 python-dotenv
+
+# Additional dependencies
+python-multipart
+jinja2
+aiofiles
