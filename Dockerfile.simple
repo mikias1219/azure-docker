@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+RUN pip install fastapi uvicorn[standard]
+
+# Copy the simple app
+COPY simple_main.py .
+
+# Expose port
+EXPOSE 80
+
+# Run the app
+CMD ["uvicorn", "simple_main:app", "--host", "0.0.0.0", "--port", "80"]

@@ -52,6 +52,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile.simple
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -106,7 +107,7 @@ jobs:
           # Replace placeholders
           data['properties']['imageRegistryCredentials'][0]['username'] = '$ACR_USER'
           data['properties']['imageRegistryCredentials'][0]['password'] = '$ACR_PASS'
-          data['properties']['containers'][0]['properties']['image'] = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest'
+          data['properties']['containers'][0]['properties']['image'] = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:simple'
           data['properties']['ipAddress']['dnsNameLabel'] = '$DNS_LABEL'
           
           # Update environment variables
