@@ -1,0 +1,43 @@
+{
+  "location": "eastus",
+  "properties": {
+    "imageRegistryCredentials": [
+      {
+        "server": "selamnew.azurecr.io",
+        "username": "__ACR_USERNAME__",
+        "password": "__ACR_PASSWORD__"
+      }
+    ],
+    "containers": [
+      {
+        "name": "document-intelligence-app",
+        "properties": {
+          "image": "__IMAGE__",
+          "resources": {
+            "requests": {
+              "cpu": 1,
+              "memoryInGb": 2
+            }
+          },
+          "ports": [
+            {
+              "port": 80
+            }
+          ]
+        }
+      }
+    ],
+    "osType": "Linux",
+    "ipAddress": {
+      "type": "Public",
+      "ports": [
+        {
+          "protocol": "tcp",
+          "port": 80
+        }
+      ],
+      "dnsNameLabel": "__DNS_LABEL__"
+    },
+    "restartPolicy": "OnFailure"
+  }
+}
