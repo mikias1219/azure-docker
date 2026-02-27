@@ -107,7 +107,7 @@ jobs:
           # Replace placeholders
           data['properties']['imageRegistryCredentials'][0]['username'] = '$ACR_USER'
           data['properties']['imageRegistryCredentials'][0]['password'] = '$ACR_PASS'
-          data['properties']['containers'][0]['properties']['image'] = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:full'
+          data['properties']['image'] = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:full'
           data['properties']['ipAddress']['dnsNameLabel'] = '$DNS_LABEL'
           
           # Write updated config

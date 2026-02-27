@@ -21,7 +21,7 @@
           },
           "ports": [
             {
-              "port": 80
+              "port": 8000
             }
           ]
         }
@@ -33,7 +33,7 @@
       "ports": [
         {
           "protocol": "tcp",
-          "port": 80
+          "port": 8000
         }
       ],
       "dnsNameLabel": "__DNS_LABEL__"
