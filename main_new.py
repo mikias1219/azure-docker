@@ -53,11 +53,7 @@ templates = Jinja2Templates(directory="templates")
 app.mount("/_next", StaticFiles(directory="static/_next"), name="next-static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Serve frontend
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return FileResponse("frontend/out/index.html")
-
+# Health check endpoint
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
@@ -241,6 +237,13 @@ async def startup():
 async def shutdown():
     logger.info("Application shutting down")
 
+# Serve frontend - catch all routes for Next.js (must be last)
+@app.get("/{path:path}", response_class=HTMLResponse)
+async def catch_all(request: Request, path: str):
+    # For all non-API routes, serve the Next.js index.html
+    # This enables client-side routing
+    return FileResponse("static/index.html")
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=80)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
