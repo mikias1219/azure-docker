@@ -92,8 +92,8 @@ jobs:
           DNS_LABEL="docint-${{ github.run_number }}-$(date +%s)"
           
           # Get ACR credentials
-          ACR_USER=$(az acr credential show --name selamnew --query "username" -o tsv)
-          ACR_PASS=$(az acr credential show --name selamnew --query "passwords[0].value" -o tsv)
+          ACR_USER=$(az acr credential show --name selamnew --resource-group AI-102 --query "username" -o tsv)
+          ACR_PASS=$(az acr credential show --name selamnew --resource-group AI-102 --query "passwords[0].value" -o tsv)
           
           # Update container group configuration
           python3 << EOF

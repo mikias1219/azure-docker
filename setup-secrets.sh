@@ -13,6 +13,9 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
+REGISTRY="selamnew.azurecr.io"
+ACR_NAME="selamnew"
+ACR_RESOURCE_GROUP="AI-102"
 RESOURCE_GROUP="AI-102"
 LOCATION="eastus"
 SERVICE_PRINCIPAL_NAME="document-intelligence-app"
@@ -78,8 +81,7 @@ create_service_principal() {
     SP_INFO=$(az ad sp create-for-rbac \
         --name "$SERVICE_PRINCIPAL_NAME" \
         --role contributor \
-        --scopes "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP" \
-        --json-output)
+        --scopes "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP")
     
     # Extract credentials
     CLIENT_ID=$(echo $SP_INFO | jq -r '.appId')
@@ -108,8 +110,8 @@ EOF
 get_acr_credentials() {
     log_info "Getting ACR credentials..."
     
-    ACR_USER=$(az acr credential show --name selamnew --query "username" -o tsv)
-    ACR_PASS=$(az acr credential show --name selamnew --query "passwords[0].value" -o tsv)
+    ACR_USER=$(az acr credential show --name $ACR_NAME --resource-group $ACR_RESOURCE_GROUP --query "username" -o tsv)
+    ACR_PASS=$(az acr credential show --name $ACR_NAME --resource-group $ACR_RESOURCE_GROUP --query "passwords[0].value" -o tsv)
     
     log_success "ACR credentials retrieved"
     echo "ACR Username: $ACR_USER"
