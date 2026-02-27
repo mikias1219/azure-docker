@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, Integer, String, Text, ForeignKey
+from sqlalchemy import Table, Column, Integer, String, Text, ForeignKey, DateTime, Float
 from .db import metadata
 
 users = Table(
@@ -17,4 +17,20 @@ notes = Table(
     Column("title", String(200)),
     Column("content", Text),
     Column("owner_id", Integer, ForeignKey("users.id")),
+)
+
+documents = Table(
+    "documents",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("filename", String(255), nullable=False),
+    Column("original_filename", String(255), nullable=False),
+    Column("file_type", String(50), nullable=False),
+    Column("file_size", Integer, nullable=False),
+    Column("extracted_text", Text),
+    Column("ai_analysis", Text),
+    Column("analysis_confidence", Float),
+    Column("owner_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("created_at", DateTime, nullable=False),
+    Column("updated_at", DateTime, nullable=False),
 )

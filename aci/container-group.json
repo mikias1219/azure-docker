@@ -10,13 +10,13 @@
     ],
     "containers": [
       {
-        "name": "fastapi-app",
+        "name": "document-intelligence-app",
         "properties": {
           "image": "__IMAGE__",
           "resources": {
             "requests": {
               "cpu": 1,
-              "memoryInGb": 1.5
+              "memoryInGb": 2
             }
           },
           "ports": [
@@ -25,32 +25,39 @@
             }
           ],
           "environmentVariables": [
-            {  
+            {
               "name": "DATABASE_URL",
-              "value": "postgresql://postgres:postgrespw@localhost:5432/postgres"
+              "value": "sqlite:///./app.db"
+            },
+            {
+              "name": "AZURE_FORM_RECOGNIZER_ENDPOINT",
+              "value": "__AZURE_FORM_RECOGNIZER_ENDPOINT__"
+            },
+            {
+              "name": "AZURE_FORM_RECOGNIZER_KEY",
+              "value": "__AZURE_FORM_RECOGNIZER_KEY__"
+            },
+            {
+              "name": "OPENAI_API_KEY",
+              "value": "__OPENAI_API_KEY__"
+            },
+            {
+              "name": "OPENAI_API_BASE",
+              "value": "__OPENAI_API_BASE__"
+            },
+            {
+              "name": "OPENAI_DEPLOYMENT_NAME",
+              "value": "__OPENAI_DEPLOYMENT_NAME__"
             }
-          ]
-        }
-      },
-      {
-        "name": "postgres",
-        "properties": {
-          "image": "selamnew.azurecr.io/postgres:15",
-          "resources": {
-            "requests": {
-              "cpu": 0.5,
-              "memoryInGb": 1
-            }
-          },
-          "environmentVariables": [
-            { "name": "POSTGRES_USER", "value": "postgres" },
-            { "name": "POSTGRES_PASSWORD", "value": "postgrespw" },
-            { "name": "POSTGRES_DB", "value": "postgres" }
           ],
           "volumeMounts": [
             {
-              "name": "pgdata",
-              "mountPath": "/var/lib/postgresql/data"
+              "name": "app-data",
+              "mountPath": "/app/uploads"
+            },
+            {
+              "name": "app-db",
+              "mountPath": "/app"
             }
           ]
         }
@@ -64,13 +71,23 @@
           "protocol": "tcp",
           "port": 80
         }
-      ]
+      ],
+      "dnsNameLabel": "__DNS_LABEL__"
     },
     "volumes": [
       {
-        "name": "pgdata",
+        "name": "app-data",
+        "azureFile": {
+          "shareName": "app-uploads",
+          "storageAccountName": "__STORAGE_ACCOUNT__",
+          "storageAccountKey": "__STORAGE_KEY__"
+        }
+      },
+      {
+        "name": "app-db",
         "emptyDir": {}
       }
-    ]
+    ],
+    "restartPolicy": "OnFailure"
   }
 }

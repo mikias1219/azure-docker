@@ -11,3 +11,11 @@ passlib[bcrypt]
 python-jose[cryptography]
 python-multipart
 email-validator
+
+# Azure services
+azure-ai-formrecognizer
+azure-identity
+openai
+
+# Environment variables
+python-dotenv

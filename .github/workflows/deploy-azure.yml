@@ -1,0 +1,218 @@
+name: Deploy Document Intelligence App to Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: selamnew.azurecr.io
+  IMAGE_NAME: document-intelligence-app
+  RESOURCE_GROUP: AI-102
+  CONTAINER_NAME: document-intelligence-container
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create Azure Storage Account (if not exists)
+        run: |
+          STORAGE_ACCOUNT="docintstorage$(date +%s)"
+          az storage account create \
+            --name $STORAGE_ACCOUNT \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --location eastus \
+            --sku Standard_LRS \
+            --allow-blob-public-access false \
+            --output none || echo "Storage account might already exist"
+          
+          # Get storage account key
+          STORAGE_KEY=$(az storage account keys list \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --account-name $STORAGE_ACCOUNT \
+            --query "[0].value" -o tsv)
+          
+          # Create file share
+          az storage share create \
+            --name app-uploads \
+            --account-name $STORAGE_ACCOUNT \
+            --quota 10 \
+            --output none || echo "Share might already exist"
+          
+          echo "STORAGE_ACCOUNT=$STORAGE_ACCOUNT" >> $GITHUB_ENV
+          echo "STORAGE_KEY=$STORAGE_KEY" >> $GITHUB_ENV
+
+      - name: Deploy to Azure Container Instances
+        id: deploy
+        run: |
+          # Generate unique DNS label
+          DNS_LABEL="docint-${{ github.run_number }}-$(date +%s)"
+          
+          # Get ACR credentials
+          ACR_USER=$(az acr credential show --name selamnew --query "username" -o tsv)
+          ACR_PASS=$(az acr credential show --name selamnew --query "passwords[0].value" -o tsv)
+          
+          # Update container group configuration
+          python3 << EOF
+          import json
+          import os
+          
+          with open('aci/container-group.json', 'r') as f:
+              data = json.load(f)
+          
+          # Replace placeholders
+          data['properties']['imageRegistryCredentials'][0]['username'] = '$ACR_USER'
+          data['properties']['imageRegistryCredentials'][0]['password'] = '$ACR_PASS'
+          data['properties']['containers'][0]['properties']['image'] = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest'
+          data['properties']['ipAddress']['dnsNameLabel'] = '$DNS_LABEL'
+          
+          # Update environment variables
+          env_vars = data['properties']['containers'][0]['properties']['environmentVariables']
+          for var in env_vars:
+              if var['name'] == 'AZURE_FORM_RECOGNIZER_ENDPOINT':
+                  var['value'] = '${{ secrets.AZURE_FORM_RECOGNIZER_ENDPOINT }}'
+              elif var['name'] == 'AZURE_FORM_RECOGNIZER_KEY':
+                  var['value'] = '${{ secrets.AZURE_FORM_RECOGNIZER_KEY }}'
+              elif var['name'] == 'OPENAI_API_KEY':
+                  var['value'] = '${{ secrets.OPENAI_API_KEY }}'
+              elif var['name'] == 'OPENAI_API_BASE':
+                  var['value'] = '${{ secrets.OPENAI_API_BASE }}'
+              elif var['name'] == 'OPENAI_DEPLOYMENT_NAME':
+                  var['value'] = '${{ secrets.OPENAI_DEPLOYMENT_NAME }}'
+          
+          # Update storage account info
+          data['properties']['volumes'][0]['azureFile']['storageAccountName'] = '$STORAGE_ACCOUNT'
+          data['properties']['volumes'][0]['azureFile']['storageAccountKey'] = '$STORAGE_KEY'
+          
+          # Write updated config
+          with open('aci/container-group-updated.json', 'w') as f:
+              json.dump(data, f, indent=2)
+          EOF
+          
+          # Delete existing container (if exists)
+          az container delete \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.CONTAINER_NAME }} \
+            --yes \
+            --output none || echo "Container doesn't exist yet"
+          
+          # Wait for deletion
+          az container wait \
+            --deleted \
+            --name ${{ env.CONTAINER_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --timeout 300 \
+            --output none || echo "Container was already deleted"
+          
+          # Create new container
+          az container create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --file aci/container-group-updated.json \
+            --name ${{ env.CONTAINER_NAME }} \
+            --location eastus \
+            --dns-name-label $DNS_LABEL
+          
+          # Get container IP and FQDN
+          CONTAINER_IP=$(az container show \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.CONTAINER_NAME }} \
+            --query "ipAddress.ip" -o tsv)
+          
+          CONTAINER_FQDN=$(az container show \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.CONTAINER_NAME }} \
+            --query "ipAddress.fqdn" -o tsv)
+          
+          echo "Container deployed successfully!"
+          echo "IP Address: $CONTAINER_IP"
+          echo "FQDN: $CONTAINER_FQDN"
+          echo "DNS Label: $DNS_LABEL"
+          
+          # Save to GitHub outputs
+          echo "container_ip=$CONTAINER_IP" >> $GITHUB_OUTPUT
+          echo "container_fqdn=$CONTAINER_FQDN" >> $GITHUB_OUTPUT
+          echo "dns_label=$DNS_LABEL" >> $GITHUB_OUTPUT
+
+      - name: Create Static IP Reservation (for future use)
+        id: static-ip
+        run: |
+          # Create a public IP address that can be reused
+          IP_NAME="docint-static-ip"
+          
+          az network public-ip create \
+            --name $IP_NAME \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --location eastus \
+            --allocation-method Static \
+            --sku Standard \
+            --output none || echo "Public IP might already exist"
+          
+          STATIC_IP=$(az network public-ip show \
+            --name $IP_NAME \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "ipAddress" -o tsv)
+          
+          echo "Static IP reserved: $STATIC_IP"
+          echo "static_ip=$STATIC_IP" >> $GITHUB_OUTPUT
+
+      - name: Deployment Summary
+        run: |
+          echo "🎉 Deployment completed successfully!"
+          echo ""
+          echo "📋 Deployment Details:"
+          echo "  • Container Name: ${{ env.CONTAINER_NAME }}"
+          echo "  • Resource Group: ${{ env.RESOURCE_GROUP }}"
+          echo "  • IP Address: ${{ steps.deploy.outputs.container_ip }}"
+          echo "  • FQDN: ${{ steps.deploy.outputs.container_fqdn }}"
+          echo "  • DNS Label: ${{ steps.deploy.outputs.dns_label }}"
+          echo "  • Static IP Reserved: ${{ steps.static-ip.outputs.static_ip }}"
+          echo ""
+          echo "🔗 Access your app at: http://${{ steps.deploy.outputs.container_fqdn }}"
+          echo ""
+          echo "📝 Notes:"
+          echo "  • The app will be available within 1-2 minutes"
+          echo "  • Static IP is reserved for future use"
+          echo "  • All environment variables are securely configured"
