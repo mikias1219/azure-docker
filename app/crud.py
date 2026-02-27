@@ -1,120 +1,63 @@
-from .models import users, notes, documents
-from .db import database
-from passlib.context import CryptContext
-from sqlalchemy import select
+from sqlalchemy.orm import Session
+from app import models, schemas
 from datetime import datetime
-import uuid
-import os
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# User CRUD operations
+async def get_user(db: Session, user_id: int):
+    return db.query(models.User).filter(models.User.id == user_id).first()
 
+async def get_user_by_username(db: Session, username: str):
+    return db.query(models.User).filter(models.User.username == username).first()
 
-async def get_user_by_username(username: str):
-    query = users.select().where(users.c.username == username)
-    return await database.fetch_one(query)
+async def get_user_by_email(db: Session, email: str):
+    return db.query(models.User).filter(models.User.email == email).first()
 
-
-async def get_user_by_email(email: str):
-    query = users.select().where(users.c.email == email)
-    return await database.fetch_one(query)
-
-
-async def create_user(username: str, email: str, password: str):
-    hashed = pwd_context.hash(password)
-    query = users.insert().values(username=username, email=email, hashed_password=hashed)
-    user_id = await database.execute(query)
-    return {"id": user_id, "username": username, "email": email}
-
-
-async def authenticate_user(username: str, password: str):
-    user = await get_user_by_username(username)
-    if not user:
-        return None
-    if not pwd_context.verify(password, user["hashed_password"]):
-        return None
-    return user
-
-
-async def create_note_for_user(owner_id: int, title: str, content: str):
-    query = notes.insert().values(title=title, content=content, owner_id=owner_id)
-    note_id = await database.execute(query)
-    return {"id": note_id, "title": title, "content": content, "owner_id": owner_id}
-
-
-async def get_notes_for_user(owner_id: int):
-    query = notes.select().where(notes.c.owner_id == owner_id)
-    return await database.fetch_all(query)
-
-
-async def get_note(note_id: int):
-    query = notes.select().where(notes.c.id == note_id)
-    return await database.fetch_one(query)
-
-
-async def update_note(note_id: int, title: str, content: str):
-    query = notes.update().where(notes.c.id == note_id).values(title=title, content=content)
-    await database.execute(query)
-    return await get_note(note_id)
-
-
-async def delete_note(note_id: int):
-    query = notes.delete().where(notes.c.id == note_id)
-    await database.execute(query)
-    return True
-
-
-async def create_document_for_user(owner_id: int, original_filename: str, file_type: str, file_size: int):
-    # Generate unique filename
-    file_extension = os.path.splitext(original_filename)[1]
-    unique_filename = f"{uuid.uuid4()}{file_extension}"
-    
-    now = datetime.utcnow()
-    query = documents.insert().values(
-        filename=unique_filename,
-        original_filename=original_filename,
-        file_type=file_type,
-        file_size=file_size,
-        owner_id=owner_id,
-        created_at=now,
-        updated_at=now
+async def create_user(db: Session, user: schemas.UserCreate, hashed_password: str):
+    db_user = models.User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password,
+        is_active=True,
+        created_at=datetime.utcnow()
     )
-    doc_id = await database.execute(query)
-    
-    return {
-        "id": doc_id,
-        "filename": unique_filename,
-        "original_filename": original_filename,
-        "file_type": file_type,
-        "file_size": file_size,
-        "owner_id": owner_id,
-        "created_at": now,
-        "updated_at": now
-    }
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
-
-async def get_documents_for_user(owner_id: int):
-    query = documents.select().where(documents.c.owner_id == owner_id).order_by(documents.c.created_at.desc())
-    return await database.fetch_all(query)
-
-
-async def get_document(document_id: int):
-    query = documents.select().where(documents.c.id == document_id)
-    return await database.fetch_one(query)
-
-
-async def update_document_analysis(document_id: int, extracted_text: str, ai_analysis: str, confidence: float):
-    now = datetime.utcnow()
-    query = documents.update().where(documents.c.id == document_id).values(
-        extracted_text=extracted_text,
-        ai_analysis=ai_analysis,
-        analysis_confidence=confidence,
-        updated_at=now
+# Document CRUD operations
+async def create_document(db: Session, document: schemas.DocumentCreate, user_id: int):
+    db_document = models.Document(
+        **document.dict(),
+        owner_id=user_id,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
     )
-    await database.execute(query)
-    return await get_document(document_id)
+    db.add(db_document)
+    db.commit()
+    db.refresh(db_document)
+    return db_document
 
+async def get_document(db: Session, document_id: int):
+    return db.query(models.Document).filter(models.Document.id == document_id).first()
 
-async def delete_document(document_id: int):
-    query = documents.delete().where(documents.c.id == document_id)
-    await database.execute(query)
-    return True
+async def get_user_documents(db: Session, user_id: int):
+    return db.query(models.Document).filter(models.Document.owner_id == user_id).all()
+
+async def update_document_analysis(db: Session, document_id: int, extracted_text: str, ai_analysis: str, confidence: float):
+    db_document = db.query(models.Document).filter(models.Document.id == document_id).first()
+    if db_document:
+        db_document.extracted_text = extracted_text
+        db_document.ai_analysis = ai_analysis
+        db_document.analysis_confidence = confidence
+        db_document.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(db_document)
+    return db_document
+
+async def delete_document(db: Session, document_id: int):
+    db_document = db.query(models.Document).filter(models.Document.id == document_id).first()
+    if db_document:
+        db.delete(db_document)
+        db.commit()
+    return db_document

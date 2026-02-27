@@ -1,36 +1,37 @@
-from sqlalchemy import Table, Column, Integer, String, Text, ForeignKey, DateTime, Float
-from .db import metadata
+from sqlalchemy import Column, Integer, String, DateTime, Float, Text, ForeignKey, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from datetime import datetime
 
-users = Table(
-    "users",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("username", String(50), unique=True, nullable=False),
-    Column("email", String(120), unique=True, nullable=False),
-    Column("hashed_password", String(128), nullable=False),
-)
+Base = declarative_base()
 
-notes = Table(
-    "notes",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("title", String(200)),
-    Column("content", Text),
-    Column("owner_id", Integer, ForeignKey("users.id")),
-)
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    documents = relationship("Document", back_populates="owner")
 
-documents = Table(
-    "documents",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("filename", String(255), nullable=False),
-    Column("original_filename", String(255), nullable=False),
-    Column("file_type", String(50), nullable=False),
-    Column("file_size", Integer, nullable=False),
-    Column("extracted_text", Text),
-    Column("ai_analysis", Text),
-    Column("analysis_confidence", Float),
-    Column("owner_id", Integer, ForeignKey("users.id"), nullable=False),
-    Column("created_at", DateTime, nullable=False),
-    Column("updated_at", DateTime, nullable=False),
-)
+class Document(Base):
+    __tablename__ = "documents"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String, index=True)
+    original_filename = Column(String)
+    file_type = Column(String)
+    file_size = Column(Integer)
+    extracted_text = Column(Text, nullable=True)
+    ai_analysis = Column(Text, nullable=True)
+    analysis_confidence = Column(Float, nullable=True)
+    owner_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    owner = relationship("User", back_populates="documents")
+
+metadata = Base.metadata
