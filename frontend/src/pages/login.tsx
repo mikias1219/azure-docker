@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
@@ -15,12 +15,23 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login, register, isAuthenticated } = useAuth();
+  const { login, register, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  if (isAuthenticated) {
-    router.push('/dashboard');
-    return null;
+  // Avoid rendering the login form and navigating during render;
+  // redirect once auth state is known to prevent a visible "blink".
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.replace('/dashboard');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -13,35 +13,50 @@ export function useAuth() {
 
   useEffect(() => {
     if (!isClient) return;
-    
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      // Parse JWT to get user info without API call
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUser({ 
-          id: payload.sub || 1, 
-          username: payload.sub || 'user', 
-          email: payload.email || 'user@example.com' 
-        });
-      } catch (error) {
-        // If token is invalid, remove it
-        localStorage.removeItem('access_token');
+
+    const initAuth = async () => {
+      const token = localStorage.getItem('access_token');
+
+      if (!token) {
+        setLoading(false);
+        return;
       }
-    }
-    setLoading(false);
+
+      try {
+        // Validate token and fetch real user info from backend
+        const me = await authApi.getCurrentUser();
+        setUser(me);
+      } catch {
+        // If token is invalid/expired, clear it
+        localStorage.removeItem('access_token');
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void initAuth();
   }, [isClient]);
 
   const login = async (username: string, password: string) => {
     try {
       const response = await authApi.login(username, password);
       localStorage.setItem('access_token', response.access_token);
-      setUser({ id: 1, username, email: `${username}@example.com` });
+
+      // After login, try to load the real user
+      try {
+        const me = await authApi.getCurrentUser();
+        setUser(me);
+      } catch {
+        // Fallback if /me fails immediately after login
+        setUser({ id: 1, username, email: `${username}@example.com` });
+      }
+
       return { success: true };
     } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Login failed' 
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Login failed',
       };
     }
   };
@@ -51,9 +66,9 @@ export function useAuth() {
       await authApi.register(username, email, password);
       return { success: true };
     } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Registration failed' 
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Registration failed',
       };
     }
   };
