@@ -4,12 +4,18 @@ import { documentsApi } from '@/lib/api';
 
 export function useDocuments() {
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
-    fetchDocuments();
+    // Only fetch documents if user is authenticated
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      fetchDocuments();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const fetchDocuments = async () => {

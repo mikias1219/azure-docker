@@ -16,12 +16,20 @@ export function useAuth() {
     
     const token = localStorage.getItem('access_token');
     if (token) {
-      // For now, just set authenticated without API call to reduce blinking
-      setUser({ id: 1, username: 'user', email: 'user@example.com' });
-      setLoading(false);
-    } else {
-      setLoading(false);
+      // Parse JWT to get user info without API call
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUser({ 
+          id: payload.sub || 1, 
+          username: payload.sub || 'user', 
+          email: payload.email || 'user@example.com' 
+        });
+      } catch (error) {
+        // If token is invalid, remove it
+        localStorage.removeItem('access_token');
+      }
     }
+    setLoading(false);
   }, [isClient]);
 
   const login = async (username: string, password: string) => {
