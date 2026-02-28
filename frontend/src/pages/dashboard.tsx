@@ -11,11 +11,17 @@ import { Upload, FileText, LogOut, Brain, Search } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, logout, loading: authLoading } = useAuth();
-  const { documents, loading, uploadDocument } = useDocuments();
+  const { documents, loading, uploadDocument, getDocument, fetchDocuments } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'upload' | 'documents' | 'analysis'>('upload');
   const [isClient, setIsClient] = useState(false);
+
+  const handleRefreshDocument = async () => {
+    const list = await fetchDocuments();
+    const doc = list.find((d) => d.id === selectedDocument?.id);
+    if (doc) setSelectedDocument(doc);
+  };
 
   useEffect(() => {
     setIsClient(true);
@@ -31,8 +37,8 @@ export default function DashboardPage() {
 
   if (!isClient || authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-200 border-t-primary-600"></div>
       </div>
     );
   }
@@ -46,7 +52,7 @@ export default function DashboardPage() {
     if (result.success) {
       setActiveTab('documents');
     }
-    return result;
+    return { success: result.success, error: result.error, documentId: result.documentId };
   };
 
   const tabs = [
@@ -56,22 +62,23 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-slate-50">
+      <header className="bg-white/80 backdrop-blur border-b border-slate-200/80 shadow-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Brain className="w-8 h-8 text-primary-600 mr-3" />
-              <h1 className="text-xl font-bold text-gray-900">Document Intelligence</h1>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary-500 flex items-center justify-center text-white shadow-soft">
+                <Brain className="w-5 h-5" />
+              </div>
+              <h1 className="text-xl font-bold text-slate-900">Document Intelligence</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">Welcome, {user.username}</span>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-slate-600">Welcome, {user.username}</span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={logout}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 border-slate-200 hover:bg-slate-50"
               >
                 <LogOut className="w-4 h-4" />
                 Logout
@@ -81,23 +88,22 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Navigation Tabs */}
-      <div className="bg-white border-b">
+      <div className="bg-white border-b border-slate-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
+          <nav className="flex gap-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center px-1 py-4 border-b-2 text-sm font-medium ${
+                  className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium rounded-t-lg transition-colors ${
                     activeTab === tab.id
-                      ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'bg-slate-100 text-primary-600 border-b-2 border-primary-500 -mb-px'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <Icon className="w-4 h-4 mr-2" />
+                  <Icon className="w-4 h-4" />
                   {tab.label}
                 </button>
               );
@@ -106,26 +112,25 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'upload' && (
           <div className="animate-fade-in">
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload Document</h2>
-              <p className="text-gray-600">
-                Upload your documents for AI-powered analysis and text extraction
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Upload Document</h2>
+              <p className="text-slate-600">
+                Upload for AI-powered extraction and analysis. Steps run automatically.
               </p>
             </div>
-            <DocumentUpload onUpload={handleUpload} />
+            <DocumentUpload onUpload={handleUpload} getDocument={getDocument} />
           </div>
         )}
 
         {activeTab === 'documents' && (
           <div className="animate-fade-in">
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Documents</h2>
-              <p className="text-gray-600">
-                View and manage your uploaded documents
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Your Documents</h2>
+              <p className="text-slate-600">
+                Search and manage your documents
               </p>
             </div>
             <DocumentList
@@ -140,26 +145,22 @@ export default function DashboardPage() {
         {activeTab === 'analysis' && (
           <div className="animate-fade-in">
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Document Analysis</h2>
-              <p className="text-gray-600">
-                AI-powered insights and extracted information from your documents
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Document Analysis</h2>
+              <p className="text-slate-600">
+                View insights and ask questions about the selected document
               </p>
             </div>
             {selectedDocument ? (
-              <DocumentViewer document={selectedDocument} />
+              <DocumentViewer document={selectedDocument} onRefresh={handleRefreshDocument} />
             ) : (
-              <Card>
+              <Card className="border-slate-200/80 shadow-soft">
                 <CardContent className="text-center py-12">
-                  <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No Document Selected
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Select a document from the Documents tab to view its analysis
+                  <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">No document selected</h3>
+                  <p className="text-slate-600 mb-4">
+                    Select a document from the Documents tab to view analysis and Q&A
                   </p>
-                  <Button onClick={() => setActiveTab('documents')}>
-                    Go to Documents
-                  </Button>
+                  <Button onClick={() => setActiveTab('documents')}>Go to Documents</Button>
                 </CardContent>
               </Card>
             )}

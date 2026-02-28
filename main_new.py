@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Longer expiry so credentials survive app rebuilds/redeploys (same origin keeps token in localStorage)
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 # Database
 from app.db import engine, Base, get_db
@@ -196,6 +197,32 @@ async def delete_document(
     
     await crud.delete_document(db, document_id)
     return {"message": "Document deleted successfully"}
+
+
+@app.post("/documents/search", response_model=List[schemas.Document])
+async def search_documents(
+    body: schemas.SearchQuery,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Search current user's documents by keyword (filename, extracted text, AI analysis)."""
+    return await crud.search_documents(db, current_user.id, body.query or "")
+
+
+@app.post("/documents/{document_id}/ask", response_model=schemas.AskResponse)
+async def ask_document(
+    document_id: int,
+    body: schemas.AskRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Answer a question about the document using AI (Q&A over document content)."""
+    document = await crud.get_document(db, document_id)
+    if not document or document.owner_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Document not found")
+    text = (document.extracted_text or "").strip()
+    answer = await document_intelligence.answer_question(text, body.question or "")
+    return schemas.AskResponse(answer=answer)
 
 async def process_document(document_id: int, file_path: Path, db: Session):
     """

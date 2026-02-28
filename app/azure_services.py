@@ -137,6 +137,39 @@ class AzureDocumentIntelligence:
         except Exception as e:
             logger.error("Error generating AI analysis with Azure OpenAI: %s", e)
             return self.generate_basic_analysis(extracted_text)
+
+    async def answer_question(self, extracted_text: str, question: str) -> Optional[str]:
+        """Answer a question about the document using Azure OpenAI (Q&A over document)."""
+        if not extracted_text or not question or not question.strip():
+            return "No document text or question provided."
+        if not self.openai_client or not self.openai_deployment:
+            return "Q&A is not available (Azure OpenAI not configured). Answer questions by reading the extracted text and analysis above."
+        try:
+            context = extracted_text[:8000]
+            prompt = (
+                "Answer the following question based ONLY on the document text below. "
+                "If the answer is not in the document, say so. Be concise.\n\n"
+                f"Document text:\n{context}\n\n"
+                f"Question: {question.strip()}\n\n"
+                "Answer:"
+            )
+            response = self.openai_client.chat.completions.create(
+                model=self.openai_deployment,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You answer questions about documents using only the provided text. Be accurate and concise.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.1,
+                max_tokens=500,
+            )
+            content = response.choices[0].message.content if response.choices else None
+            return content or "No answer could be generated."
+        except Exception as e:
+            logger.error("Error in document Q&A: %s", e)
+            return f"Error generating answer: {str(e)}"
     
     def generate_basic_analysis(self, text: str) -> str:
         """Generate a basic analysis without AI model calls"""

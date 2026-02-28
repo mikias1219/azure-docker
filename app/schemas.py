@@ -50,3 +50,15 @@ class DocumentUpdate(BaseModel):
     extracted_text: Optional[str] = None
     ai_analysis: Optional[str] = None
     analysis_confidence: Optional[float] = None
+
+
+class SearchQuery(BaseModel):
+    query: str = ""
+
+
+class AskRequest(BaseModel):
+    question: str
+
+
+class AskResponse(BaseModel):
+    answer: str

@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app import models, schemas
 from datetime import datetime
 
@@ -78,3 +79,28 @@ async def delete_document(db: Session, document_id: int):
         db.delete(db_document)
         db.commit()
     return db_document
+
+
+async def search_documents(db: Session, user_id: int, query: str):
+    """Search current user's documents by keyword in filename, extracted text, or AI analysis."""
+    if not query or not query.strip():
+        return await get_user_documents(db, user_id)
+    q = f"%{query.strip()}%"
+    docs = (
+        db.query(models.Document)
+        .filter(models.Document.owner_id == user_id)
+        .filter(
+            or_(
+                models.Document.original_filename.ilike(q),
+                models.Document.extracted_text.ilike(q),
+                models.Document.ai_analysis.ilike(q),
+            )
+        )
+        .all()
+    )
+    for doc in docs:
+        if doc.created_at:
+            doc.created_at = doc.created_at.isoformat()
+        if doc.updated_at:
+            doc.updated_at = doc.updated_at.isoformat()
+    return docs

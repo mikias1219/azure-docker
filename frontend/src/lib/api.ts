@@ -20,7 +20,9 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor: client-side redirect on 401 (no full page reload)
+// Response interceptor: clear token and redirect only on 401.
+// We do NOT clear token on network errors or 5xx, so user credentials persist
+// across app rebuilds/redeploys when the same origin is used.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -94,6 +96,18 @@ export const documentsApi = {
 
   deleteDocument: async (id: number): Promise<void> => {
     await api.delete(`/documents/${id}`);
+  },
+
+  searchDocuments: async (query: string): Promise<Document[]> => {
+    const response = await api.post<Document[]>('/documents/search', { query });
+    return response.data;
+  },
+
+  askDocument: async (documentId: number, question: string): Promise<{ answer: string }> => {
+    const response = await api.post<{ answer: string }>(`/documents/${documentId}/ask`, {
+      question,
+    });
+    return response.data;
   },
 };
 

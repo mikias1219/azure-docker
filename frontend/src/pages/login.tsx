@@ -28,8 +28,8 @@ export default function LoginPage() {
 
   if (authLoading || isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-200 border-t-primary-600" />
       </div>
     );
   }
@@ -69,28 +69,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 animate-fade-in">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Document Intelligence
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            AI-powered document analysis platform
-          </p>
+          <h2 className="mt-6 text-3xl font-bold text-slate-900">Document Intelligence</h2>
+          <p className="mt-2 text-sm text-slate-600">AI-powered document analysis</p>
         </div>
 
-        <Card>
+        <Card className="border-slate-200/80 shadow-soft overflow-hidden">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {isLogin ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
-              {isLogin ? 'Sign in to your account' : 'Create your account'}
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              {isLogin ? <LogIn className="w-5 h-5 text-primary-500" /> : <UserPlus className="w-5 h-5 text-primary-500" />}
+              {isLogin ? 'Sign in' : 'Create account'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
@@ -104,7 +100,8 @@ export default function LoginPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    placeholder="Enter your username"
+                    placeholder="Username"
+                    className="rounded-lg border-slate-300"
                   />
                 </div>
 
@@ -117,7 +114,8 @@ export default function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      placeholder="Enter your email"
+                      placeholder="Email"
+                      className="rounded-lg border-slate-300"
                     />
                   </div>
                 )}
@@ -130,31 +128,23 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    placeholder="Enter your password"
+                    placeholder="Password"
+                    className="rounded-lg border-slate-300"
                   />
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading}
-              >
-                {loading ? 'Please wait...' : (isLogin ? 'Sign in' : 'Sign up')}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Please wait…' : isLogin ? 'Sign in' : 'Sign up'}
               </Button>
 
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsLogin(!isLogin);
-                    setError('');
-                  }}
-                  className="text-primary-600 hover:text-primary-500 text-sm"
+                  onClick={() => { setIsLogin(!isLogin); setError(''); }}
+                  className="text-primary-600 hover:text-primary-500 text-sm font-medium"
                 >
-                  {isLogin
-                    ? "Don't have an account? Sign up"
-                    : "Already have an account? Sign in"}
+                  {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
                 </button>
               </div>
             </form>

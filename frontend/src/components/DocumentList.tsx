@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Document } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
-import { FileText, Calendar, Trash2, Eye, Search } from 'lucide-react';
+import { FileText, Calendar, Trash2, Eye, Search, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { documentsApi } from '@/lib/api';
 
 interface DocumentListProps {
   documents: Document[];
@@ -12,12 +13,41 @@ interface DocumentListProps {
   onGoToUpload?: () => void;
 }
 
+const SEARCH_DEBOUNCE_MS = 400;
+
 export function DocumentList({ documents, loading, onSelectDocument, onGoToUpload }: DocumentListProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [serverResults, setServerResults] = useState<Document[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filteredDocuments = documents.filter((doc) =>
-    doc.original_filename.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setServerResults(null);
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      setSearchLoading(true);
+      documentsApi
+        .searchDocuments(searchTerm.trim())
+        .then(setServerResults)
+        .catch(() => setServerResults([]))
+        .finally(() => setSearchLoading(false));
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchTerm]);
+
+  const effectiveList =
+    searchTerm.trim() && serverResults !== null
+      ? serverResults
+      : documents.filter((doc) =>
+          doc.original_filename.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+  const isServerSearch = searchTerm.trim() && serverResults !== null;
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -34,18 +64,18 @@ export function DocumentList({ documents, loading, onSelectDocument, onGoToUploa
     return '📄';
   };
 
-  if (loading) {
+  if (loading && documents.length === 0) {
     return (
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
-          <Card key={i}>
+          <Card key={i} className="border-slate-200/80">
             <CardContent className="p-6">
               <div className="animate-pulse space-y-4">
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gray-200 rounded"></div>
+                  <div className="w-12 h-12 bg-slate-200 rounded-xl" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-slate-200 rounded w-3/4" />
+                    <div className="h-3 bg-slate-200 rounded w-1/2" />
                   </div>
                 </div>
               </div>
@@ -53,102 +83,100 @@ export function DocumentList({ documents, loading, onSelectDocument, onGoToUploa
           </Card>
         ))}
       </div>
-    );
-  }
-
-  if (filteredDocuments.length === 0) {
-    return (
-      <Card>
-        <CardContent className="text-center py-12">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {documents.length === 0 ? 'No documents yet' : 'No documents found'}
-          </h3>
-          <p className="text-gray-600 mb-4">
-            {documents.length === 0
-              ? 'Upload your first document to get started with AI-powered analysis'
-              : 'Try adjusting your search terms'}
-          </p>
-          {documents.length === 0 && onGoToUpload && (
-            <Button onClick={onGoToUpload}>
-              Upload Document
-            </Button>
-          )}
-        </CardContent>
-      </Card>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input
           type="text"
-          placeholder="Search documents..."
+          placeholder="Search by name or content..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
         />
+        {searchLoading && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-500 animate-spin" />
+        )}
       </div>
+      {isServerSearch && (
+        <p className="text-xs text-slate-500">
+          Showing results from document content and analysis
+        </p>
+      )}
 
-      {/* Document List */}
-      <div className="space-y-4">
-        {filteredDocuments.map((document) => (
-          <Card key={document.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4 flex-1">
-                  <div className="text-2xl">
-                    {getFileIcon(document.file_type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-medium text-gray-900 truncate">
-                      {document.original_filename}
-                    </h3>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                      <span>{formatFileSize(document.file_size)}</span>
-                      <span>•</span>
-                      <span className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {formatDistanceToNow(new Date(document.created_at), {
-                          addSuffix: true,
-                        })}
-                      </span>
+      {effectiveList.length === 0 && (
+        <Card className="border-slate-200/80 shadow-soft">
+          <CardContent className="text-center py-12">
+            <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-900 mb-2">
+              {documents.length === 0 ? 'No documents yet' : 'No documents found'}
+            </h3>
+            <p className="text-slate-600 mb-4">
+              {documents.length === 0
+                ? 'Upload your first document to get started'
+                : 'Try a different search or clear the search box'}
+            </p>
+            {documents.length === 0 && onGoToUpload && (
+              <Button onClick={onGoToUpload}>Upload document</Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {effectiveList.length > 0 && (
+        <div className="space-y-4">
+          {effectiveList.map((document) => (
+            <Card
+              key={document.id}
+              className="border-slate-200/80 shadow-soft hover:shadow-md transition-all duration-200"
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <div className="text-2xl shrink-0">{getFileIcon(document.file_type)}</div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-medium text-slate-900 truncate">
+                        {document.original_filename}
+                      </h3>
+                      <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 mt-1">
+                        <span>{formatFileSize(document.file_size)}</span>
+                        <span className="flex items-center">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          {formatDistanceToNow(new Date(document.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {document.extracted_text && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                            Text extracted
+                          </span>
+                        )}
+                        {document.ai_analysis && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
+                            AI analysis
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {document.extracted_text && (
-                      <div className="mt-2">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Text Extracted
-                        </span>
-                      </div>
-                    )}
-                    {document.ai_analysis && (
-                      <div className="mt-2">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          AI Analysis Complete
-                        </span>
-                      </div>
-                    )}
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => onSelectDocument(document)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 shrink-0 border-slate-200"
                   >
                     <Eye className="w-4 h-4" />
                     View
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

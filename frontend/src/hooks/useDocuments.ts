@@ -9,13 +9,15 @@ export function useDocuments() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const initialFetchDoneRef = useRef(false);
 
-  const fetchDocuments = useCallback(async () => {
+  const fetchDocuments = useCallback(async (): Promise<Document[]> => {
     try {
       setLoading(true);
       const docs = await documentsApi.getDocuments();
       setDocuments(docs);
+      return docs;
     } catch (error) {
       console.error('Failed to fetch documents:', error);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -55,7 +57,7 @@ export function useDocuments() {
       const response = await documentsApi.upload(file);
       await fetchDocuments();
       
-      return { success: true, documentId: response.id };
+      return { success: true, documentId: response.document_id };
     } catch (error: any) {
       return { 
         success: false, 
@@ -77,6 +79,10 @@ export function useDocuments() {
     }
   };
 
+  const getDocument = useCallback(async (id: number) => {
+    return documentsApi.getDocument(id);
+  }, []);
+
   return {
     documents,
     loading,
@@ -85,5 +91,6 @@ export function useDocuments() {
     fetchDocuments,
     uploadDocument,
     deleteDocument,
+    getDocument,
   };
 }
