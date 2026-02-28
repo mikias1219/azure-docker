@@ -1,5 +1,9 @@
 node_modules
 
+# Next.js build outputs (must not be committed)
+frontend/.next/
+frontend/out/
+
 # Environment variables
 .env
 .env.local

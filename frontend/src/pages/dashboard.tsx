@@ -10,7 +10,7 @@ import { DocumentViewer } from '@/components/DocumentViewer';
 import { Upload, FileText, LogOut, Brain, Search } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const { documents, loading, uploadDocument } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
@@ -22,12 +22,14 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (isClient && !user) {
+    // Important: don't redirect until auth loading has finished,
+    // otherwise we bounce dashboard -> login -> dashboard repeatedly ("blinking").
+    if (isClient && !authLoading && !user) {
       router.replace('/login');
     }
-  }, [user, isClient, router]);
+  }, [user, authLoading, isClient, router]);
 
-  if (!isClient) {
+  if (!isClient || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>

@@ -69,6 +69,11 @@ build/
 dist/
 *.egg-info/
 
+# Next.js build outputs
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+
 # Temporary files
 *.tmp
 *.temp
