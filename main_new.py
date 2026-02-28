@@ -26,6 +26,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 from app.db import engine, Base, get_db
 from app.models import metadata
 from app import crud, models, schemas
+from app.azure_services import document_intelligence
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -128,42 +129,42 @@ async def read_me(current_user: models.User = Depends(get_current_user)):
     """Current user (same as /users/me) for frontend compatibility."""
     return current_user
 
-# Document endpoints
 @app.post("/upload")
 async def upload_document(
     file: UploadFile = File(...),
     current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
+    """
+    Upload a document for the current user, persist it, and kick off AI processing.
+    """
     try:
-        # Create uploads directory if it doesn't exist
         uploads_dir = Path("uploads")
         uploads_dir.mkdir(exist_ok=True)
-        
-        # Save file
+
         file_content = await file.read()
-        file_path = uploads_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-        
+        safe_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
+        file_path = uploads_dir / safe_name
+
         with open(file_path, "wb") as f:
             f.write(file_content)
-        
-        # Create document record
+
         document = await crud.create_document(
             db=db,
             document=schemas.DocumentCreate(
                 filename=file_path.name,
                 original_filename=file.filename,
                 file_type=file.content_type or "application/octet-stream",
-                file_size=len(file_content)
+                file_size=len(file_content),
             ),
-            user_id=current_user.id
+            user_id=current_user.id,
         )
-        
-        # Trigger async processing (in a real app, you'd use a background task)
+
+        # Kick off background processing with Azure Document Intelligence + Azure OpenAI
         asyncio.create_task(process_document(document.id, file_path, db))
-        
+
         return {"message": "Document uploaded successfully", "document_id": document.id}
-        
+
     except Exception as e:
         logger.error(f"Upload error: {str(e)}")
         raise HTTPException(status_code=500, detail="Upload failed")
@@ -196,36 +197,42 @@ async def delete_document(
     await crud.delete_document(db, document_id)
     return {"message": "Document deleted successfully"}
 
-# Background processing function
 async def process_document(document_id: int, file_path: Path, db: Session):
+    """
+    Background processing for a document:
+    1. Extract text with Azure Document Intelligence (Standard SKU recommended)
+    2. Run Azure OpenAI over the text for rich analysis
+    3. Persist results on the document row
+    """
     try:
-        # In a real implementation, you would:
-        # 1. Use Azure Form Recognizer to extract text
-        # 2. Use OpenAI to analyze the extracted text
-        # 3. Update the document record with results
-        
-        # For now, we'll simulate processing
-        await asyncio.sleep(5)
-        
-        # Mock extracted text
-        extracted_text = "This is sample extracted text from the document."
-        
-        # Mock AI analysis
-        ai_analysis = "This document contains important information that has been analyzed using AI."
-        
-        # Update document
-        await crud.update_document_analysis(
-            db, 
-            document_id, 
-            extracted_text, 
-            ai_analysis, 
-            0.95
+        # Reload document for metadata (e.g. file_type, owner validation)
+        document = await crud.get_document(db, document_id)
+        if not document:
+            logger.error("Document %s no longer exists; skipping processing", document_id)
+            return
+
+        file_type = getattr(document, "file_type", "application/octet-stream") or "application/octet-stream"
+
+        extracted_text, confidence = await document_intelligence.analyze_document(
+            str(file_path), file_type
         )
-        
-        logger.info(f"Document {document_id} processed successfully")
-        
+
+        ai_analysis = None
+        if extracted_text:
+            ai_analysis = await document_intelligence.elaborate_with_ai(extracted_text)
+
+        await crud.update_document_analysis(
+            db,
+            document_id,
+            extracted_text or "Text extraction failed",
+            ai_analysis or "AI analysis failed",
+            confidence or 0.0,
+        )
+
+        logger.info("Document %s processed successfully", document_id)
+
     except Exception as e:
-        logger.error(f"Error processing document {document_id}: {str(e)}")
+        logger.error("Error processing document %s: %s", document_id, e)
 
 # Startup and shutdown events
 @app.on_event("startup")

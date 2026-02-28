@@ -1,56 +1,65 @@
 import os
+import logging
+from datetime import datetime
+from typing import Optional, Tuple
+
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
-import openai
-import logging
-from typing import Optional, Tuple
-from datetime import datetime
+from openai import AzureOpenAI
 
 logger = logging.getLogger(__name__)
 
+
 class AzureDocumentIntelligence:
     def __init__(self):
-        # Try to use environment variables first, then default to Azure credential
+        # Document Intelligence configuration (use Standard SKU resource in Azure for best quality)
         self.endpoint = os.getenv("AZURE_FORM_RECOGNIZER_ENDPOINT")
         self.key = os.getenv("AZURE_FORM_RECOGNIZER_KEY")
-        
+
         if not self.endpoint:
             logger.error("AZURE_FORM_RECOGNIZER_ENDPOINT not configured")
             self.client = None
-            return
-        
-        if self.key:
-            self.credential = AzureKeyCredential(self.key)
-            logger.info("Using Azure Form Recognizer with key authentication")
         else:
-            # Use DefaultAzureCredential for production
-            self.credential = DefaultAzureCredential()
-            logger.info("Using Azure Form Recognizer with DefaultAzureCredential")
-        
-        self.client = DocumentAnalysisClient(endpoint=self.endpoint, credential=self.credential)
-        
-        # OpenAI configuration
+            if self.key:
+                credential = AzureKeyCredential(self.key)
+                logger.info("Using Azure Form Recognizer with key authentication")
+            else:
+                credential = DefaultAzureCredential()
+                logger.info("Using Azure Form Recognizer with DefaultAzureCredential")
+
+            self.client = DocumentAnalysisClient(endpoint=self.endpoint, credential=credential)
+
+        # Azure OpenAI configuration for LLM analysis
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.openai_api_base = os.getenv("OPENAI_API_BASE")
         self.openai_deployment = os.getenv("OPENAI_DEPLOYMENT_NAME")
-        
-        if self.openai_api_key:
-            openai.api_key = self.openai_api_key
-            if self.openai_api_base:
-                openai.api_base = self.openai_api_base
-            logger.info("OpenAI configured")
+        self.openai_api_version = os.getenv("OPENAI_API_VERSION", "2024-02-15-preview")
+
+        self.openai_client: Optional[AzureOpenAI] = None
+        if self.openai_api_key and self.openai_api_base and self.openai_deployment:
+            try:
+                self.openai_client = AzureOpenAI(
+                    api_key=self.openai_api_key,
+                    api_version=self.openai_api_version,
+                    azure_endpoint=self.openai_api_base,
+                )
+                logger.info("Azure OpenAI client configured")
+            except Exception as e:
+                logger.error(f"Failed to initialize Azure OpenAI client: {e}")
         else:
-            logger.warning("OpenAI API key not configured")
+            logger.warning(
+                "Azure OpenAI not fully configured (need OPENAI_API_KEY, OPENAI_API_BASE, OPENAI_DEPLOYMENT_NAME)"
+            )
     
     async def analyze_document(self, file_path: str, file_type: str) -> Tuple[Optional[str], Optional[float]]:
-        """Extract text from document using Azure Form Recognizer"""
+        """Extract text from document using Azure Document Intelligence."""
         if not self.client:
             logger.error("Document Intelligence client not initialized")
             return None, None
-        
+
         try:
-            # Determine the appropriate model based on file type
+            # Use prebuilt models; quality depends on resource SKU (set to Standard in Azure)
             if file_type == "application/pdf":
                 model_id = "prebuilt-document"
             elif file_type in ["image/jpeg", "image/png"]:
@@ -59,71 +68,75 @@ class AzureDocumentIntelligence:
                 model_id = "prebuilt-document"
             else:
                 model_id = "prebuilt-document"
-            
+
             with open(file_path, "rb") as f:
-                poller = self.client.begin_analyze_document(
-                    model_id=model_id,
-                    document=f
-                )
-            
+                poller = self.client.begin_analyze_document(model_id=model_id, document=f)
+
             result = poller.result()
-            
-            # Extract all text content
+
             extracted_text = ""
-            confidence_scores = []
-            
-            if result.pages:
+            confidence_scores: list[float] = []
+
+            if getattr(result, "pages", None):
                 for page in result.pages:
-                    if page.lines:
+                    if getattr(page, "lines", None):
                         for line in page.lines:
                             extracted_text += line.content + "\n"
-                            # Note: Form Recognizer v4 doesn't provide line-level confidence
-                            # We'll use a default confidence for now
+                            # Form Recognizer v4 often omits per-line confidence; assume high by default.
                             confidence_scores.append(0.95)
-            
-            # Calculate average confidence
+
             avg_confidence = sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0.8
-            
-            logger.info(f"Successfully extracted {len(extracted_text)} characters from document")
-            return extracted_text, avg_confidence
-            
+
+            logger.info("Extracted %d characters from document (avg confidence %.2f)", len(extracted_text), avg_confidence)
+            return extracted_text.strip(), avg_confidence
+
         except Exception as e:
-            logger.error(f"Error analyzing document: {str(e)}")
+            logger.error("Error analyzing document: %s", e)
             return None, None
-    
+
     async def elaborate_with_ai(self, extracted_text: str) -> Optional[str]:
-        """Use OpenAI to elaborate on the extracted text"""
-        if not self.openai_api_key:
-            return "OpenAI not configured. Unable to provide AI analysis."
-        
+        """Use Azure OpenAI to generate a rich analysis for the document text."""
+        # Fallback if Azure OpenAI is not fully configured
+        if not self.openai_client or not self.openai_deployment:
+            logger.warning("Azure OpenAI client not available; using basic analysis fallback")
+            return self.generate_basic_analysis(extracted_text)
+
         try:
-            # Prepare the prompt
-            prompt = f"""
-            Please analyze the following document text and provide a comprehensive analysis including:
-            
-            1. A brief summary of the document content
-            2. Key insights and important information
-            3. Main topics or themes identified
-            4. Any recommendations or next steps based on the content
-            
-            Document text:
-            {extracted_text[:4000]}  # Limit to first 4000 characters for token limits
-            
-            Please provide the analysis in a clear, structured format with headings.
-            """
-            
-            # Since we only have embedding model deployed, use a simpler approach
-            # In production, you'd want to deploy a chat completion model
-            # For now, we'll provide a basic analysis without actual OpenAI calls
-            
-            # Simple text-based analysis as fallback
-            analysis = self.generate_basic_analysis(extracted_text)
-            logger.info("Generated basic analysis (embedding model only)")
-            return analysis
-            
+            prompt = (
+                "You are an AI assistant that analyzes business documents.\n\n"
+                "Analyze the following document text and provide:\n"
+                "1. A concise summary (3–5 sentences)\n"
+                "2. Key insights / important points as bullet lists\n"
+                "3. Main topics or themes\n"
+                "4. Any clear recommendations or next steps.\n\n"
+                "Document text:\n"
+                f"{extracted_text[:6000]}\n"
+            )
+
+            response = self.openai_client.chat.completions.create(
+                model=self.openai_deployment,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a helpful AI that analyzes documents and produces clear, structured reports.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,
+                max_tokens=900,
+            )
+
+            content = response.choices[0].message.content if response.choices else None
+            if not content:
+                logger.warning("Azure OpenAI returned no content; falling back to basic analysis")
+                return self.generate_basic_analysis(extracted_text)
+
+            logger.info("Generated Azure OpenAI analysis for document")
+            return content
+
         except Exception as e:
-            logger.error(f"Error generating AI analysis: {str(e)}")
-            return f"AI analysis failed: {str(e)}"
+            logger.error("Error generating AI analysis with Azure OpenAI: %s", e)
+            return self.generate_basic_analysis(extracted_text)
     
     def generate_basic_analysis(self, text: str) -> str:
         """Generate a basic analysis without AI model calls"""
