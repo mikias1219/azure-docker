@@ -46,6 +46,7 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix={{branch}}-
+            type=raw,value=full,enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
@@ -61,14 +62,22 @@ jobs:
 
       - name: Create Azure Storage Account (if not exists)
         run: |
-          STORAGE_ACCOUNT="docintstorage$(date +%s)"
-          az storage account create \
-            --name $STORAGE_ACCOUNT \
+          # Reuse an existing storage account to avoid creating a new one every deploy
+          STORAGE_ACCOUNT=$(az storage account list \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --location eastus \
-            --sku Standard_LRS \
-            --allow-blob-public-access false \
-            --output none || echo "Storage account might already exist"
+            --query "[?starts_with(name, 'docintstorage')].name | sort(@) | [-1]" \
+            -o tsv)
+
+          if [ -z "$STORAGE_ACCOUNT" ]; then
+            STORAGE_ACCOUNT="docintstorage$(date +%s)"
+            az storage account create \
+              --name $STORAGE_ACCOUNT \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --location eastus \
+              --sku Standard_LRS \
+              --allow-blob-public-access false \
+              --output none
+          fi
           
           # Get storage account key
           STORAGE_KEY=$(az storage account keys list \
