@@ -74,21 +74,23 @@ class AzureDocumentIntelligence:
 
             result = poller.result()
 
-            extracted_text = ""
-            confidence_scores: list[float] = []
+            # Prefer the service-provided full content, which is usually in natural reading order
+            extracted_text = (getattr(result, "content", None) or "").strip()
 
-            if getattr(result, "pages", None):
+            # Fallback: build text from page lines if content is missing for some reason
+            if not extracted_text and getattr(result, "pages", None):
+                lines: list[str] = []
                 for page in result.pages:
                     if getattr(page, "lines", None):
                         for line in page.lines:
-                            extracted_text += line.content + "\n"
-                            # Form Recognizer v4 often omits per-line confidence; assume high by default.
-                            confidence_scores.append(0.95)
+                            lines.append(line.content)
+                extracted_text = "\n".join(lines).strip()
 
-            avg_confidence = sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0.8
+            # Document Intelligence v4 often omits fine-grained confidence; assume high quality if we have text
+            avg_confidence = 0.9 if extracted_text else 0.0
 
             logger.info("Extracted %d characters from document (avg confidence %.2f)", len(extracted_text), avg_confidence)
-            return extracted_text.strip(), avg_confidence
+            return extracted_text, avg_confidence
 
         except Exception as e:
             logger.error("Error analyzing document: %s", e)

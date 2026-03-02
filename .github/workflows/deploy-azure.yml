@@ -97,6 +97,13 @@ jobs:
 
       - name: Deploy to Azure Container Instances
         id: deploy
+        env:
+          AZURE_FORM_RECOGNIZER_ENDPOINT: ${{ secrets.AZURE_FORM_RECOGNIZER_ENDPOINT }}
+          AZURE_FORM_RECOGNIZER_KEY: ${{ secrets.AZURE_FORM_RECOGNIZER_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
+          OPENAI_DEPLOYMENT_NAME: ${{ secrets.OPENAI_DEPLOYMENT_NAME }}
+          OPENAI_API_VERSION: ${{ secrets.OPENAI_API_VERSION }}
         run: |
           # Generate unique DNS label
           DNS_LABEL="docint-${{ github.run_number }}-$(date +%s)"
@@ -118,6 +125,17 @@ jobs:
           data['properties']['imageRegistryCredentials'][0]['password'] = '$ACR_PASS'
           data['properties']['containers'][0]['properties']['image'] = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:full'
           data['properties']['ipAddress']['dnsNameLabel'] = '$DNS_LABEL'
+
+          # Wire environment variables through to the container so Document Intelligence and Azure OpenAI work in ACI
+          env_vars = [
+              {"name": "AZURE_FORM_RECOGNIZER_ENDPOINT", "value": os.environ.get("AZURE_FORM_RECOGNIZER_ENDPOINT", "")},
+              {"name": "AZURE_FORM_RECOGNIZER_KEY", "value": os.environ.get("AZURE_FORM_RECOGNIZER_KEY", "")},
+              {"name": "OPENAI_API_KEY", "value": os.environ.get("OPENAI_API_KEY", "")},
+              {"name": "OPENAI_API_BASE", "value": os.environ.get("OPENAI_API_BASE", "")},
+              {"name": "OPENAI_DEPLOYMENT_NAME", "value": os.environ.get("OPENAI_DEPLOYMENT_NAME", "")},
+              {"name": "OPENAI_API_VERSION", "value": os.environ.get("OPENAI_API_VERSION", "2024-02-15-preview")},
+          ]
+          data['properties']['containers'][0]['properties']['environmentVariables'] = env_vars
           
           # Write updated config
           with open('aci/container-group-updated.json', 'w') as f:
