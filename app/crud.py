@@ -37,18 +37,15 @@ async def create_document(db: Session, document: schemas.DocumentCreate, user_id
     db.add(db_document)
     db.commit()
     db.refresh(db_document)
-    # Convert datetime objects to strings for JSON serialization
-    db_document.created_at = db_document.created_at.isoformat()
-    db_document.updated_at = db_document.updated_at.isoformat()
     return db_document
 
 async def get_document(db: Session, document_id: int):
     doc = db.query(models.Document).filter(models.Document.id == document_id).first()
     if doc:
         # Convert datetime objects to strings for JSON serialization
-        if doc.created_at:
+        if doc.created_at and hasattr(doc.created_at, 'isoformat'):
             doc.created_at = doc.created_at.isoformat()
-        if doc.updated_at:
+        if doc.updated_at and hasattr(doc.updated_at, 'isoformat'):
             doc.updated_at = doc.updated_at.isoformat()
     return doc
 
@@ -56,9 +53,9 @@ async def get_user_documents(db: Session, user_id: int):
     documents = db.query(models.Document).filter(models.Document.owner_id == user_id).all()
     # Convert datetime objects to strings for JSON serialization
     for doc in documents:
-        if doc.created_at:
+        if doc.created_at and hasattr(doc.created_at, 'isoformat'):
             doc.created_at = doc.created_at.isoformat()
-        if doc.updated_at:
+        if doc.updated_at and hasattr(doc.updated_at, 'isoformat'):
             doc.updated_at = doc.updated_at.isoformat()
     return documents
 
@@ -99,8 +96,8 @@ async def search_documents(db: Session, user_id: int, query: str):
         .all()
     )
     for doc in docs:
-        if doc.created_at:
+        if doc.created_at and hasattr(doc.created_at, 'isoformat'):
             doc.created_at = doc.created_at.isoformat()
-        if doc.updated_at:
+        if doc.updated_at and hasattr(doc.updated_at, 'isoformat'):
             doc.updated_at = doc.updated_at.isoformat()
     return docs
