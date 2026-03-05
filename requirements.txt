@@ -2,12 +2,6 @@ fastapi
 uvicorn[standard]
 aiofiles==23.2.1
 
-# Streamlit frontend
-streamlit
-audio-recorder-streamlit
-pandas
-Pillow
-
 # Database and auth
 databases[postgresql]
 SQLAlchemy
@@ -24,7 +18,6 @@ pydantic[email]
 # Azure services
 azure-ai-formrecognizer
 azure-identity
-azure-cognitiveservices-speech
 openai
 
 # Environment variables
@@ -33,7 +26,6 @@ python-dotenv
 # Additional dependencies
 jinja2
 aiofiles
-requests
 
 # Static files
 python-multipart

@@ -7,14 +7,15 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { DocumentUpload } from '@/components/DocumentUpload';
 import { DocumentList } from '@/components/DocumentList';
 import { DocumentViewer } from '@/components/DocumentViewer';
-import { Upload, FileText, LogOut, Brain, Search } from 'lucide-react';
+import { VoiceRecorder } from '@/components/VoiceRecorder';
+import { Upload, FileText, LogOut, Brain, Search, Mic } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, logout, loading: authLoading } = useAuth();
   const { documents, loading, uploadDocument, getDocument, fetchDocuments } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'upload' | 'documents' | 'analysis'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'documents' | 'analysis' | 'voice'>('upload');
   const [isClient, setIsClient] = useState(false);
 
   const handleRefreshDocument = async () => {
@@ -59,6 +60,7 @@ export default function DashboardPage() {
     { id: 'upload', label: 'Upload', icon: Upload },
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'analysis', label: 'Analysis', icon: Brain },
+    { id: 'voice', label: 'Voice', icon: Mic },
   ];
 
   return (
@@ -166,6 +168,18 @@ export default function DashboardPage() {
             )}
           </div>
         )}
+        {activeTab === 'voice' && (
+          <div className="animate-fade-in">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Voice Recording</h2>
+              <p className="text-slate-600">
+                Record your voice and get AI-powered transcription using Azure Speech Services
+              </p>
+            </div>
+            <VoiceRecorder />
+          </div>
+        )}
+
       </main>
     </div>
   );
