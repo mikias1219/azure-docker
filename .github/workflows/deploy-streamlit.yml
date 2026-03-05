@@ -1,4 +1,4 @@
-name: Deploy Streamlit Document Intelligence App to Azure
+name: Deploy Unified Document Intelligence App to Azure
 
 on:
   push:
@@ -7,9 +7,9 @@ on:
 
 env:
   REGISTRY: selamnew.azurecr.io
-  IMAGE_NAME: document-intelligence-streamlit
+  IMAGE_NAME: document-intelligence-app
   RESOURCE_GROUP: AI-102
-  CONTAINER_NAME: document-intelligence-streamlit
+  CONTAINER_NAME: document-intelligence-container
 
 jobs:
   build-and-deploy:
@@ -46,13 +46,14 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix={{branch}}-
+            type=raw,value=full,enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile.streamlit-single
+          file: ./Dockerfile.full
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -73,7 +74,7 @@ jobs:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
           # Generate unique DNS label
-          DNS_LABEL="streamlit-${{ github.run_number }}-$(date +%s)"
+          DNS_LABEL="docint-${{ github.run_number }}-$(date +%s)"
           
           # Get ACR credentials
           ACR_USER=$(az acr credential show --name selamnew --resource-group AI-102 --query "username" -o tsv)
@@ -84,13 +85,13 @@ jobs:
           import json
           import os
           
-          with open('aci/container-group-streamlit-template.json', 'r') as f:
+          with open('aci/container-group-unified-template.json', 'r') as f:
               data = json.load(f)
           
           # Replace placeholders
           data['properties']['imageRegistryCredentials'][0]['username'] = '$ACR_USER'
           data['properties']['imageRegistryCredentials'][0]['password'] = '$ACR_PASS'
-          data['properties']['containers'][0]['properties']['image'] = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest'
+          data['properties']['containers'][0]['properties']['image'] = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:full'
           data['properties']['ipAddress']['dnsNameLabel'] = '$DNS_LABEL'
 
           # Update environment variables
@@ -109,7 +110,7 @@ jobs:
           data['properties']['containers'][0]['properties']['environmentVariables'] = env_vars
           
           # Write updated config
-          with open('aci/container-group-streamlit-updated.json', 'w') as f:
+          with open('aci/container-group-unified-updated.json', 'w') as f:
               json.dump(data, f, indent=2)
           EOF
           
@@ -131,7 +132,7 @@ jobs:
           # Create new container
           az container create \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --file aci/container-group-streamlit-updated.json \
+            --file aci/container-group-unified-updated.json \
             --name ${{ env.CONTAINER_NAME }} \
             --location eastus \
             --dns-name-label $DNS_LABEL
@@ -159,7 +160,7 @@ jobs:
 
       - name: Deployment Summary
         run: |
-          echo "🎉 Streamlit Document Intelligence App Deployed!"
+          echo "🎉 UNIFIED Document Intelligence App Deployed!"
           echo ""
           echo "📋 Deployment Details:"
           echo "  • Container Name: ${{ env.CONTAINER_NAME }}"
@@ -168,15 +169,21 @@ jobs:
           echo "  • FQDN: ${{ steps.deploy.outputs.container_fqdn }}"
           echo "  • DNS Label: ${{ steps.deploy.outputs.dns_label }}"
           echo ""
-          echo "🔗 Access your Streamlit app at: http://${{ steps.deploy.outputs.container_fqdn }}:8501"
-          echo "🔗 Backend API available at: http://${{ steps.deploy.outputs.container_fqdn }}:8000"
+          echo "🔗 ACCESS YOUR UNIFIED APP:"
+          echo "  🎨 Streamlit Frontend: http://${{ steps.deploy.outputs.container_fqdn }}:8501"
+          echo "  🌐 Next.js Frontend:  http://${{ steps.deploy.outputs.container_fqdn }}:8000"
+          echo "  � FastAPI Backend:   http://${{ steps.deploy.outputs.container_fqdn }}:8000"
+          echo "  🔧 API Documentation:  http://${{ steps.deploy.outputs.container_fqdn }}:8000/docs"
+          echo "  ✅ Health Check:       http://${{ steps.deploy.outputs.container_fqdn }}:8000/health"
           echo ""
-          echo "🎨 Features:"
-          echo "  • Voice Recording with Azure Speech"
-          echo "  • Real-time Transcription"
-          echo "  • Document Management"
-          echo "  • AI Analysis"
-          echo "  • Sidebar Navigation"
+          echo "🎨 UNIFIED FEATURES:"
+          echo "  ✓ Voice Recording with Azure Speech Services"
+          echo "  ✓ Real-time Transcription"
+          echo "  ✓ Document Upload & AI Analysis"
+          echo "  ✓ Sidebar Navigation (Streamlit)"
+          echo "  ✓ Modern UI (Next.js)"
+          echo "  ✓ User Authentication (JWT)"
+          echo "  ✓ All in ONE container!"
           echo ""
           echo "📝 Notes:"
           echo "  • The app will be available within 1-2 minutes"
