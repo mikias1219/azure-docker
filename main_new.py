@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
 ALGORITHM = "HS256"
-# Longer expiry so credentials survive app rebuilds/redeploys (same origin keeps token in localStorage)
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 # Database
@@ -29,6 +28,9 @@ from app.models import metadata
 from app import crud, models, schemas
 from app.azure_services import document_intelligence
 
+# Import Streamlit integration
+from streamlit_integration import get_streamlit_html
+
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -36,12 +38,12 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Create FastAPI app
-app = FastAPI(title="Document Intelligence API", version="1.0.0")
+app = FastAPI(title="Document Intelligence API", version="2.0.0")
 
-# CORS middleware - Updated for Streamlit
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", "http://localhost:8501", "http://127.0.0.1:8501"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,6 +57,17 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+# Streamlit Unified Interface
+@app.get("/streamlit", response_class=HTMLResponse)
+async def streamlit_interface():
+    """Serve the unified Streamlit interface with voice recording"""
+    return get_streamlit_html()
+
+@app.get("/app", response_class=HTMLResponse)
+async def unified_app():
+    """Redirect to unified interface"""
+    return RedirectResponse(url="/streamlit")
 
 # Authentication functions
 def verify_password(plain_password, hashed_password):
