@@ -1,0 +1,92 @@
+{
+  "location": "eastus",
+  "properties": {
+    "imageRegistryCredentials": [
+      {
+        "server": "selamnew.azurecr.io",
+        "username": "__ACR_USERNAME__",
+        "password": "__ACR_PASSWORD__"
+      }
+    ],
+    "containers": [
+      {
+        "name": "document-intelligence-streamlit",
+        "properties": {
+          "image": "__IMAGE__",
+          "resources": {
+            "requests": {
+              "cpu": 1.5,
+              "memoryInGb": 3
+            }
+          },
+          "ports": [
+            {
+              "port": 8000
+            },
+            {
+              "port": 8501
+            }
+          ],
+          "environmentVariables": [
+            {
+              "name": "AZURE_FORM_RECOGNIZER_ENDPOINT",
+              "value": "__AZURE_FORM_RECOGNIZER_ENDPOINT__"
+            },
+            {
+              "name": "AZURE_FORM_RECOGNIZER_KEY",
+              "value": "__AZURE_FORM_RECOGNIZER_KEY__"
+            },
+            {
+              "name": "OPENAI_API_KEY",
+              "value": "__OPENAI_API_KEY__"
+            },
+            {
+              "name": "OPENAI_API_BASE",
+              "value": "__OPENAI_API_BASE__"
+            },
+            {
+              "name": "OPENAI_DEPLOYMENT_NAME",
+              "value": "__OPENAI_DEPLOYMENT_NAME__"
+            },
+            {
+              "name": "OPENAI_API_VERSION",
+              "value": "__OPENAI_API_VERSION__"
+            },
+            {
+              "name": "AZURE_SPEECH_KEY",
+              "value": "__AZURE_SPEECH_KEY__"
+            },
+            {
+              "name": "AZURE_SPEECH_REGION",
+              "value": "__AZURE_SPEECH_REGION__"
+            },
+            {
+              "name": "API_BASE_URL",
+              "value": "http://localhost:8000"
+            },
+            {
+              "name": "SECRET_KEY",
+              "value": "__SECRET_KEY__"
+            }
+          ]
+        }
+      }
+    ],
+    "osType": "Linux",
+    "ipAddress": {
+      "type": "Public",
+      "ports": [
+        {
+          "protocol": "tcp",
+          "port": 8501
+        },
+        {
+          "protocol": "tcp",
+          "port": 8000
+        }
+      ],
+      "dnsNameLabel": "__DNS_LABEL__"
+    },
+    "restartPolicy": "OnFailure"
+  }
+}

@@ -38,10 +38,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # Create FastAPI app
 app = FastAPI(title="Document Intelligence API", version="1.0.0")
 
-# CORS middleware
+# CORS middleware - Updated for Streamlit
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*", "http://localhost:8501", "http://127.0.0.1:8501"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -207,6 +207,26 @@ async def search_documents(
 ):
     """Search current user's documents by keyword (filename, extracted text, AI analysis)."""
     return await crud.search_documents(db, current_user.id, body.query or "")
+
+
+@app.post("/analyze-text", response_model=dict)
+async def analyze_text(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Analyze text using AI (for transcriptions and other text)"""
+    text = body.get("text", "")
+    if not text:
+        raise HTTPException(status_code=400, detail="Text is required")
+    
+    try:
+        # Use Azure OpenAI to analyze the text
+        analysis = await document_intelligence.elaborate_with_ai(text)
+        return {"analysis": analysis}
+    except Exception as e:
+        logger.error(f"Text analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Analysis failed")
 
 
 @app.post("/documents/{document_id}/ask", response_model=schemas.AskResponse)
