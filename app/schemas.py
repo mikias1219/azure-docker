@@ -1,5 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_serializer
 from typing import Optional
+from datetime import datetime
 
 class UserBase(BaseModel):
     username: str
@@ -40,8 +41,12 @@ class Document(DocumentBase):
     extracted_text: Optional[str] = None
     ai_analysis: Optional[str] = None
     analysis_confidence: Optional[float] = None
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer('created_at', 'updated_at')
+    def serialize_datetime(self, dt: datetime) -> str:
+        return dt.isoformat()
 
     class Config:
         from_attributes = True
