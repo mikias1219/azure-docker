@@ -155,3 +155,14 @@ export const qnaApi = {
     return response.data;
   },
 };
+
+export const clockApi = {
+  getInfo: async (): Promise<any> => {
+    const response = await api.get('/clock/info');
+    return response.data;
+  },
+  analyze: async (query: string): Promise<any> => {
+    const response = await api.post('/clock/analyze', { query });
+    return response.data;
+  },
+};

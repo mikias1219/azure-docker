@@ -10,14 +10,15 @@ import { DocumentViewer } from '@/components/DocumentViewer';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { TextAnalysis } from '@/components/TextAnalysis';
 import { QuestionAnswering } from '@/components/QuestionAnswering';
-import { Upload, FileText, LogOut, Brain, Search, Mic, Languages, MessageCircle } from 'lucide-react';
+import { ClockClient } from '@/components/ClockClient';
+import { Upload, FileText, LogOut, Brain, Search, Mic, Languages, MessageCircle, Clock } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, logout, loading: authLoading } = useAuth();
   const { documents, loading, uploadDocument, getDocument, fetchDocuments } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'upload' | 'documents' | 'analysis' | 'voice' | 'text-analytics' | 'qna'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'documents' | 'analysis' | 'voice' | 'text-analytics' | 'qna' | 'clock'>('upload');
   const [isClient, setIsClient] = useState(false);
 
   const handleRefreshDocument = async () => {
@@ -65,6 +66,7 @@ export default function DashboardPage() {
     { id: 'voice', label: 'Voice', icon: Mic },
     { id: 'text-analytics', label: 'Text Analytics', icon: Languages },
     { id: 'qna', label: 'Q&A', icon: MessageCircle },
+    { id: 'clock', label: 'Clock CLU', icon: Clock },
   ];
 
   return (
@@ -205,6 +207,18 @@ export default function DashboardPage() {
               </p>
             </div>
             <QuestionAnswering />
+          </div>
+        )}
+
+        {activeTab === 'clock' && (
+          <div className="animate-fade-in">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Clock - Conversational Language Understanding</h2>
+              <p className="text-slate-600">
+                Ask about time, day, or date in natural language using Azure AI CLU
+              </p>
+            </div>
+            <ClockClient />
           </div>
         )}
 

@@ -29,6 +29,7 @@ from app import crud, models, schemas
 from app.azure_services import document_intelligence
 from app.text_analytics import text_analytics
 from app.question_answering import question_answering
+from app.clock_service import clock_service
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -395,6 +396,39 @@ async def ask_question_top(
     except Exception as e:
         logger.error(f"Question answering error: {e}")
         raise HTTPException(status_code=500, detail="Question answering failed")
+
+
+# ==================== Conversational Language Understanding (CLU) - Clock ====================
+
+@app.get("/clock/info", response_model=dict)
+async def get_clock_info(
+    current_user: models.User = Depends(get_current_user),
+):
+    """Get information about the CLU Clock service"""
+    try:
+        result = await clock_service.get_info()
+        return result
+    except Exception as e:
+        logger.error(f"Clock info error: {e}")
+        raise HTTPException(status_code=500, detail="Clock service info failed")
+
+
+@app.post("/clock/analyze", response_model=dict)
+async def analyze_clock_query(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Analyze a natural language query for time/date/day intents"""
+    query = body.get("query", "")
+    if not query:
+        raise HTTPException(status_code=400, detail="Query is required")
+    
+    try:
+        result = await clock_service.analyze_conversation(query)
+        return result
+    except Exception as e:
+        logger.error(f"Clock analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Clock analysis failed")
 
 
 @app.post("/documents/{document_id}/ask", response_model=schemas.AskResponse)
