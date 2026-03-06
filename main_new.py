@@ -27,6 +27,7 @@ from app.db import engine, Base, get_db
 from app.models import metadata
 from app import crud, models, schemas
 from app.azure_services import document_intelligence
+from app.text_analytics import text_analytics
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -254,6 +255,96 @@ async def analyze_text(
     except Exception as e:
         logger.error(f"Text analysis error: {e}")
         raise HTTPException(status_code=500, detail="Analysis failed")
+
+
+@app.post("/text-analytics/analyze", response_model=dict)
+async def analyze_text_comprehensive(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Comprehensive text analysis using Azure AI Language (language, sentiment, key phrases, entities)"""
+    text = body.get("text", "")
+    if not text:
+        raise HTTPException(status_code=400, detail="Text is required")
+    
+    try:
+        results = await text_analytics.analyze_text(text)
+        return results
+    except Exception as e:
+        logger.error(f"Comprehensive text analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Text analysis failed")
+
+
+@app.post("/text-analytics/language", response_model=dict)
+async def detect_language(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Detect language of text using Azure AI Language"""
+    text = body.get("text", "")
+    if not text:
+        raise HTTPException(status_code=400, detail="Text is required")
+    
+    try:
+        result = await text_analytics.detect_language(text)
+        return result
+    except Exception as e:
+        logger.error(f"Language detection error: {e}")
+        raise HTTPException(status_code=500, detail="Language detection failed")
+
+
+@app.post("/text-analytics/sentiment", response_model=dict)
+async def analyze_sentiment(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Analyze sentiment of text using Azure AI Language"""
+    text = body.get("text", "")
+    if not text:
+        raise HTTPException(status_code=400, detail="Text is required")
+    
+    try:
+        result = await text_analytics.analyze_sentiment(text)
+        return result
+    except Exception as e:
+        logger.error(f"Sentiment analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Sentiment analysis failed")
+
+
+@app.post("/text-analytics/key-phrases", response_model=dict)
+async def extract_key_phrases(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Extract key phrases from text using Azure AI Language"""
+    text = body.get("text", "")
+    if not text:
+        raise HTTPException(status_code=400, detail="Text is required")
+    
+    try:
+        result = await text_analytics.extract_key_phrases(text)
+        return result
+    except Exception as e:
+        logger.error(f"Key phrase extraction error: {e}")
+        raise HTTPException(status_code=500, detail="Key phrase extraction failed")
+
+
+@app.post("/text-analytics/entities", response_model=dict)
+async def recognize_entities(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Recognize named entities in text using Azure AI Language"""
+    text = body.get("text", "")
+    if not text:
+        raise HTTPException(status_code=400, detail="Text is required")
+    
+    try:
+        result = await text_analytics.recognize_entities(text)
+        return result
+    except Exception as e:
+        logger.error(f"Entity recognition error: {e}")
+        raise HTTPException(status_code=500, detail="Entity recognition failed")
 
 
 @app.post("/documents/{document_id}/ask", response_model=schemas.AskResponse)

@@ -8,14 +8,15 @@ import { DocumentUpload } from '@/components/DocumentUpload';
 import { DocumentList } from '@/components/DocumentList';
 import { DocumentViewer } from '@/components/DocumentViewer';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
-import { Upload, FileText, LogOut, Brain, Search, Mic } from 'lucide-react';
+import { TextAnalysis } from '@/components/TextAnalysis';
+import { Upload, FileText, LogOut, Brain, Search, Mic, Languages } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, logout, loading: authLoading } = useAuth();
   const { documents, loading, uploadDocument, getDocument, fetchDocuments } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'upload' | 'documents' | 'analysis' | 'voice'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'documents' | 'analysis' | 'voice' | 'text-analytics'>('upload');
   const [isClient, setIsClient] = useState(false);
 
   const handleRefreshDocument = async () => {
@@ -61,6 +62,7 @@ export default function DashboardPage() {
     { id: 'documents', label: 'Documents', icon: FileText },
     { id: 'analysis', label: 'Analysis', icon: Brain },
     { id: 'voice', label: 'Voice', icon: Mic },
+    { id: 'text-analytics', label: 'Text Analytics', icon: Languages },
   ];
 
   return (
@@ -177,6 +179,18 @@ export default function DashboardPage() {
               </p>
             </div>
             <VoiceRecorder />
+          </div>
+        )}
+
+        {activeTab === 'text-analytics' && (
+          <div className="animate-fade-in">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Text Analytics</h2>
+              <p className="text-slate-600">
+                Analyze text using Azure AI Language - detect language, sentiment, key phrases, and entities
+              </p>
+            </div>
+            <TextAnalysis />
           </div>
         )}
 
