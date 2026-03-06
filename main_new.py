@@ -28,6 +28,7 @@ from app.models import metadata
 from app import crud, models, schemas
 from app.azure_services import document_intelligence
 from app.text_analytics import text_analytics
+from app.question_answering import question_answering
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -345,6 +346,55 @@ async def recognize_entities(
     except Exception as e:
         logger.error(f"Entity recognition error: {e}")
         raise HTTPException(status_code=500, detail="Entity recognition failed")
+
+
+# Question Answering endpoints
+@app.get("/qna/info", response_model=dict)
+async def get_qna_info(current_user: models.User = Depends(get_current_user)):
+    """Get information about the Question Answering knowledge base"""
+    try:
+        info = await question_answering.get_knowledge_base_info()
+        return info
+    except Exception as e:
+        logger.error(f"QnA info error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get QnA info")
+
+
+@app.post("/qna/ask", response_model=dict)
+async def ask_question(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Ask a question and get an answer from the knowledge base"""
+    question = body.get("question", "")
+    if not question:
+        raise HTTPException(status_code=400, detail="Question is required")
+    
+    try:
+        result = await question_answering.get_answer(question)
+        return result
+    except Exception as e:
+        logger.error(f"Question answering error: {e}")
+        raise HTTPException(status_code=500, detail="Question answering failed")
+
+
+@app.post("/qna/ask-top", response_model=dict)
+async def ask_question_top(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Ask a question and get top answers from the knowledge base"""
+    question = body.get("question", "")
+    top = body.get("top", 3)
+    if not question:
+        raise HTTPException(status_code=400, detail="Question is required")
+    
+    try:
+        result = await question_answering.get_answers_with_context(question, top)
+        return result
+    except Exception as e:
+        logger.error(f"Question answering error: {e}")
+        raise HTTPException(status_code=500, detail="Question answering failed")
 
 
 @app.post("/documents/{document_id}/ask", response_model=schemas.AskResponse)

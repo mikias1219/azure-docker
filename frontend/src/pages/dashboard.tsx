@@ -9,14 +9,15 @@ import { DocumentList } from '@/components/DocumentList';
 import { DocumentViewer } from '@/components/DocumentViewer';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { TextAnalysis } from '@/components/TextAnalysis';
-import { Upload, FileText, LogOut, Brain, Search, Mic, Languages } from 'lucide-react';
+import { QuestionAnswering } from '@/components/QuestionAnswering';
+import { Upload, FileText, LogOut, Brain, Search, Mic, Languages, MessageCircle } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, logout, loading: authLoading } = useAuth();
   const { documents, loading, uploadDocument, getDocument, fetchDocuments } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'upload' | 'documents' | 'analysis' | 'voice' | 'text-analytics'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'documents' | 'analysis' | 'voice' | 'text-analytics' | 'qna'>('upload');
   const [isClient, setIsClient] = useState(false);
 
   const handleRefreshDocument = async () => {
@@ -63,6 +64,7 @@ export default function DashboardPage() {
     { id: 'analysis', label: 'Analysis', icon: Brain },
     { id: 'voice', label: 'Voice', icon: Mic },
     { id: 'text-analytics', label: 'Text Analytics', icon: Languages },
+    { id: 'qna', label: 'Q&A', icon: MessageCircle },
   ];
 
   return (
@@ -191,6 +193,18 @@ export default function DashboardPage() {
               </p>
             </div>
             <TextAnalysis />
+          </div>
+        )}
+
+        {activeTab === 'qna' && (
+          <div className="animate-fade-in">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Question Answering</h2>
+              <p className="text-slate-600">
+                Ask questions and get answers from a knowledge base using Azure AI Language
+              </p>
+            </div>
+            <QuestionAnswering />
           </div>
         )}
 

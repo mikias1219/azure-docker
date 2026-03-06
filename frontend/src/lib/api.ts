@@ -140,3 +140,18 @@ export const textAnalyticsApi = {
     return response.data;
   },
 };
+
+export const qnaApi = {
+  getInfo: async (): Promise<any> => {
+    const response = await api.get('/qna/info');
+    return response.data;
+  },
+  ask: async (question: string): Promise<any> => {
+    const response = await api.post('/qna/ask', { question });
+    return response.data;
+  },
+  askTop: async (question: string, top: number = 3): Promise<any> => {
+    const response = await api.post('/qna/ask-top', { question, top });
+    return response.data;
+  },
+};

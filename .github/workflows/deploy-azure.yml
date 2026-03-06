@@ -102,6 +102,8 @@ jobs:
           AZURE_FORM_RECOGNIZER_KEY: ${{ secrets.AZURE_FORM_RECOGNIZER_KEY }}
           AZURE_LANGUAGE_ENDPOINT: ${{ secrets.AZURE_LANGUAGE_ENDPOINT }}
           AZURE_LANGUAGE_KEY: ${{ secrets.AZURE_LANGUAGE_KEY }}
+          AZURE_QNA_PROJECT_NAME: ${{ secrets.AZURE_QNA_PROJECT_NAME }}
+          AZURE_QNA_DEPLOYMENT_NAME: ${{ secrets.AZURE_QNA_DEPLOYMENT_NAME }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
           OPENAI_DEPLOYMENT_NAME: ${{ secrets.OPENAI_DEPLOYMENT_NAME }}
@@ -128,12 +130,14 @@ jobs:
           data['properties']['containers'][0]['properties']['image'] = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:full'
           data['properties']['ipAddress']['dnsNameLabel'] = '$DNS_LABEL'
 
-          # Wire environment variables through to the container so Document Intelligence, Azure AI Language and Azure OpenAI work in ACI
+          # Wire environment variables through to the container so Document Intelligence, Azure AI Language, Q&A and Azure OpenAI work in ACI
           env_vars = [
               {"name": "AZURE_FORM_RECOGNIZER_ENDPOINT", "value": os.environ.get("AZURE_FORM_RECOGNIZER_ENDPOINT", "")},
               {"name": "AZURE_FORM_RECOGNIZER_KEY", "value": os.environ.get("AZURE_FORM_RECOGNIZER_KEY", "")},
               {"name": "AZURE_LANGUAGE_ENDPOINT", "value": os.environ.get("AZURE_LANGUAGE_ENDPOINT", "")},
               {"name": "AZURE_LANGUAGE_KEY", "value": os.environ.get("AZURE_LANGUAGE_KEY", "")},
+              {"name": "AZURE_QNA_PROJECT_NAME", "value": os.environ.get("AZURE_QNA_PROJECT_NAME", "LearnFAQ")},
+              {"name": "AZURE_QNA_DEPLOYMENT_NAME", "value": os.environ.get("AZURE_QNA_DEPLOYMENT_NAME", "production")},
               {"name": "OPENAI_API_KEY", "value": os.environ.get("OPENAI_API_KEY", "")},
               {"name": "OPENAI_API_BASE", "value": os.environ.get("OPENAI_API_BASE", "")},
               {"name": "OPENAI_DEPLOYMENT_NAME", "value": os.environ.get("OPENAI_DEPLOYMENT_NAME", "")},
