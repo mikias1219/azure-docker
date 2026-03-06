@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Textarea } from '@/components/ui/Textarea';
 import { Loader2, Languages, Smile, KeyRound, Users, Link2, FileText } from 'lucide-react';
+import { textAnalyticsApi } from '@/lib/api';
 
 interface AnalysisResult {
   language?: {
@@ -62,22 +63,10 @@ export function TextAnalysis() {
     setResult(null);
 
     try {
-      const response = await fetch('/text-analytics/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Analysis failed');
-      }
-
-      const data = await response.json();
+      const data = await textAnalyticsApi.analyze(text);
       setResult(data);
-    } catch (err) {
-      setError('Failed to analyze text. Please try again.');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to analyze text. Please try again.');
       console.error('Text analysis error:', err);
     } finally {
       setLoading(false);

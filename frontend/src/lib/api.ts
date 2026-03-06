@@ -117,3 +117,26 @@ export const healthApi = {
     return response.data;
   },
 };
+
+export const textAnalyticsApi = {
+  analyze: async (text: string): Promise<any> => {
+    const response = await api.post('/text-analytics/analyze', { text });
+    return response.data;
+  },
+  detectLanguage: async (text: string): Promise<any> => {
+    const response = await api.post('/text-analytics/language', { text });
+    return response.data;
+  },
+  analyzeSentiment: async (text: string): Promise<any> => {
+    const response = await api.post('/text-analytics/sentiment', { text });
+    return response.data;
+  },
+  extractKeyPhrases: async (text: string): Promise<any> => {
+    const response = await api.post('/text-analytics/key-phrases', { text });
+    return response.data;
+  },
+  recognizeEntities: async (text: string): Promise<any> => {
+    const response = await api.post('/text-analytics/entities', { text });
+    return response.data;
+  },
+};
