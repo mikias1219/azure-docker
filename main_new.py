@@ -362,11 +362,8 @@ async def get_qna_info():
 
 
 @app.post("/qna/ask", response_model=dict)
-async def ask_question(
-    body: dict,
-    current_user: models.User = Depends(get_current_user),
-):
-    """Ask a question and get an answer from the knowledge base"""
+async def ask_question(body: dict):
+    """Ask a question and get an answer from the knowledge base (public endpoint)"""
     question = body.get("question", "")
     if not question:
         raise HTTPException(status_code=400, detail="Question is required")
@@ -412,11 +409,8 @@ async def get_clock_info():
 
 
 @app.post("/clock/analyze", response_model=dict)
-async def analyze_clock_query(
-    body: dict,
-    current_user: models.User = Depends(get_current_user),
-):
-    """Analyze a natural language query for time/date/day intents"""
+async def analyze_clock_query(body: dict):
+    """Analyze a natural language query for time/date/day intents (public endpoint)"""
     query = body.get("query", "")
     if not query:
         raise HTTPException(status_code=400, detail="Query is required")
