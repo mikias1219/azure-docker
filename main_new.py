@@ -351,8 +351,8 @@ async def recognize_entities(
 
 # Question Answering endpoints
 @app.get("/qna/info", response_model=dict)
-async def get_qna_info(current_user: models.User = Depends(get_current_user)):
-    """Get information about the Question Answering knowledge base"""
+async def get_qna_info():
+    """Get information about the Question Answering knowledge base (public endpoint)"""
     try:
         info = await question_answering.get_knowledge_base_info()
         return info
@@ -401,16 +401,14 @@ async def ask_question_top(
 # ==================== Conversational Language Understanding (CLU) - Clock ====================
 
 @app.get("/clock/info", response_model=dict)
-async def get_clock_info(
-    current_user: models.User = Depends(get_current_user),
-):
-    """Get information about the CLU Clock service"""
+async def get_clock_info():
+    """Get information about the CLU Clock service (public endpoint)"""
     try:
         result = await clock_service.get_info()
         return result
     except Exception as e:
         logger.error(f"Clock info error: {e}")
-        raise HTTPException(status_code=500, detail="Clock service info failed")
+        raise HTTPException(status_code=500, detail="Failed to get clock info")
 
 
 @app.post("/clock/analyze", response_model=dict)
