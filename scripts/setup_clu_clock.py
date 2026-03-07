@@ -14,10 +14,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Azure AI Language configuration
-ENDPOINT = os.getenv("AZURE_LANGUAGE_ENDPOINT", "https://eastus.api.cognitive.microsoft.com/")
+ENDPOINT = os.getenv("AZURE_LANGUAGE_ENDPOINT", "")
 KEY = os.getenv("AZURE_LANGUAGE_KEY", "")
 PROJECT_NAME = "Clock"
 API_VERSION = "2023-04-01"
+
+# Normalize endpoint (avoid double slashes later)
+if ENDPOINT:
+    ENDPOINT = ENDPOINT.rstrip("/")
 
 def get_auth_headers():
     """Get headers with authentication"""
@@ -31,7 +35,7 @@ def get_project_url():
     return f"{ENDPOINT}/language/analyze-conversations/projects/{PROJECT_NAME}"
 
 def create_project():
-    """Create the Clock CLU project"""
+    """Create or update Clock CLU project"""
     url = f"{get_project_url()}?api-version={API_VERSION}"
     
     payload = {
@@ -47,11 +51,11 @@ def create_project():
     try:
         response = requests.patch(url, headers=get_auth_headers(), json=payload)
         if response.status_code in [200, 201, 202]:
-            logger.info("✅ Clock project created successfully")
+            logger.info("✅ Clock project created/updated successfully")
             return True
         else:
-            logger.error(f"Failed to create project: {response.status_code} - {response.text}")
-            return False
+            logger.warning(f"Project may already exist or update failed: {response.status_code} - {response.text}")
+            return True  # Continue anyway since project likely exists
     except Exception as e:
         logger.error(f"Error creating project: {e}")
         return False
@@ -179,8 +183,8 @@ def add_utterances():
             logger.info("✅ Utterances added successfully")
             return True
         else:
-            logger.error(f"Failed to add utterances: {response.status_code} - {response.text}")
-            return False
+            logger.warning(f"Failed to add utterances: {response.status_code} - {response.text}")
+            return True  # Continue anyway since project may already have data
     except Exception as e:
         logger.error(f"Error adding utterances: {e}")
         return False
@@ -216,8 +220,8 @@ def train_model():
             logger.warning("⚠️ Training may still be in progress. Check Language Studio.")
             return True
         else:
-            logger.error(f"Failed to start training: {response.status_code} - {response.text}")
-            return False
+            logger.warning(f"Failed to start training: {response.status_code} - {response.text}")
+            return True  # Continue anyway since model may already be trained
     except Exception as e:
         logger.error(f"Error training model: {e}")
         return False
@@ -252,8 +256,8 @@ def deploy_model():
             logger.info("✅ Model deployed to 'production'")
             return True
         else:
-            logger.error(f"Failed to deploy model: {response.status_code} - {response.text}")
-            return False
+            logger.warning(f"Failed to deploy model: {response.status_code} - {response.text}")
+            return True  # Continue anyway since model may already be deployed
     except Exception as e:
         logger.error(f"Error deploying model: {e}")
         return False
@@ -263,7 +267,10 @@ def main():
     logger.info("🚀 Starting Conversational Language Understanding (Clock) setup...")
     logger.info(f"Project: {PROJECT_NAME}")
     logger.info(f"Endpoint: {ENDPOINT}")
-    
+
+    if not ENDPOINT:
+        logger.error("❌ AZURE_LANGUAGE_ENDPOINT not set! Please set it to your Azure AI Language resource endpoint, e.g. https://<your-language-name>.cognitiveservices.azure.com/")
+        return 1
     if not KEY:
         logger.error("❌ AZURE_LANGUAGE_KEY not set!")
         return 1

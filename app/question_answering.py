@@ -32,10 +32,17 @@ class QuestionAnsweringService:
     async def get_answer(self, question: str) -> Dict[str, Any]:
         """Get answer for a question from the knowledge base"""
         if not self.client:
-            logger.warning("Question Answering client not configured, returning demo response")
-            return self._get_demo_answer(question)
+            logger.error("Question Answering client not configured")
+            return {
+                "error": "Azure AI Language Question Answering not configured. Please set AZURE_LANGUAGE_ENDPOINT and AZURE_LANGUAGE_KEY.",
+                "answers": [],
+                "question": question,
+                "project_name": self.project_name,
+                "deployment_name": self.deployment_name
+            }
         
         try:
+            logger.info(f"Getting answer for question: {question}")
             response = self.client.get_answers(
                 question=question,
                 project_name=self.project_name,
@@ -60,12 +67,24 @@ class QuestionAnsweringService:
             }
         except Exception as e:
             logger.error(f"Question answering error: {e}")
-            return {"error": str(e), "answers": []}
+            return {
+                "error": str(e),
+                "answers": [],
+                "question": question,
+                "project_name": self.project_name,
+                "deployment_name": self.deployment_name
+            }
     
     async def get_answers_with_context(self, question: str, top: int = 3) -> Dict[str, Any]:
         """Get top answers with confidence scores"""
         if not self.client:
-            return self._get_demo_answer(question)
+            return {
+                "error": "Azure AI Language Question Answering not configured",
+                "answers": [],
+                "question": question,
+                "project_name": self.project_name,
+                "deployment_name": self.deployment_name
+            }
         
         try:
             response = self.client.get_answers(
@@ -92,7 +111,13 @@ class QuestionAnsweringService:
             }
         except Exception as e:
             logger.error(f"Question answering error: {e}")
-            return {"error": str(e), "answers": []}
+            return {
+                "error": str(e),
+                "answers": [],
+                "question": question,
+                "project_name": self.project_name,
+                "deployment_name": self.deployment_name
+            }
     
     def _get_demo_answer(self, question: str) -> Dict[str, Any]:
         """Return demo answers when service is not configured"""

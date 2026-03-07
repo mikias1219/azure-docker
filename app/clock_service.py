@@ -51,7 +51,7 @@ class ClockService:
     """Service for conversational language understanding in a clock application"""
     
     def __init__(self):
-        self.endpoint = os.getenv("AZURE_LANGUAGE_ENDPOINT", "")
+        self.endpoint = os.getenv("AZURE_LANGUAGE_ENDPOINT", "").rstrip('/')
         self.key = os.getenv("AZURE_LANGUAGE_KEY", "")
         self.project_name = "Clock"
         self.deployment_name = "production"
@@ -60,23 +60,35 @@ class ClockService:
         if self.endpoint and self.key:
             try:
                 credential = AzureKeyCredential(self.key)
+                # Ensure endpoint has proper format
+                if not self.endpoint.startswith('http'):
+                    self.endpoint = f"https://{self.endpoint}"
                 self.client = ConversationAnalysisClient(
                     endpoint=self.endpoint,
                     credential=credential
                 )
-                logger.info("Azure AI Language CLU client configured")
+                logger.info(f"Azure AI Language CLU client configured with endpoint: {self.endpoint}")
             except Exception as e:
                 logger.error(f"Failed to initialize CLU client: {e}")
+                self.client = None
         else:
-            logger.warning("Azure AI Language credentials not configured - using demo mode")
+            logger.warning(f"Azure AI Language credentials not configured. Endpoint: {bool(self.endpoint)}, Key: {bool(self.key)}")
     
     async def analyze_conversation(self, query: str) -> Dict[str, Any]:
         """Analyze a conversation query to predict intent and extract entities"""
         if not self.client:
-            # Demo mode - simulate responses
-            return await self._demo_analyze(query)
+            logger.error("CLU client not initialized - returning error instead of demo")
+            return {
+                "query": query,
+                "error": "Azure AI Language CLU not configured. Please set AZURE_LANGUAGE_ENDPOINT and AZURE_LANGUAGE_KEY.",
+                "top_intent": "None",
+                "confidence": 0.0,
+                "entities": [],
+                "response": "Service not configured. Please contact administrator."
+            }
         
         try:
+            logger.info(f"Analyzing query: {query}")
             result = self.client.analyze_conversation(
                 task={
                     "kind": "Conversation",
@@ -126,7 +138,15 @@ class ClockService:
             }
         except Exception as e:
             logger.error(f"Error analyzing conversation: {e}")
-            return await self._demo_analyze(query)
+            # Return error instead of falling back to demo
+            return {
+                "query": query,
+                "error": f"Azure CLU Error: {str(e)}",
+                "top_intent": "None",
+                "confidence": 0.0,
+                "entities": [],
+                "response": f"Error processing request: {str(e)}"
+            }
     
     async def _process_intent(self, intent: str, entities: List[Dict], query: str) -> str:
         """Process the predicted intent and generate appropriate response"""

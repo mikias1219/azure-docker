@@ -25,6 +25,12 @@ export function VoiceRecorder({ onTranscriptionComplete }: VoiceRecorderProps) {
       setError(null);
       audioChunksRef.current = [];
       
+      // Check if browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError('Your browser does not support audio recording. Please use a modern browser like Chrome, Firefox, or Edge.');
+        return;
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;

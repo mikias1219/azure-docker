@@ -60,13 +60,13 @@ export default function DashboardPage() {
   };
 
   const tabs = [
-    { id: 'upload', label: 'Upload', icon: Upload },
-    { id: 'documents', label: 'Documents', icon: FileText },
-    { id: 'analysis', label: 'Analysis', icon: Brain },
-    { id: 'voice', label: 'Voice', icon: Mic },
-    { id: 'text-analytics', label: 'Text Analytics', icon: Languages },
-    { id: 'qna', label: 'Q&A', icon: MessageCircle },
-    { id: 'clock', label: 'Clock CLU', icon: Clock },
+    { id: 'upload', label: 'Upload', icon: Upload, description: 'Upload documents for AI processing' },
+    { id: 'documents', label: 'Documents', icon: FileText, description: 'Browse and search your documents' },
+    { id: 'analysis', label: 'Analysis', icon: Brain, description: 'View insights & ask questions' },
+    { id: 'voice', label: 'Voice', icon: Mic, description: 'Record and transcribe audio' },
+    { id: 'text-analytics', label: 'Text Analytics', icon: Languages, description: 'Language, sentiment, key phrases & entities' },
+    { id: 'qna', label: 'Q&A', icon: MessageCircle, description: 'Knowledge base question answering' },
+    { id: 'clock', label: 'Clock CLU', icon: Clock, description: 'Conversational time, day & date' },
   ];
 
   return (
@@ -96,32 +96,43 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="bg-white border-b border-slate-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex gap-1">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8">
+        {/* Sidebar navigation */}
+        <aside className="w-64 shrink-0">
+          <nav className="space-y-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === (tab.id as any);
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-4 py-3.5 text-sm font-medium rounded-t-lg transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-slate-100 text-primary-600 border-b-2 border-primary-500 -mb-px'
-                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                  className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors border ${
+                    isActive
+                      ? 'bg-slate-900 text-slate-50 border-slate-900 shadow-sm'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  {tab.label}
+                  <span
+                    className={`inline-flex items-center justify-center rounded-lg p-1.5 ${
+                      isActive ? 'bg-slate-800 text-slate-50' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </span>
+                  <span className="flex flex-col items-start">
+                    <span className="font-medium">{tab.label}</span>
+                    <span className="text-xs text-slate-500 line-clamp-1">{tab.description}</span>
+                  </span>
                 </button>
               );
             })}
           </nav>
-        </div>
-      </div>
+        </aside>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'upload' && (
+        {/* Main content */}
+        <main className="flex-1">
+          {activeTab === 'upload' && (
           <div className="animate-fade-in">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Upload Document</h2>
@@ -131,9 +142,9 @@ export default function DashboardPage() {
             </div>
             <DocumentUpload onUpload={handleUpload} getDocument={getDocument} />
           </div>
-        )}
+          )}
 
-        {activeTab === 'documents' && (
+          {activeTab === 'documents' && (
           <div className="animate-fade-in">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Your Documents</h2>
@@ -148,9 +159,9 @@ export default function DashboardPage() {
               onGoToUpload={() => setActiveTab('upload')}
             />
           </div>
-        )}
+          )}
 
-        {activeTab === 'analysis' && (
+          {activeTab === 'analysis' && (
           <div className="animate-fade-in">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Document Analysis</h2>
@@ -173,8 +184,8 @@ export default function DashboardPage() {
               </Card>
             )}
           </div>
-        )}
-        {activeTab === 'voice' && (
+          )}
+          {activeTab === 'voice' && (
           <div className="animate-fade-in">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Voice Recording</h2>
@@ -184,9 +195,9 @@ export default function DashboardPage() {
             </div>
             <VoiceRecorder />
           </div>
-        )}
+          )}
 
-        {activeTab === 'text-analytics' && (
+          {activeTab === 'text-analytics' && (
           <div className="animate-fade-in">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Text Analytics</h2>
@@ -196,9 +207,9 @@ export default function DashboardPage() {
             </div>
             <TextAnalysis />
           </div>
-        )}
+          )}
 
-        {activeTab === 'qna' && (
+          {activeTab === 'qna' && (
           <div className="animate-fade-in">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Question Answering</h2>
@@ -208,9 +219,9 @@ export default function DashboardPage() {
             </div>
             <QuestionAnswering />
           </div>
-        )}
+          )}
 
-        {activeTab === 'clock' && (
+          {activeTab === 'clock' && (
           <div className="animate-fade-in">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Clock - Conversational Language Understanding</h2>
@@ -220,9 +231,9 @@ export default function DashboardPage() {
             </div>
             <ClockClient />
           </div>
-        )}
-
-      </main>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

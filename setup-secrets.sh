@@ -144,6 +144,20 @@ get_azure_service_credentials() {
         --query "properties.endpoint" -o tsv)
     
     OPENAI_DEPLOYMENT_NAME="text-embedding-ada-002"
+
+    # Azure AI Language (Text Analytics, QnA, CLU)
+    LANGUAGE_ENDPOINT=$(az cognitiveservices account show \
+        --name language-ai102 \
+        --resource-group $RESOURCE_GROUP \
+        --query "properties.endpoint" -o tsv)
+    
+    LANGUAGE_KEY=$(az cognitiveservices account keys list \
+        --name language-ai102 \
+        --resource-group $RESOURCE_GROUP \
+        --query "key1" -o tsv)
+    
+    AZURE_QNA_PROJECT_NAME="LearnFAQ"
+    AZURE_QNA_DEPLOYMENT_NAME="production"
     
     log_success "Azure service credentials retrieved"
 }
@@ -171,6 +185,10 @@ set_github_secrets() {
     gh secret set OPENAI_API_KEY --body "$OPENAI_API_KEY" --repo "$REPO_NAME"
     gh secret set OPENAI_API_BASE --body "$OPENAI_API_BASE" --repo "$REPO_NAME"
     gh secret set OPENAI_DEPLOYMENT_NAME --body "$OPENAI_DEPLOYMENT_NAME" --repo "$REPO_NAME"
+    gh secret set AZURE_LANGUAGE_ENDPOINT --body "$LANGUAGE_ENDPOINT" --repo "$REPO_NAME"
+    gh secret set AZURE_LANGUAGE_KEY --body "$LANGUAGE_KEY" --repo "$REPO_NAME"
+    gh secret set AZURE_QNA_PROJECT_NAME --body "$AZURE_QNA_PROJECT_NAME" --repo "$REPO_NAME"
+    gh secret set AZURE_QNA_DEPLOYMENT_NAME --body "$AZURE_QNA_DEPLOYMENT_NAME" --repo "$REPO_NAME"
     
     log_success "All GitHub secrets set successfully"
 }
@@ -226,6 +244,10 @@ main() {
     echo "  • OPENAI_API_KEY"
     echo "  • OPENAI_API_BASE"
     echo "  • OPENAI_DEPLOYMENT_NAME"
+    echo "  • AZURE_LANGUAGE_ENDPOINT"
+    echo "  • AZURE_LANGUAGE_KEY"
+    echo "  • AZURE_QNA_PROJECT_NAME"
+    echo "  • AZURE_QNA_DEPLOYMENT_NAME"
     echo ""
     echo "🚀 You can now push to main branch to trigger deployment!"
 }
