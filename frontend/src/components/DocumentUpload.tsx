@@ -8,11 +8,12 @@ import { Document } from '@/types';
 interface DocumentUploadProps {
   onUpload: (file: File) => Promise<{ success: boolean; error?: string; documentId?: number }>;
   getDocument?: (id: number) => Promise<Document>;
+  compact?: boolean;
 }
 
 type Step = 'idle' | 'upload' | 'extracting' | 'analyzing' | 'ready';
 
-export function DocumentUpload({ onUpload, getDocument }: DocumentUploadProps) {
+export function DocumentUpload({ onUpload, getDocument, compact }: DocumentUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadResult, setUploadResult] = useState<{
@@ -139,46 +140,46 @@ export function DocumentUpload({ onUpload, getDocument }: DocumentUploadProps) {
   const currentStepIndex = stepOrder.indexOf(step);
 
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden shadow-soft border-slate-200/80">
-        <CardContent className="p-6">
-          <div
-            {...getRootProps()}
-            className={`dropzone border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
-              isDragActive
-                ? isDragReject
-                  ? 'border-red-400 bg-red-50'
-                  : 'border-primary-400 bg-primary-50'
-                : 'border-slate-300 hover:border-primary-300 hover:bg-primary-50/50'
-            }`}
-          >
-            <input {...getInputProps()} />
-            <div className="space-y-4">
-              <div className="mx-auto w-14 h-14 bg-primary-100 rounded-xl flex items-center justify-center text-primary-600">
-                <Upload className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-slate-900">
-                  {isDragActive
-                    ? isDragReject
-                      ? 'File type not supported'
-                      : 'Drop your document here'
-                    : 'Drag and drop your document here'}
-                </p>
-                <p className="text-sm text-slate-500 mt-1">or click to browse</p>
-              </div>
-              <div className="text-xs text-slate-400 space-y-1">
-                <p>PDF, DOC, DOCX, JPG, PNG, TIFF — max 10MB</p>
-              </div>
-            </div>
+    <div className={compact ? "space-y-3" : "space-y-6"}>
+      <div
+        {...getRootProps()}
+        className={`dropzone border-2 border-dashed rounded-xl text-center cursor-pointer transition-all duration-200 ${
+          compact ? "p-4" : "p-8"
+        } ${
+          isDragActive
+            ? isDragReject
+              ? 'border-red-400 bg-red-50'
+              : 'border-blue-400 bg-blue-50'
+            : 'border-slate-300 hover:border-blue-300 hover:bg-blue-50/50'
+        }`}
+      >
+        <input {...getInputProps()} />
+        <div className={`${compact ? "space-y-2" : "space-y-4"}`}>
+          <div className={`mx-auto bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 ${compact ? "w-10 h-10" : "w-14 h-14"}`}>
+            <Upload className={compact ? "w-5 h-5" : "w-7 h-7"} />
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <p className={`font-semibold text-slate-900 ${compact ? "text-sm" : "text-lg"}`}>
+              {isDragActive
+                ? isDragReject
+                  ? 'File type not supported'
+                  : 'Drop your document here'
+                : compact ? 'Drop file or click to browse' : 'Drag and drop your document here'}
+            </p>
+            {!compact && <p className="text-sm text-slate-500 mt-1">or click to browse</p>}
+          </div>
+          {!compact && (
+            <div className="text-xs text-slate-400 space-y-1">
+              <p>PDF, DOC, DOCX, JPG, PNG, TIFF — max 10MB</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       {(uploading || processingDocumentId !== null) && (
-        <Card className="overflow-hidden shadow-soft border-slate-200/80 animate-fade-in">
-          <CardContent className="p-6">
-            <p className="text-sm font-medium text-slate-700 mb-4">Processing steps</p>
+        <Card className={`overflow-hidden shadow-sm border-slate-200/80 animate-fade-in ${compact ? "p-3" : ""}`}>
+          <CardContent className={compact ? "p-3" : "p-6"}>
+            {!compact && <p className="text-sm font-medium text-slate-700 mb-4">Processing steps</p>}
             <div className="flex items-center justify-between gap-2">
               {steps.map((s, i) => {
                 const idx = stepOrder.indexOf(s.id);
@@ -188,16 +189,18 @@ export function DocumentUpload({ onUpload, getDocument }: DocumentUploadProps) {
                 return (
                   <div key={s.id} className="flex flex-1 items-center">
                     <div
-                      className={`flex items-center gap-2 rounded-lg px-3 py-2 transition-all ${
-                        current ? 'bg-primary-100 text-primary-700' : done ? 'bg-slate-100 text-slate-600' : 'bg-slate-50 text-slate-400'
+                      className={`flex items-center gap-2 rounded-lg transition-all ${
+                        compact ? "px-2 py-1" : "px-3 py-2"
+                      } ${
+                        current ? 'bg-blue-100 text-blue-700' : done ? 'bg-slate-100 text-slate-600' : 'bg-slate-50 text-slate-400'
                       }`}
                     >
                       {current && step !== 'ready' ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <Icon className={`w-4 h-4 ${done ? 'text-primary-600' : ''}`} />
+                        <Icon className={`w-4 h-4 ${done ? 'text-blue-600' : ''}`} />
                       )}
-                      <span className="text-xs font-medium hidden sm:inline">{s.label}</span>
+                      {!compact && <span className="text-xs font-medium">{s.label}</span>}
                     </div>
                     {i < steps.length - 1 && (
                       <div className="flex-1 h-0.5 mx-1 bg-slate-200 min-w-[8px]" />
@@ -207,14 +210,14 @@ export function DocumentUpload({ onUpload, getDocument }: DocumentUploadProps) {
               })}
             </div>
             {uploading && (
-              <div className="mt-4">
+              <div className={compact ? "mt-2" : "mt-4"}>
                 <div className="flex justify-between text-sm text-slate-600 mb-1">
                   <span>Uploading…</span>
                   <span>{uploadProgress}%</span>
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                   <div
-                    className="upload-progress bg-primary-500 h-2 rounded-full"
+                    className="upload-progress bg-blue-500 h-2 rounded-full"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
@@ -225,8 +228,8 @@ export function DocumentUpload({ onUpload, getDocument }: DocumentUploadProps) {
       )}
 
       {uploadResult && !processingDocumentId && (
-        <Card className="overflow-hidden shadow-soft border-slate-200/80 animate-fade-in">
-          <CardContent className="p-6">
+        <Card className={`overflow-hidden shadow-sm border-slate-200/80 animate-fade-in ${compact ? "p-2" : ""}`}>
+          <CardContent className={compact ? "p-3" : "p-6"}>
             <div className="flex items-start gap-3">
               {uploadResult.success ? (
                 <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />

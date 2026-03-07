@@ -7,42 +7,49 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { DocumentUpload } from '@/components/DocumentUpload';
 import { DocumentList } from '@/components/DocumentList';
 import { DocumentViewer } from '@/components/DocumentViewer';
-import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { TextAnalysis } from '@/components/TextAnalysis';
 import { QuestionAnswering } from '@/components/QuestionAnswering';
 import { ClockClient } from '@/components/ClockClient';
-import { Upload, FileText, LogOut, Brain, Search, Mic, Languages, MessageCircle, Clock } from 'lucide-react';
+import { FileText, LogOut, Brain, Languages, Sparkles, Clock, FolderOpen, X, Search } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, logout, loading: authLoading } = useAuth();
   const { documents, loading, uploadDocument, getDocument, fetchDocuments } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'upload' | 'documents' | 'analysis' | 'voice' | 'text-analytics' | 'qna' | 'clock'>('upload');
+  const [activeTab, setActiveTab] = useState<'documents' | 'text-analytics' | 'qna' | 'clock'>('documents');
   const [isClient, setIsClient] = useState(false);
-
-  const handleRefreshDocument = async () => {
-    const list = await fetchDocuments();
-    const doc = list.find((d) => d.id === selectedDocument?.id);
-    if (doc) setSelectedDocument(doc);
-  };
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   useEffect(() => {
-    // Important: don't redirect until auth loading has finished,
-    // otherwise we bounce dashboard -> login -> dashboard repeatedly ("blinking").
     if (isClient && !authLoading && !user) {
       router.replace('/login');
     }
   }, [user, authLoading, isClient, router]);
 
+  const handleUpload = async (file: File) => {
+    const result = await uploadDocument(file);
+    if (result.success) {
+      await fetchDocuments();
+    }
+    return result;
+  };
+
+  const handleSelectDocument = (doc: any) => {
+    setSelectedDocument(doc);
+  };
+
+  const handleCloseDocument = () => {
+    setSelectedDocument(null);
+  };
+
   if (!isClient || authLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-200 border-t-primary-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-3 border-blue-200 border-t-blue-600 shadow-lg"></div>
       </div>
     );
   }
@@ -51,42 +58,35 @@ export default function DashboardPage() {
     return null;
   }
 
-  const handleUpload = async (file: File) => {
-    const result = await uploadDocument(file);
-    if (result.success) {
-      setActiveTab('documents');
-    }
-    return { success: result.success, error: result.error, documentId: result.documentId };
-  };
-
   const tabs = [
-    { id: 'upload', label: 'Upload', icon: Upload, description: 'Upload documents for AI processing' },
-    { id: 'documents', label: 'Documents', icon: FileText, description: 'Browse and search your documents' },
-    { id: 'analysis', label: 'Analysis', icon: Brain, description: 'View insights & ask questions' },
-    { id: 'voice', label: 'Voice', icon: Mic, description: 'Record and transcribe audio' },
-    { id: 'text-analytics', label: 'Text Analytics', icon: Languages, description: 'Language, sentiment, key phrases & entities' },
-    { id: 'qna', label: 'Q&A', icon: MessageCircle, description: 'Knowledge base question answering' },
-    { id: 'clock', label: 'Clock CLU', icon: Clock, description: 'Conversational time, day & date' },
+    { id: 'documents', label: 'Documents & Analysis', icon: FolderOpen, description: 'Upload, view and analyze documents' },
+    { id: 'text-analytics', label: 'Text Analytics', icon: Languages, description: 'Language detection, sentiment & entities' },
+    { id: 'qna', label: 'Ask AI Assistant', icon: Sparkles, description: 'Intelligent Q&A with LLM enhancement' },
+    { id: 'clock', label: 'Smart Clock', icon: Clock, description: 'Natural language time queries' },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white/80 backdrop-blur border-b border-slate-200/80 shadow-soft">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Modern Header */}
+      <header className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary-500 flex items-center justify-center text-white shadow-soft">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
                 <Brain className="w-5 h-5" />
               </div>
-              <h1 className="text-xl font-bold text-slate-900">Document Intelligence</h1>
+              <div>
+                <h1 className="text-lg font-bold text-slate-900 tracking-tight">AI Document Intelligence</h1>
+                <p className="text-xs text-slate-500">Powered by Azure AI</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-slate-600">Welcome, {user.username}</span>
+              <span className="text-sm text-slate-600 font-medium">{user.username}</span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={logout}
-                className="flex items-center gap-2 border-slate-200 hover:bg-slate-50"
+                className="flex items-center gap-2 border-slate-300 hover:bg-slate-100 text-slate-700"
               >
                 <LogOut className="w-4 h-4" />
                 Logout
@@ -96,10 +96,10 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex gap-8">
-        {/* Sidebar navigation */}
-        <aside className="w-64 shrink-0">
-          <nav className="space-y-1">
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Modern Tab Navigation */}
+        <div className="mb-6">
+          <nav className="flex items-center gap-2 bg-white/80 backdrop-blur p-1.5 rounded-2xl border border-slate-200/60 shadow-sm">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === (tab.id as any);
@@ -107,132 +107,144 @@ export default function DashboardPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors border ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-slate-900 text-slate-50 border-slate-900 shadow-sm'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/20'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                   }`}
                 >
-                  <span
-                    className={`inline-flex items-center justify-center rounded-lg p-1.5 ${
-                      isActive ? 'bg-slate-800 text-slate-50' : 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </span>
-                  <span className="flex flex-col items-start">
-                    <span className="font-medium">{tab.label}</span>
-                    <span className="text-xs text-slate-500 line-clamp-1">{tab.description}</span>
-                  </span>
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
                 </button>
               );
             })}
           </nav>
-        </aside>
+        </div>
 
-        {/* Main content */}
-        <main className="flex-1">
-          {activeTab === 'upload' && (
-          <div className="animate-fade-in">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Upload Document</h2>
-              <p className="text-slate-600">
-                Upload for AI-powered extraction and analysis. Steps run automatically.
-              </p>
-            </div>
-            <DocumentUpload onUpload={handleUpload} getDocument={getDocument} />
-          </div>
-          )}
-
+        {/* Main Content Area */}
+        <div className="grid grid-cols-12 gap-6">
+          {/* Documents Sidebar - Only show when documents tab is active */}
           {activeTab === 'documents' && (
-          <div className="animate-fade-in">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Your Documents</h2>
-              <p className="text-slate-600">
-                Search and manage your documents
-              </p>
-            </div>
-            <DocumentList
-              documents={documents}
-              loading={loading}
-              onSelectDocument={setSelectedDocument}
-              onGoToUpload={() => setActiveTab('upload')}
-            />
-          </div>
+            <>
+              {/* Document Sidebar */}
+              <div className="col-span-12 lg:col-span-4 xl:col-span-3 space-y-4">
+                {/* Upload Section */}
+                <Card className="border-slate-200/60 shadow-sm overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200/60 py-4">
+                    <CardTitle className="flex items-center gap-2 text-slate-800 text-sm font-semibold">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      Upload Document
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <DocumentUpload onUpload={handleUpload} getDocument={getDocument} compact />
+                  </CardContent>
+                </Card>
+
+                {/* Document List */}
+                <Card className="border-slate-200/60 shadow-sm">
+                  <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200/60 py-4">
+                    <CardTitle className="flex items-center gap-2 text-slate-800 text-sm font-semibold">
+                      <FolderOpen className="w-4 h-4 text-blue-600" />
+                      Your Documents
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <DocumentList
+                      documents={documents}
+                      loading={loading}
+                      onSelectDocument={handleSelectDocument}
+                      selectedDocumentId={selectedDocument?.id}
+                      compact
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Document Analysis Area */}
+              <div className="col-span-12 lg:col-span-8 xl:col-span-9">
+                {selectedDocument ? (
+                  <div className="space-y-4">
+                    {/* Document Header */}
+                    <div className="flex items-center justify-between bg-white/80 backdrop-blur p-4 rounded-xl border border-slate-200/60 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h2 className="font-semibold text-slate-900">{selectedDocument.filename}</h2>
+                          <p className="text-sm text-slate-500">
+                            {selectedDocument.status === 'completed' ? 'Analysis complete' : 'Processing...'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleCloseDocument}
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-slate-600"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    {/* Document Viewer */}
+                    <DocumentViewer document={selectedDocument} onRefresh={fetchDocuments} />
+                  </div>
+                ) : (
+                  <Card className="border-slate-200/60 shadow-sm h-96 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-4">
+                        <FolderOpen className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-slate-900 mb-2">Select a Document</h3>
+                      <p className="text-slate-500 max-w-sm mx-auto">
+                        Choose a document from the sidebar to view AI-powered analysis and insights
+                      </p>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            </>
           )}
 
-          {activeTab === 'analysis' && (
-          <div className="animate-fade-in">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Document Analysis</h2>
-              <p className="text-slate-600">
-                View insights and ask questions about the selected document
-              </p>
-            </div>
-            {selectedDocument ? (
-              <DocumentViewer document={selectedDocument} onRefresh={handleRefreshDocument} />
-            ) : (
-              <Card className="border-slate-200/80 shadow-soft">
-                <CardContent className="text-center py-12">
-                  <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 mb-2">No document selected</h3>
-                  <p className="text-slate-600 mb-4">
-                    Select a document from the Documents tab to view analysis and Q&A
-                  </p>
-                  <Button onClick={() => setActiveTab('documents')}>Go to Documents</Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-          )}
-          {activeTab === 'voice' && (
-          <div className="animate-fade-in">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Voice Recording</h2>
-              <p className="text-slate-600">
-                Record your voice and get AI-powered transcription using Azure Speech Services
-              </p>
-            </div>
-            <VoiceRecorder />
-          </div>
-          )}
-
+          {/* Text Analytics Tab */}
           {activeTab === 'text-analytics' && (
-          <div className="animate-fade-in">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Text Analytics</h2>
-              <p className="text-slate-600">
-                Analyze text using Azure AI Language - detect language, sentiment, key phrases, and entities
-              </p>
+            <div className="col-span-12">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-slate-900">Text Analytics</h2>
+                <p className="text-slate-600">Analyze text using Azure AI Language services</p>
+              </div>
+              <TextAnalysis />
             </div>
-            <TextAnalysis />
-          </div>
           )}
 
+          {/* Q&A Tab with LLM */}
           {activeTab === 'qna' && (
-          <div className="animate-fade-in">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Question Answering</h2>
-              <p className="text-slate-600">
-                Ask questions and get answers from a knowledge base using Azure AI Language
-              </p>
+            <div className="col-span-12">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <Sparkles className="w-6 h-6 text-blue-600" />
+                  AI Assistant
+                </h2>
+                <p className="text-slate-600">Ask questions and get intelligent answers enhanced with LLM</p>
+              </div>
+              <QuestionAnswering />
             </div>
-            <QuestionAnswering />
-          </div>
           )}
 
+          {/* Clock CLU Tab */}
           {activeTab === 'clock' && (
-          <div className="animate-fade-in">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Clock - Conversational Language Understanding</h2>
-              <p className="text-slate-600">
-                Ask about time, day, or date in natural language using Azure AI CLU
-              </p>
+            <div className="col-span-12 max-w-3xl mx-auto">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <Clock className="w-6 h-6 text-blue-600" />
+                  Smart Clock
+                </h2>
+                <p className="text-slate-600">Ask about time, day, or date in natural language</p>
+              </div>
+              <ClockClient />
             </div>
-            <ClockClient />
-          </div>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );

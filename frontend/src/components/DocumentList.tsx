@@ -11,11 +11,13 @@ interface DocumentListProps {
   loading: boolean;
   onSelectDocument: (document: Document) => void;
   onGoToUpload?: () => void;
+  compact?: boolean;
+  selectedDocumentId?: number;
 }
 
 const SEARCH_DEBOUNCE_MS = 400;
 
-export function DocumentList({ documents, loading, onSelectDocument, onGoToUpload }: DocumentListProps) {
+export function DocumentList({ documents, loading, onSelectDocument, onGoToUpload, compact, selectedDocumentId }: DocumentListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [serverResults, setServerResults] = useState<Document[] | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -66,16 +68,16 @@ export function DocumentList({ documents, loading, onSelectDocument, onGoToUploa
 
   if (loading && documents.length === 0) {
     return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
+      <div className={compact ? "space-y-2" : "space-y-4"}>
+        {[...Array(compact ? 2 : 3)].map((_, i) => (
           <Card key={i} className="border-slate-200/80">
-            <CardContent className="p-6">
-              <div className="animate-pulse space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-slate-200 rounded-xl" />
+            <CardContent className={compact ? "p-3" : "p-6"}>
+              <div className="animate-pulse space-y-3">
+                <div className="flex items-center space-x-3">
+                  <div className={`bg-slate-200 rounded-xl ${compact ? "w-8 h-8" : "w-12 h-12"}`} />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-slate-200 rounded w-3/4" />
-                    <div className="h-3 bg-slate-200 rounded w-1/2" />
+                    <div className={`h-3 bg-slate-200 rounded ${compact ? "w-2/3" : "w-3/4"}`} />
+                    {!compact && <div className="h-2 bg-slate-200 rounded w-1/2" />}
                   </div>
                 </div>
               </div>
@@ -87,21 +89,23 @@ export function DocumentList({ documents, loading, onSelectDocument, onGoToUploa
   }
 
   return (
-    <div className="space-y-6">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Search by name or content..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
-        />
-        {searchLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-500 animate-spin" />
-        )}
-      </div>
-      {isServerSearch && (
+    <div className={compact ? "space-y-2" : "space-y-6"}>
+      {!compact && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by name or content..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+          />
+          {searchLoading && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-500 animate-spin" />
+          )}
+        </div>
+      )}
+      {isServerSearch && !compact && (
         <p className="text-xs text-slate-500">
           Showing results from document content and analysis
         </p>
@@ -127,20 +131,27 @@ export function DocumentList({ documents, loading, onSelectDocument, onGoToUploa
       )}
 
       {effectiveList.length > 0 && (
-        <div className="space-y-4">
+        <div className={compact ? "space-y-2" : "space-y-4"}>
           {effectiveList.map((document) => (
-            <Card
+            <div
               key={document.id}
-              className="border-slate-200/80 shadow-soft hover:shadow-md transition-all duration-200"
+              onClick={() => onSelectDocument(document)}
+              className={`cursor-pointer rounded-xl border transition-all duration-200 ${
+                compact
+                  ? selectedDocumentId === document.id
+                    ? 'bg-blue-50 border-blue-300 shadow-sm'
+                    : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm'
+                  : 'bg-white border-slate-200/80 shadow-soft hover:shadow-md'
+              }`}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center space-x-4 flex-1 min-w-0">
-                    <div className="text-2xl shrink-0">{getFileIcon(document.file_type)}</div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-medium text-slate-900 truncate">
-                        {document.original_filename}
-                      </h3>
+              <div className={compact ? "p-3" : "p-6"}>
+                <div className="flex items-center gap-3">
+                  <div className={`shrink-0 ${compact ? "text-lg" : "text-2xl"}`}>{getFileIcon(document.file_type)}</div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`font-medium text-slate-900 truncate ${compact ? "text-sm" : "text-lg"}`}>
+                      {document.original_filename}
+                    </h3>
+                    {!compact && (
                       <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 mt-1">
                         <span>{formatFileSize(document.file_size)}</span>
                         <span className="flex items-center">
@@ -148,6 +159,22 @@ export function DocumentList({ documents, loading, onSelectDocument, onGoToUploa
                           {formatDistanceToNow(new Date(document.created_at), { addSuffix: true })}
                         </span>
                       </div>
+                    )}
+                    {compact && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {document.extracted_text && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+                            ✓
+                          </span>
+                        )}
+                        {document.ai_analysis && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            AI
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {!compact && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {document.extracted_text && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
@@ -160,20 +187,22 @@ export function DocumentList({ documents, loading, onSelectDocument, onGoToUploa
                           </span>
                         )}
                       </div>
-                    </div>
+                    )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onSelectDocument(document)}
-                    className="flex items-center gap-2 shrink-0 border-slate-200"
-                  >
-                    <Eye className="w-4 h-4" />
-                    View
-                  </Button>
+                  {!compact && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSelectDocument(document)}
+                      className="flex items-center gap-2 shrink-0 border-slate-200"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View
+                    </Button>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
