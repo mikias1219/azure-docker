@@ -14,6 +14,7 @@ class QuestionAnsweringService:
         self.project_name = os.getenv("AZURE_QNA_PROJECT_NAME", "LearnFAQ")
         self.deployment_name = os.getenv("AZURE_QNA_DEPLOYMENT_NAME", "production")
         self.client = None
+        self.llm_enabled = os.getenv("AZURE_OPENAI_KEY") is not None
         
         if self.endpoint and self.key:
             try:
@@ -29,7 +30,42 @@ class QuestionAnsweringService:
         """Check if the service is properly configured"""
         return self.client is not None
     
-    async def get_answer(self, question: str) -> Dict[str, Any]:
+    async def _enhance_with_llm(self, question: str, kb_answer: str, confidence: float) -> str:
+        """Enhance knowledge base answer with LLM for better presentation"""
+        if not self.llm_enabled:
+            return kb_answer
+        
+        try:
+            import openai
+            openai.api_key = os.getenv("AZURE_OPENAI_KEY")
+            openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT", "https://api.openai.com/v1")
+            
+            system_prompt = """You are a helpful HR assistant. Enhance the given answer from the knowledge base to be:
+1. Clear and well-structured
+2. Professional and friendly
+3. Comprehensive but concise
+4. Use bullet points where appropriate for lists
+
+Base your enhancement on the knowledge base answer provided. Do not add information that is not in the original answer."""
+
+            response = await openai.ChatCompletion.acreate(
+                engine=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4"),
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Question: {question}\n\nKnowledge Base Answer: {kb_answer}\n\nPlease enhance this answer for better presentation."}
+                ],
+                max_tokens=500,
+                temperature=0.3
+            )
+            
+            enhanced = response.choices[0].message.content.strip()
+            logger.info(f"LLM enhancement successful for question: {question[:50]}...")
+            return enhanced
+        except Exception as e:
+            logger.warning(f"LLM enhancement failed, using original answer: {e}")
+            return kb_answer
+
+    async def get_answer(self, question: str, enhance_with_llm: bool = True) -> Dict[str, Any]:
         """Get answer for a question from the knowledge base"""
         if not self.client:
             logger.error("Question Answering client not configured")
@@ -51,19 +87,33 @@ class QuestionAnsweringService:
             
             answers = []
             for candidate in response.answers:
+                original_answer = candidate.answer
+                
+                # Enhance with LLM if enabled and confidence is reasonable
+                if enhance_with_llm and self.llm_enabled and candidate.confidence > 0.5:
+                    enhanced_answer = await self._enhance_with_llm(
+                        question, original_answer, candidate.confidence
+                    )
+                    final_answer = enhanced_answer
+                else:
+                    final_answer = original_answer
+                
                 answers.append({
-                    "answer": candidate.answer,
+                    "answer": final_answer,
+                    "original_answer": original_answer if enhance_with_llm and self.llm_enabled else None,
                     "confidence": candidate.confidence,
                     "source": candidate.source,
                     "questions": candidate.questions if hasattr(candidate, 'questions') else [],
-                    "metadata": dict(candidate.metadata) if hasattr(candidate, 'metadata') and candidate.metadata else {}
+                    "metadata": dict(candidate.metadata) if hasattr(candidate, 'metadata') and candidate.metadata else {},
+                    "llm_enhanced": enhance_with_llm and self.llm_enabled and candidate.confidence > 0.5
                 })
             
             return {
                 "answers": answers,
                 "question": question,
                 "project_name": self.project_name,
-                "deployment_name": self.deployment_name
+                "deployment_name": self.deployment_name,
+                "llm_enabled": self.llm_enabled
             }
         except Exception as e:
             logger.error(f"Question answering error: {e}")
@@ -175,7 +225,8 @@ class QuestionAnsweringService:
             "endpoint": self.endpoint,
             "configured": self.is_configured(),
             "endpoint_configured": bool(self.endpoint),
-            "key_configured": bool(self.key)
+            "key_configured": bool(self.key),
+            "llm_enabled": self.llm_enabled
         }
 
 # Create a singleton instance
