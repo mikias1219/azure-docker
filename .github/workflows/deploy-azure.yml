@@ -209,29 +209,36 @@ jobs:
 
       - name: Verify container health
         run: |
+          RG="${{ env.RESOURCE_GROUP }}"
+          CG="${{ env.CONTAINER_NAME }}"
           CONTAINER_IP="${{ steps.deploy.outputs.container_ip }}"
-          CONTAINER_FQDN="${{ steps.deploy.outputs.container_fqdn }}"
-          if [ -z "$CONTAINER_IP" ]; then
-            echo "::warning::No container IP; skipping health check"
-            exit 0
-          fi
-          echo "Verifying app responds at http://$CONTAINER_IP:8000/health (retries: 12, interval 10s)..."
-          for i in $(seq 1 12); do
-            if curl -sf --connect-timeout 10 --max-time 15 "http://$CONTAINER_IP:8000/health" >/dev/null; then
-              echo "Health check passed (attempt $i)."
-              curl -s "http://$CONTAINER_IP:8000/health" | head -c 200
+          echo "=== Health check: try from inside container first (no egress needed) ==="
+          for i in $(seq 1 18); do
+            if az container exec --resource-group "$RG" --name "$CG" --container-name document-intelligence-app \
+              --exec-command "curl -sf --max-time 5 http://127.0.0.1:8000/health" 2>/dev/null; then
               echo ""
+              echo "Health check passed (attempt $i) from inside container."
               exit 0
             fi
             echo "  Attempt $i failed; waiting 10s..."
             sleep 10
           done
-          echo "::error::Health check failed after 12 attempts. Container may not be listening on port 8000 or app may have crashed."
-          echo "::group::Container logs"
-          az container logs --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null || true
+          echo "=== Trying from runner (external) in case exec is not available ==="
+          if [ -n "$CONTAINER_IP" ]; then
+            for i in $(seq 1 6); do
+              if curl -sf --connect-timeout 10 --max-time 15 "http://$CONTAINER_IP:8000/health" >/dev/null; then
+                echo "Health check passed via external IP (attempt $i)."
+                exit 0
+              fi
+              sleep 10
+            done
+          fi
+          echo "::error::Health check failed. App may have crashed or not listening on port 8000."
+          echo "::group::Container logs (stdout/stderr)"
+          az container logs --resource-group "$RG" --name "$CG" --container-name document-intelligence-app 2>&1 || true
           echo "::endgroup::"
-          echo "::group::Container events"
-          az container show --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query "properties.instanceView.events" -o table 2>/dev/null || true
+          echo "::group::Container instance state and events"
+          az container show --resource-group "$RG" --name "$CG" --query "{state: properties.instanceView.state, events: properties.instanceView.events}" -o json 2>&1 || true
           echo "::endgroup::"
           exit 1
 
