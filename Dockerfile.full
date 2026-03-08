@@ -14,14 +14,17 @@ RUN npm ci
 # Copy frontend source
 COPY frontend/ ./
 
-# Build frontend
-RUN npm run build
+# Build frontend (npx ensures next is found from node_modules)
+RUN npx next build
 
 # Stage 2: Python backend
 FROM python:3.11-slim AS backend
 
 # Set working directory
 WORKDIR /app
+
+# Unbuffered output so container logs show crash tracebacks immediately
+ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -3,7 +3,8 @@
 set -e
 echo "[start.sh] Starting application on 0.0.0.0:8000..."
 cd /app
-exec python -c "
+# Use -u for unbuffered stdout/stderr
+exec python -u -c "
 import sys
 import traceback
 print('[start.sh] Loading app module...', flush=True)
