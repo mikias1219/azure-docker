@@ -51,7 +51,9 @@ app.add_middleware(
 )
 
 # Static files (mount only if dirs exist so container does not crash if frontend build is incomplete)
-_static_dir = Path(__file__).resolve().parent.parent / "static"
+# In Docker __file__ is /app/main_new.py, so parent is /app (repo root)
+_app_root = Path(__file__).resolve().parent
+_static_dir = _app_root / "static"
 _next_dir = _static_dir / "_next"
 if _next_dir.exists():
     app.mount("/_next", StaticFiles(directory=str(_next_dir)), name="next-static")
@@ -560,7 +562,7 @@ async def shutdown():
     logger.info("Application shutting down")
 
 # Serve frontend - catch all routes for Next.js (must be last)
-_index_path = Path(__file__).resolve().parent.parent / "static" / "index.html"
+_index_path = _app_root / "static" / "index.html"
 
 @app.get("/{path:path}", response_class=HTMLResponse)
 async def catch_all(request: Request, path: str):
