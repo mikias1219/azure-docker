@@ -10,6 +10,7 @@ interface ClockResult {
   query: string;
   top_intent: string;
   confidence: number;
+  intents?: Array<{ intent: string; confidence: number }>;
   entities: Array<{
     category: string;
     text: string;
@@ -202,8 +203,8 @@ export function ClockClient() {
                 <span>{result.error}</span>
               </div>
             )}
-            {/* Intent Badge */}
-            <div className="flex items-center gap-3">
+            {/* Top Intent Badge */}
+            <div className="flex items-center gap-3 flex-wrap">
               <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${getIntentColor(result.top_intent)}`}>
                 {getIntentIcon(result.top_intent)}
                 <span className="font-medium">{result.top_intent}</span>
@@ -212,6 +213,25 @@ export function ClockClient() {
                 {Math.round(result.confidence * 100)}% confidence
               </Badge>
             </div>
+
+            {/* All intents (when returned by API) */}
+            {result.intents && result.intents.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-2">All intents</p>
+                <div className="flex flex-wrap gap-2">
+                  {result.intents.map((item, idx) => (
+                    <span
+                      key={idx}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${getIntentColor(item.intent)}`}
+                    >
+                      {getIntentIcon(item.intent)}
+                      {item.intent}
+                      <span className="opacity-75">{Math.round(item.confidence * 100)}%</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Extracted Entities */}
             {result.entities && result.entities.length > 0 && (

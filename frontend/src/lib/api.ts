@@ -29,7 +29,9 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token');
       if (typeof window !== 'undefined' && !Router.asPath.startsWith('/login')) {
-        Router.replace('/login');
+        const detail = error.response?.data?.detail || '';
+        const expired = typeof detail === 'string' && detail.toLowerCase().includes('expired');
+        Router.replace(expired ? '/login?reason=expired' : '/login');
       }
     }
     return Promise.reject(error);

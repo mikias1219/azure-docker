@@ -149,8 +149,9 @@ class AzureDocumentIntelligence:
         try:
             context = extracted_text[:8000]
             prompt = (
-                "Answer the following question based ONLY on the document text below. "
-                "If the answer is not in the document, say so. Be concise.\n\n"
+                "Answer the following question using ONLY the document text below. "
+                "Do not use external knowledge. If the document does not contain the answer, reply with exactly: 'The document does not contain this information.' "
+                "Quote or paraphrase only from the document. Be concise (1-3 sentences).\n\n"
                 f"Document text:\n{context}\n\n"
                 f"Question: {question.strip()}\n\n"
                 "Answer:"
@@ -160,7 +161,7 @@ class AzureDocumentIntelligence:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You answer questions about documents using only the provided text. Be accurate and concise.",
+                        "content": "You answer questions about documents using ONLY the provided text. Do not add information from outside the document. If the answer is not in the text, say so clearly. Be accurate and concise.",
                     },
                     {"role": "user", "content": prompt},
                 ],

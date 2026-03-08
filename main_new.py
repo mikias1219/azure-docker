@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
+from jose.exceptions import ExpiredSignatureError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -99,10 +100,10 @@ def get_password_hash(password):
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    if expires_delta:
+    if expires_delta is not None:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -118,6 +119,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except JWTError:
         raise credentials_exception
     user = await crud.get_user_by_username(db, username)
@@ -533,8 +540,16 @@ async def ask_document(
     if not document or document.owner_id != current_user.id:
         raise HTTPException(status_code=404, detail="Document not found")
     text = (document.extracted_text or "").strip()
+    if not text:
+        return schemas.AskResponse(
+            answer="No extracted text for this document yet. Wait for processing to finish and refresh, or re-upload the document."
+        )
+    if not document_intelligence or not getattr(document_intelligence, "answer_question", None):
+        return schemas.AskResponse(
+            answer="Document Q&A is not available (Azure OpenAI not configured). You can read the extracted text above."
+        )
     answer = await document_intelligence.answer_question(text, body.question or "")
-    return schemas.AskResponse(answer=answer)
+    return schemas.AskResponse(answer=answer or "No answer could be generated.")
 
 async def process_document(document_id: int, file_path: Path):
     """

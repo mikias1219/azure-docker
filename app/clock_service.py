@@ -119,10 +119,15 @@ class ClockService:
             # Process the intent
             response = await self._process_intent(top_intent, entities, query)
             
+            intents_list = [
+                {"intent": i.get("category") or i.get("intent") or "Unknown", "confidence": i.get("confidenceScore", 0.0)}
+                for i in intents
+            ]
             return {
                 "query": query,
                 "top_intent": top_intent,
                 "confidence": intents[0].get("confidenceScore", 0.0) if intents else 0.0,
+                "intents": intents_list,
                 "entities": [
                     {
                         "category": e.get("category"),
@@ -319,6 +324,7 @@ class ClockService:
             "query": query,
             "top_intent": intent,
             "confidence": confidence,
+            "intents": [{"intent": intent, "confidence": confidence}],
             "entities": entities,
             "response": response,
             "demo_mode": True

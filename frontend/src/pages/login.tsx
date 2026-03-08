@@ -18,6 +18,7 @@ export default function LoginPage() {
   const { login, register, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const hasRedirectedRef = useRef(false);
+  const sessionExpired = router.isReady && router.query.reason === 'expired';
 
   // Redirect to dashboard only once when we know user is authenticated (no blink loop).
   useEffect(() => {
@@ -76,6 +77,11 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-slate-600">AI-powered document analysis</p>
         </div>
 
+        {sessionExpired && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm mb-4">
+            Your session expired. Please log in again.
+          </div>
+        )}
         <Card className="border-slate-200/80 shadow-soft overflow-hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-slate-900">

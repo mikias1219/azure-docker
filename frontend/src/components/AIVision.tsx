@@ -52,14 +52,22 @@ interface VisionResult {
     blocks: Array<{
       lines: Array<{
         text: string;
-        words: Array<{
+        words?: Array<{
           text: string;
           confidence: number;
         }>;
       }>;
     }>;
   };
-  configured: boolean;
+  /** OCR response: backend may return full_text/blocks at top level */
+  full_text?: string;
+  blocks?: Array<{
+    lines: Array<{
+      text: string;
+      words?: Array<{ text: string; confidence: number }>;
+    }>;
+  }>;
+  configured?: boolean;
   error?: string;
 }
 
@@ -156,6 +164,7 @@ export function AIVision() {
     try {
       const data = await visionApi.readText(selectedFile);
       setResult(data);
+      if (data?.error) setError(data.error);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to read text');
       console.error('OCR error:', err);
@@ -448,8 +457,8 @@ export function AIVision() {
               </div>
             )}
 
-            {/* OCR Text */}
-            {result.read?.full_text && (
+            {/* OCR Text: support both result.read (analyze) and top-level full_text (read-text endpoint) */}
+            {(result.read?.full_text ?? result.full_text) && (
               <div>
                 <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
                   <Type className="w-4 h-4" />
@@ -457,7 +466,7 @@ export function AIVision() {
                 </p>
                 <div className="bg-slate-50 rounded-xl p-4">
                   <pre className="text-sm text-slate-800 whitespace-pre-wrap font-sans">
-                    {result.read.full_text}
+                    {result.read?.full_text ?? result.full_text ?? ''}
                   </pre>
                 </div>
               </div>
