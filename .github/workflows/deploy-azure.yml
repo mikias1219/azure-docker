@@ -127,24 +127,25 @@ jobs:
         run: |
           # Generate unique DNS label
           DNS_LABEL="docint-${{ github.run_number }}-$(date +%s)"
-          
+          ACI_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:full"
           # Get ACR credentials
           ACR_USER=$(az acr credential show --name selamnew --resource-group AI-102 --query "username" -o tsv)
           ACR_PASS=$(az acr credential show --name selamnew --resource-group AI-102 --query "passwords[0].value" -o tsv)
+          export ACR_USER ACR_PASS DNS_LABEL ACI_IMAGE
           
-          # Update container group configuration
-          python3 << EOF
+          # Update container group configuration (use env vars so Python gets real values, not literal $ACR_USER)
+          python3 << 'PYEOF'
           import json
           import os
           
           with open('aci/container-group-simple-template.json', 'r') as f:
               data = json.load(f)
           
-          # Replace placeholders
-          data['properties']['imageRegistryCredentials'][0]['username'] = '$ACR_USER'
-          data['properties']['imageRegistryCredentials'][0]['password'] = '$ACR_PASS'
-          data['properties']['containers'][0]['properties']['image'] = '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:full'
-          data['properties']['ipAddress']['dnsNameLabel'] = '$DNS_LABEL'
+          data['properties']['imageRegistryCredentials'][0]['username'] = os.environ.get('ACR_USER', '')
+          data['properties']['imageRegistryCredentials'][0]['password'] = os.environ.get('ACR_PASS', '')
+          data['properties']['containers'][0]['properties']['image'] = os.environ.get('ACI_IMAGE', 'selamnew.azurecr.io/document-intelligence-app:full')
+          data['properties']['ipAddress']['dnsNameLabel'] = os.environ.get('DNS_LABEL', 'docint')
+          PYEOF
 
           # Wire environment variables through to the container for all Azure AI services in ACI
           env_vars = [
@@ -209,6 +210,9 @@ jobs:
             if [ "$STATE" = "Failed" ] || [ "$STATE" = "Stopped" ]; then
               echo "::error::Container entered state: $STATE"
               az container show --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} -o table 2>/dev/null || true
+              echo "::group::Container logs (diagnostics)"
+              az container logs --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null || true
+              echo "::endgroup::"
               exit 1
             fi
             if [ "$i" -eq 60 ]; then
