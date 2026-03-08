@@ -50,9 +50,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static files
-app.mount("/_next", StaticFiles(directory="static/_next"), name="next-static")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Static files (mount only if dirs exist so container does not crash if frontend build is incomplete)
+_static_dir = Path(__file__).resolve().parent.parent / "static"
+_next_dir = _static_dir / "_next"
+if _next_dir.exists():
+    app.mount("/_next", StaticFiles(directory=str(_next_dir)), name="next-static")
+if _static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+else:
+    logger.warning("static/ not found; frontend may not be built")
 
 # Health check endpoint
 @app.get("/health")
@@ -545,7 +551,7 @@ async def process_document(document_id: int, file_path: Path):
 # Startup and shutdown events
 @app.on_event("startup")
 async def startup():
-    # Create database tables
+    logger.info("Application startup: creating database tables")
     metadata.create_all(bind=engine)
     logger.info("Database connected and tables verified")
 
@@ -554,11 +560,14 @@ async def shutdown():
     logger.info("Application shutting down")
 
 # Serve frontend - catch all routes for Next.js (must be last)
+_index_path = Path(__file__).resolve().parent.parent / "static" / "index.html"
+
 @app.get("/{path:path}", response_class=HTMLResponse)
 async def catch_all(request: Request, path: str):
     # For all non-API routes, serve the Next.js index.html
-    # This enables client-side routing
-    return FileResponse("static/index.html")
+    if _index_path.exists():
+        return FileResponse(str(_index_path))
+    return JSONResponse(content={"message": "Frontend not built; use API endpoints."}, status_code=404)
 
 if __name__ == "__main__":
     import uvicorn

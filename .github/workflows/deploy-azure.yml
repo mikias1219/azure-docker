@@ -212,9 +212,13 @@ jobs:
           RG="${{ env.RESOURCE_GROUP }}"
           CG="${{ env.CONTAINER_NAME }}"
           CONTAINER_IP="${{ steps.deploy.outputs.container_ip }}"
+          # Discover actual container name (ACI may use group name or template name)
+          CONTAINER_NAME_ACTUAL=$(az container show --resource-group "$RG" --name "$CG" --query "containers[0].name" -o tsv 2>/dev/null || echo "")
+          if [ -z "$CONTAINER_NAME_ACTUAL" ]; then CONTAINER_NAME_ACTUAL="document-intelligence-app"; fi
+          echo "Using container name: $CONTAINER_NAME_ACTUAL"
           echo "=== Health check: try from inside container first (no egress needed) ==="
           for i in $(seq 1 18); do
-            if az container exec --resource-group "$RG" --name "$CG" --container-name document-intelligence-app \
+            if az container exec --resource-group "$RG" --name "$CG" --container-name "$CONTAINER_NAME_ACTUAL" \
               --exec-command "curl -sf --max-time 5 http://127.0.0.1:8000/health" 2>/dev/null; then
               echo ""
               echo "Health check passed (attempt $i) from inside container."
@@ -235,10 +239,10 @@ jobs:
           fi
           echo "::error::Health check failed. App may have crashed or not listening on port 8000."
           echo "::group::Container logs (stdout/stderr)"
-          az container logs --resource-group "$RG" --name "$CG" --container-name document-intelligence-app 2>&1 || true
+          az container logs --resource-group "$RG" --name "$CG" --container-name "$CONTAINER_NAME_ACTUAL" 2>&1 || true
           echo "::endgroup::"
           echo "::group::Container instance state and events"
-          az container show --resource-group "$RG" --name "$CG" --query "{state: properties.instanceView.state, events: properties.instanceView.events}" -o json 2>&1 || true
+          az container show --resource-group "$RG" --name "$CG" --query "containers[0].instanceView" -o json 2>&1 || true
           echo "::endgroup::"
           exit 1
 

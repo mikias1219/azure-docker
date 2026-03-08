@@ -42,6 +42,9 @@ COPY --from=frontend-builder /app/frontend/out ./static
 # Create uploads directory
 RUN mkdir -p uploads
 
+# Entrypoint logs startup and prints traceback on crash (so ACI logs show the error)
+RUN chmod +x /app/start.sh
+
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash appuser
 RUN chown -R appuser:appuser /app
@@ -54,5 +57,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
-CMD ["uvicorn", "main_new:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run via script so startup and crash tracebacks appear in container logs
+CMD ["/app/start.sh"]
