@@ -168,21 +168,23 @@ jobs:
               json.dump(data, f, indent=2)
           EOF
           
-          # Delete existing container (if exists)
-          az container delete \
+          # Delete existing container (if exists); wait for deletion only when delete succeeded
+          if az container delete \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.CONTAINER_NAME }} \
             --yes \
-            --output none || echo "Container doesn't exist yet"
-          
-          # Wait for deletion
-          az container wait \
-            --deleted \
-            --name ${{ env.CONTAINER_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --timeout 300 \
-            --output none || echo "Container was already deleted"
-          
+            --output none 2>/dev/null; then
+            echo "Waiting for container to be deleted..."
+            az container wait \
+              --deleted \
+              --name ${{ env.CONTAINER_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --timeout 300 \
+              --output none
+          else
+            echo "No existing container found; proceeding to create."
+          fi
+
           # Create new container (--os-type required by Azure CLI when using --file)
           az container create \
             --resource-group ${{ env.RESOURCE_GROUP }} \
