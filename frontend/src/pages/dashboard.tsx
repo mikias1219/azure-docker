@@ -10,14 +10,15 @@ import { DocumentViewer } from '@/components/DocumentViewer';
 import { TextAnalysis } from '@/components/TextAnalysis';
 import { QuestionAnswering } from '@/components/QuestionAnswering';
 import { ClockClient } from '@/components/ClockClient';
-import { FileText, LogOut, Brain, Languages, Sparkles, Clock, FolderOpen, X, Search } from 'lucide-react';
+import { AIVision } from '@/components/AIVision';
+import { FileText, LogOut, Brain, Languages, Sparkles, Clock, FolderOpen, X, Search, FileImage } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, logout, loading: authLoading } = useAuth();
   const { documents, loading, uploadDocument, getDocument, fetchDocuments } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'documents' | 'text-analytics' | 'qna' | 'clock'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'text-analytics' | 'qna' | 'clock' | 'vision'>('documents');
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export default function DashboardPage() {
     { id: 'text-analytics', label: 'Text Analytics', icon: Languages, description: 'Language detection, sentiment & entities' },
     { id: 'qna', label: 'Ask AI Assistant', icon: Sparkles, description: 'Intelligent Q&A with LLM enhancement' },
     { id: 'clock', label: 'Smart Clock', icon: Clock, description: 'Natural language time queries' },
+    { id: 'vision', label: 'AI Vision', icon: FileImage, description: 'Image analysis and OCR' },
   ];
 
   return (
@@ -174,7 +176,7 @@ export default function DashboardPage() {
                         <div>
                           <h2 className="font-semibold text-slate-900">{selectedDocument.filename}</h2>
                           <p className="text-sm text-slate-500">
-                            {selectedDocument.status === 'completed' ? 'Analysis complete' : 'Processing...'}
+                            {selectedDocument.ai_analysis ? 'Analysis complete' : 'Processing...'}
                           </p>
                         </div>
                       </div>
@@ -242,6 +244,20 @@ export default function DashboardPage() {
                 <p className="text-slate-600">Ask about time, day, or date in natural language</p>
               </div>
               <ClockClient />
+            </div>
+          )}
+
+          {/* AI Vision Tab */}
+          {activeTab === 'vision' && (
+            <div className="col-span-12">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <FileImage className="w-6 h-6 text-purple-600" />
+                  AI Vision
+                </h2>
+                <p className="text-slate-600">Analyze images, detect objects, and extract text with Azure AI Vision</p>
+              </div>
+              <AIVision />
             </div>
           )}
         </div>

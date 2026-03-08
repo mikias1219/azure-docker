@@ -166,3 +166,27 @@ export const clockApi = {
     return response.data;
   },
 };
+
+export const visionApi = {
+  getInfo: async (): Promise<any> => {
+    const response = await api.get('/vision/info');
+    return response.data;
+  },
+  analyzeImage: async (file: File, features: string[] = ['caption', 'tags', 'objects', 'people']): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('features', features.join(','));
+    const response = await api.post('/vision/analyze', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+  readText: async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/vision/read-text', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+};

@@ -30,6 +30,7 @@ from app.azure_services import document_intelligence
 from app.text_analytics import text_analytics
 from app.question_answering import question_answering
 from app.clock_service import clock_service
+from app.ai_vision_service import ai_vision
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -164,7 +165,9 @@ async def upload_document(
         )
 
         # Kick off background processing with Azure Document Intelligence + Azure OpenAI
-        asyncio.create_task(process_document(document.id, file_path, db))
+        # Use a new task without passing db: process_document creates its own session so the
+        # request session is not used after the request ends (avoid closed-session errors).
+        asyncio.create_task(process_document(document.id, file_path))
 
         return {"message": "Document uploaded successfully", "document_id": document.id}
 
@@ -422,6 +425,51 @@ async def analyze_clock_query(body: dict):
         logger.error(f"Clock analysis error: {e}")
         raise HTTPException(status_code=500, detail="Clock analysis failed")
 
+# AI Vision endpoints (public)
+@app.get("/vision/info", response_model=dict)
+async def get_vision_info():
+    """Get information about the AI Vision service (public endpoint)"""
+    try:
+        info = await ai_vision.get_service_info()
+        return info
+    except Exception as e:
+        logger.error(f"Vision info error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get vision info")
+
+@app.post("/vision/analyze", response_model=dict)
+async def analyze_image(
+    file: UploadFile = File(...),
+    features: str = Form("caption,tags,objects,people")
+):
+    """Analyze an image using Azure AI Vision (public endpoint)"""
+    try:
+        # Read image data
+        image_data = await file.read()
+        
+        # Parse features
+        feature_list = [f.strip() for f in features.split(",")]
+        
+        # Analyze image
+        result = await ai_vision.analyze_image(image_data, feature_list)
+        return result
+    except Exception as e:
+        logger.error(f"Vision analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Image analysis failed")
+
+@app.post("/vision/read-text", response_model=dict)
+async def read_text_from_image(file: UploadFile = File(...)):
+    """Extract text from an image using OCR (public endpoint)"""
+    try:
+        # Read image data
+        image_data = await file.read()
+        
+        # Read text
+        result = await ai_vision.read_text(image_data)
+        return result
+    except Exception as e:
+        logger.error(f"OCR error: {e}")
+        raise HTTPException(status_code=500, detail="OCR failed")
+
 
 @app.post("/documents/{document_id}/ask", response_model=schemas.AskResponse)
 async def ask_document(
@@ -438,16 +486,19 @@ async def ask_document(
     answer = await document_intelligence.answer_question(text, body.question or "")
     return schemas.AskResponse(answer=answer)
 
-async def process_document(document_id: int, file_path: Path, db: Session):
+async def process_document(document_id: int, file_path: Path):
     """
     Background processing for a document:
     1. Extract text with Azure Document Intelligence (Standard SKU recommended)
     2. Run Azure OpenAI over the text for rich analysis
     3. Persist results on the document row
+    Uses its own DB session so the request session is not used after the request ends.
     """
+    from app.db import SessionLocal
+    db = SessionLocal()
     try:
         # Reload document for metadata (e.g. file_type, owner validation)
-        document = await crud.get_document(db, document_id)
+        document = crud.get_document(db, document_id)
         if not document:
             logger.error("Document %s no longer exists; skipping processing", document_id)
             return
@@ -462,7 +513,7 @@ async def process_document(document_id: int, file_path: Path, db: Session):
         if extracted_text:
             ai_analysis = await document_intelligence.elaborate_with_ai(extracted_text)
 
-        await crud.update_document_analysis(
+        crud.update_document_analysis(
             db,
             document_id,
             extracted_text or "Text extraction failed",
@@ -474,6 +525,8 @@ async def process_document(document_id: int, file_path: Path, db: Session):
 
     except Exception as e:
         logger.error("Error processing document %s: %s", document_id, e)
+    finally:
+        db.close()
 
 # Startup and shutdown events
 @app.on_event("startup")

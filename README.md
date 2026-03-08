@@ -8,6 +8,7 @@ A modern FastAPI application with **Azure Document Intelligence** and **OpenAI**
 
 - 📄 **Document Upload & Analysis**: Support for PDF, Word, text, and image files
 - 🧠 **AI-Powered Insights**: Extract text and get AI analysis using Azure services
+- 👁️ **AI Vision**: Image analysis (caption, tags, objects, people) and OCR via Azure AI Vision (aligned with [Microsoft Learn AI Vision](https://github.com/MicrosoftLearning/mslearn-ai-vision))
 - 🔐 **Secure Authentication**: JWT-based user authentication system
 - 🎨 **Modern UI**: Responsive, user-friendly interface
 - 🚀 **Automated CI/CD**: GitHub Actions pipeline with zero-downtime deployment
@@ -72,6 +73,15 @@ GitHub Repo → GitHub Actions → Azure Container Registry → Azure Container 
 - 📖 [Deployment Guide](DEPLOYMENT.md) - Comprehensive deployment documentation
 - ✅ [Deployment Checklist](DEPLOYMENT_CHECKLIST.md) - Step-by-step verification
 - ⚡ [Quick Start](QUICK_START.md) - 5-minute deployment guide
+- 🔧 [Azure Resources](docs/AZURE_RESOURCES.md) - All required Azure services and create commands
+
+### Assess Azure resources (after `az login`)
+
+```bash
+./scripts/assess_azure_resources.sh
+```
+
+This checks that every required resource exists and prints create commands for any that are missing. Then run `./setup-secrets.sh` to push credentials to GitHub for CI/CD.
 
 ## 🔐 Environment Variables
 

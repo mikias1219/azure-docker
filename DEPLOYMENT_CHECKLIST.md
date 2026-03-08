@@ -3,11 +3,15 @@
 ## Pre-Deployment Setup
 
 ### ✅ Azure Resources Verification
-- [ ] Azure Container Registry (ACR) exists: `selamnew.azurecr.io`
 - [ ] Resource Group `AI-102` exists
+- [ ] Azure Container Registry (ACR) exists: `selamnew.azurecr.io`
 - [ ] Document Intelligence service `document-intelligence-ai102` is created
 - [ ] OpenAI service `openai-ai102` is created
-- [ ] Storage account for file uploads will be created automatically
+- [ ] Azure AI Language service `language-ai102` is created (Text Analytics, QnA, CLU)
+- [ ] Azure AI Vision service `ai-vision-ai102` is created (Computer Vision / image analysis)
+- [ ] Storage account for file uploads will be created automatically by the workflow
+
+Run `./scripts/assess_azure_resources.sh` after `az login` to verify and get create commands for any missing resources.
 
 ### ✅ Local Development Setup
 - [ ] Docker and Docker Compose installed
@@ -41,11 +45,11 @@ Create these GitHub secrets in your repository:
    - `ACR_PASSWORD`: Azure Container Registry password
 
 3. **Azure Services**
-   - `AZURE_FORM_RECOGNIZER_ENDPOINT`: Document Intelligence endpoint
-   - `AZURE_FORM_RECOGNIZER_KEY`: Document Intelligence API key
-   - `OPENAI_API_KEY`: OpenAI API key
-   - `OPENAI_API_BASE`: OpenAI API base URL
-   - `OPENAI_DEPLOYMENT_NAME`: OpenAI deployment name
+   - `AZURE_FORM_RECOGNIZER_ENDPOINT` / `AZURE_FORM_RECOGNIZER_KEY`: Document Intelligence
+   - `OPENAI_API_KEY` / `OPENAI_API_BASE` / `OPENAI_DEPLOYMENT_NAME` / `OPENAI_API_VERSION`: Azure OpenAI
+   - `AZURE_LANGUAGE_ENDPOINT` / `AZURE_LANGUAGE_KEY`: Azure AI Language (Text, QnA, CLU)
+   - `AZURE_QNA_PROJECT_NAME` / `AZURE_QNA_DEPLOYMENT_NAME`: QnA knowledge base
+   - `AZURE_AI_VISION_ENDPOINT` / `AZURE_AI_VISION_KEY`: Azure AI Vision (image analysis & OCR)
 
 ## 🚀 Deployment Process
 

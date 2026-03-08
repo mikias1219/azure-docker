@@ -27,9 +27,16 @@ async def create_user(db: Session, user: schemas.UserCreate, hashed_password: st
     return db_user
 
 # Document CRUD operations
+def _schema_to_dict(obj):
+    """Pydantic v1 uses .dict(), v2 uses .model_dump()."""
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    return obj.dict()
+
+
 async def create_document(db: Session, document: schemas.DocumentCreate, user_id: int):
     db_document = models.Document(
-        **document.dict(),
+        **_schema_to_dict(document),
         owner_id=user_id,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()

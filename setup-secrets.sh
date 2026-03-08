@@ -145,20 +145,46 @@ get_azure_service_credentials() {
     
     OPENAI_DEPLOYMENT_NAME="text-embedding-ada-002"
 
-    # Azure AI Language (Text Analytics, QnA, CLU)
-    LANGUAGE_ENDPOINT=$(az cognitiveservices account show \
-        --name language-ai102 \
-        --resource-group $RESOURCE_GROUP \
-        --query "properties.endpoint" -o tsv)
-    
-    LANGUAGE_KEY=$(az cognitiveservices account keys list \
-        --name language-ai102 \
-        --resource-group $RESOURCE_GROUP \
-        --query "key1" -o tsv)
-    
+    # Azure AI Language (Text Analytics, QnA, CLU) - try language-ai102, then ai-language-ai102, then azure-language-ai102
+    set +e
+    for LANG_NAME in language-ai102 ai-language-ai102 azure-language-ai102; do
+        LANGUAGE_ENDPOINT=$(az cognitiveservices account show \
+            --name "$LANG_NAME" \
+            --resource-group $RESOURCE_GROUP \
+            --query "properties.endpoint" -o tsv 2>/dev/null)
+        LANGUAGE_KEY=$(az cognitiveservices account keys list \
+            --name "$LANG_NAME" \
+            --resource-group $RESOURCE_GROUP \
+            --query "key1" -o tsv 2>/dev/null)
+        [ -n "$LANGUAGE_ENDPOINT" ] && [ -n "$LANGUAGE_KEY" ] && break
+    done
+    set -e
+    if [ -z "$LANGUAGE_ENDPOINT" ] || [ -z "$LANGUAGE_KEY" ]; then
+        log_warning "No Azure AI Language resource found (tried language-ai102, ai-language-ai102, azure-language-ai102). Create with: az cognitiveservices account create -n language-ai102 -g AI-102 -l eastus --kind TextAnalytics --sku S --yes"
+        LANGUAGE_ENDPOINT=""
+        LANGUAGE_KEY=""
+    fi
+
     AZURE_QNA_PROJECT_NAME="LearnFAQ"
     AZURE_QNA_DEPLOYMENT_NAME="production"
-    
+
+    # Azure AI Vision (Computer Vision / Image Analysis) - optional if not created yet
+    set +e
+    AI_VISION_ENDPOINT=$(az cognitiveservices account show \
+        --name ai-vision-ai102 \
+        --resource-group $RESOURCE_GROUP \
+        --query "properties.endpoint" -o tsv 2>/dev/null)
+    AI_VISION_KEY=$(az cognitiveservices account keys list \
+        --name ai-vision-ai102 \
+        --resource-group $RESOURCE_GROUP \
+        --query "key1" -o tsv 2>/dev/null)
+    set -e
+    if [ -z "$AI_VISION_ENDPOINT" ] || [ -z "$AI_VISION_KEY" ]; then
+        log_warning "Azure AI Vision resource 'ai-vision-ai102' not found. Create with: az cognitiveservices account create -n ai-vision-ai102 -g AI-102 -l eastus --kind ComputerVision --sku S1 --yes"
+        AI_VISION_ENDPOINT=""
+        AI_VISION_KEY=""
+    fi
+
     log_success "Azure service credentials retrieved"
 }
 
@@ -185,11 +211,13 @@ set_github_secrets() {
     gh secret set OPENAI_API_KEY --body "$OPENAI_API_KEY" --repo "$REPO_NAME"
     gh secret set OPENAI_API_BASE --body "$OPENAI_API_BASE" --repo "$REPO_NAME"
     gh secret set OPENAI_DEPLOYMENT_NAME --body "$OPENAI_DEPLOYMENT_NAME" --repo "$REPO_NAME"
-    gh secret set AZURE_LANGUAGE_ENDPOINT --body "$LANGUAGE_ENDPOINT" --repo "$REPO_NAME"
-    gh secret set AZURE_LANGUAGE_KEY --body "$LANGUAGE_KEY" --repo "$REPO_NAME"
+    [ -n "$LANGUAGE_ENDPOINT" ] && gh secret set AZURE_LANGUAGE_ENDPOINT --body "$LANGUAGE_ENDPOINT" --repo "$REPO_NAME"
+    [ -n "$LANGUAGE_KEY" ] && gh secret set AZURE_LANGUAGE_KEY --body "$LANGUAGE_KEY" --repo "$REPO_NAME"
     gh secret set AZURE_QNA_PROJECT_NAME --body "$AZURE_QNA_PROJECT_NAME" --repo "$REPO_NAME"
     gh secret set AZURE_QNA_DEPLOYMENT_NAME --body "$AZURE_QNA_DEPLOYMENT_NAME" --repo "$REPO_NAME"
-    
+    [ -n "$AI_VISION_ENDPOINT" ] && gh secret set AZURE_AI_VISION_ENDPOINT --body "$AI_VISION_ENDPOINT" --repo "$REPO_NAME"
+    [ -n "$AI_VISION_KEY" ] && gh secret set AZURE_AI_VISION_KEY --body "$AI_VISION_KEY" --repo "$REPO_NAME"
+
     log_success "All GitHub secrets set successfully"
 }
 
@@ -248,6 +276,8 @@ main() {
     echo "  • AZURE_LANGUAGE_KEY"
     echo "  • AZURE_QNA_PROJECT_NAME"
     echo "  • AZURE_QNA_DEPLOYMENT_NAME"
+    echo "  • AZURE_AI_VISION_ENDPOINT"
+    echo "  • AZURE_AI_VISION_KEY"
     echo ""
     echo "🚀 You can now push to main branch to trigger deployment!"
 }
