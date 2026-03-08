@@ -1,3 +1,5 @@
+# Deploy to Azure Container Instances (single job: build -> push -> deploy -> health check)
+# App URL: http://<IP-from-summary>:8000 or http://<FQDN>:8000
 name: Deploy Document Intelligence App to Azure
 
 on:
@@ -74,41 +76,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Create Azure Storage Account (if not exists)
-        run: |
-          # Reuse an existing storage account to avoid creating a new one every deploy
-          STORAGE_ACCOUNT=$(az storage account list \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --query "[?starts_with(name, 'docintstorage')].name | sort(@) | [-1]" \
-            -o tsv)
-
-          if [ -z "$STORAGE_ACCOUNT" ]; then
-            STORAGE_ACCOUNT="docintstorage$(date +%s)"
-            az storage account create \
-              --name $STORAGE_ACCOUNT \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --location eastus \
-              --sku Standard_LRS \
-              --allow-blob-public-access false \
-              --output none
-          fi
-          
-          # Get storage account key
-          STORAGE_KEY=$(az storage account keys list \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --account-name $STORAGE_ACCOUNT \
-            --query "[0].value" -o tsv)
-          
-          # Create file share
-          az storage share create \
-            --name app-uploads \
-            --account-name $STORAGE_ACCOUNT \
-            --quota 10 \
-            --output none || echo "Share might already exist"
-          
-          echo "STORAGE_ACCOUNT=$STORAGE_ACCOUNT" >> $GITHUB_ENV
-          echo "STORAGE_KEY=$STORAGE_KEY" >> $GITHUB_ENV
-
       - name: Deploy to Azure Container Instances
         id: deploy
         env:
@@ -142,17 +109,17 @@ jobs:
             --name ${{ env.CONTAINER_NAME }} \
             --yes \
             --output none 2>/dev/null; then
-            echo "Waiting for container name to be released (polling up to 5 min)..."
-            for i in $(seq 1 30); do
+            echo "Waiting for name release (poll 5s x 24 = 2 min)..."
+            for i in $(seq 1 24); do
               if ! az container show --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query id -o tsv 2>/dev/null; then
-                echo "Container deleted; proceeding to create."
+                echo "Released; creating."
                 break
               fi
-              if [ "$i" -eq 30 ]; then echo "::warning::Timeout waiting for deletion; attempting create anyway."; fi
-              sleep 10
+              [ "$i" -eq 24 ] && echo "::warning::Timeout; creating anyway."
+              sleep 5
             done
           else
-            echo "No existing container found; proceeding to create."
+            echo "No existing container; creating."
           fi
 
           # Create new container (--no-wait avoids "invalid status OK" CLI polling bug)
@@ -165,27 +132,23 @@ jobs:
             --dns-name-label $DNS_LABEL \
             --no-wait
 
-          # Poll until container group is running (--no-wait avoids "invalid status OK" CLI bug)
-          echo "Waiting for container to be running..."
-          for i in $(seq 1 60); do
+          # Poll until container group is running (5s x 36 = 3 min max)
+          echo "Waiting for container (poll 5s)..."
+          for i in $(seq 1 36); do
             STATE=$(az container show --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query "properties.instanceView.state" -o tsv 2>/dev/null || echo "NotFound")
-            echo "  Container state: $STATE"
+            echo "  [$i] state: $STATE"
             if [ "$STATE" = "Running" ] || [ "$STATE" = "Succeeded" ]; then
-              echo "Container is ready."
+              echo "Ready."
               break
             fi
             if [ "$STATE" = "Failed" ] || [ "$STATE" = "Stopped" ]; then
-              echo "::error::Container entered state: $STATE"
-              az container show --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} -o table 2>/dev/null || true
-              echo "::group::Container logs (diagnostics)"
-              az container logs --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null || true
-              echo "::endgroup::"
+              echo "::error::Container state: $STATE"
+              CONTAINER_NAME_ACTUAL=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_NAME }} --query "containers[0].name" -o tsv 2>/dev/null || echo "document-intelligence-app")
+              az container logs --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.CONTAINER_NAME }} --container-name "$CONTAINER_NAME_ACTUAL" 2>&1 || true
               exit 1
             fi
-            if [ "$i" -eq 60 ]; then
-              echo "::warning::Timeout waiting for Running state; continuing to fetch outputs."
-            fi
-            sleep 10
+            [ "$i" -eq 36 ] && echo "::warning::Timeout."
+            sleep 5
           done
 
           # Get container IP and FQDN
@@ -214,39 +177,25 @@ jobs:
           RG="${{ env.RESOURCE_GROUP }}"
           CG="${{ env.CONTAINER_NAME }}"
           CONTAINER_IP="${{ steps.deploy.outputs.container_ip }}"
-          # Discover actual container name (ACI may use group name or template name)
-          CONTAINER_NAME_ACTUAL=$(az container show --resource-group "$RG" --name "$CG" --query "containers[0].name" -o tsv 2>/dev/null || echo "")
-          if [ -z "$CONTAINER_NAME_ACTUAL" ]; then CONTAINER_NAME_ACTUAL="document-intelligence-app"; fi
-          echo "Using container name: $CONTAINER_NAME_ACTUAL"
-          echo "=== Health check: try from inside container first (no egress needed) ==="
-          for i in $(seq 1 18); do
+          CONTAINER_NAME_ACTUAL=$(az container show --resource-group "$RG" --name "$CG" --query "containers[0].name" -o tsv 2>/dev/null || echo "document-intelligence-app")
+          echo "Health check (exec then curl, 6x5s + 4x5s)..."
+          for i in $(seq 1 6); do
             if az container exec --resource-group "$RG" --name "$CG" --container-name "$CONTAINER_NAME_ACTUAL" \
-              --exec-command "curl -sf --max-time 5 http://127.0.0.1:8000/health" 2>/dev/null; then
-              echo ""
-              echo "Health check passed (attempt $i) from inside container."
+              --exec-command "curl -sf --max-time 3 http://127.0.0.1:8000/health" 2>/dev/null; then
+              echo "Health OK (exec, attempt $i)."
               exit 0
             fi
-            echo "  Attempt $i failed; waiting 10s..."
-            sleep 10
+            sleep 5
           done
-          echo "=== Trying from runner (external) in case exec is not available ==="
-          if [ -n "$CONTAINER_IP" ]; then
-            for i in $(seq 1 6); do
-              if curl -sf --connect-timeout 10 --max-time 15 "http://$CONTAINER_IP:8000/health" >/dev/null; then
-                echo "Health check passed via external IP (attempt $i)."
-                exit 0
-              fi
-              sleep 10
-            done
-          fi
-          echo "::error::Health check failed. App may have crashed or not listening on port 8000."
-          echo "::group::Container logs (stdout/stderr)"
+          for i in $(seq 1 4); do
+            if [ -n "$CONTAINER_IP" ] && curl -sf --connect-timeout 5 --max-time 8 "http://$CONTAINER_IP:8000/health" >/dev/null; then
+              echo "Health OK (curl, attempt $i)."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::warning::Health check did not pass. Container may still be starting. Logs:"
           az container logs --resource-group "$RG" --name "$CG" --container-name "$CONTAINER_NAME_ACTUAL" 2>&1 || true
-          echo "::endgroup::"
-          echo "::group::Container instance state and events"
-          az container show --resource-group "$RG" --name "$CG" --query "containers[0].instanceView" -o json 2>&1 || true
-          echo "::endgroup::"
-          exit 1
 
       - name: Create Static IP Reservation (for future use)
         id: static-ip
@@ -272,22 +221,10 @@ jobs:
 
       - name: Deployment Summary
         run: |
-          echo "🎉 Deployment completed successfully!"
-          echo ""
-          echo "📋 Deployment Details:"
-          echo "  • Container Name: ${{ env.CONTAINER_NAME }}"
-          echo "  • Resource Group: ${{ env.RESOURCE_GROUP }}"
-          echo "  • IP Address: ${{ steps.deploy.outputs.container_ip }}"
-          echo "  • FQDN: ${{ steps.deploy.outputs.container_fqdn }}"
-          echo "  • DNS Label: ${{ steps.deploy.outputs.dns_label }}"
-          echo "  • Static IP Reserved: ${{ steps.static-ip.outputs.static_ip }}"
-          echo ""
-          echo "🔗 Access your app (use port 8000):"
-          echo "  • http://${{ steps.deploy.outputs.container_fqdn }}:8000"
-          echo "  • http://${{ steps.deploy.outputs.container_ip }}:8000"
-          echo ""
-          echo "📝 Notes:"
-          echo "  • The app listens on port 8000 (not 80). Always use :8000 in the URL."
-          echo "  • If the IP/FQDN does not work: ensure you use http://<ip-or-fqdn>:8000 (port 8000 is required)."
-          echo "  • ACI liveness probe hits /health every 15s; failed probes restart the container."
-          echo "  • If health verification failed above, see Container logs and Container events in this run."
+          echo "=============================================="
+          echo "  OPEN APP:  http://${{ steps.deploy.outputs.container_ip }}:8000"
+          echo "  Health:    http://${{ steps.deploy.outputs.container_ip }}:8000/health"
+          echo "=============================================="
+          echo "FQDN: http://${{ steps.deploy.outputs.container_fqdn }}:8000"
+          echo "IP:   http://${{ steps.deploy.outputs.container_ip }}:8000  (use this if FQDN is slow)"
+          echo "Resource group: ${{ env.RESOURCE_GROUP }}  |  Container: ${{ env.CONTAINER_NAME }}"
