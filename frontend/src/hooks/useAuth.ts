@@ -1,33 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User } from '@/types';
-import { authApi } from '@/lib/api';
+import { authApi, setAuthTokenGetter, setAuthClearCallback } from '@/lib/api';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const tokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // Expose token to api interceptor so all requests (including text-analytics) use current session
+  useEffect(() => {
+    if (!isClient) return;
+    setAuthTokenGetter(() => tokenRef.current || localStorage.getItem('access_token'));
+    setAuthClearCallback(() => {
+      tokenRef.current = null;
+      setUser(null);
+    });
+    return () => {
+      setAuthTokenGetter(null);
+      setAuthClearCallback(null);
+    };
+  }, [isClient]);
+
   useEffect(() => {
     if (!isClient) return;
 
     const initAuth = async () => {
-      const token = localStorage.getItem('access_token');
+      const token = (localStorage.getItem('access_token') || '').trim();
 
       if (!token) {
+        tokenRef.current = null;
         setLoading(false);
         return;
       }
 
+      tokenRef.current = token;
       try {
-        // Validate token and fetch real user info from backend
-        const me = await authApi.getCurrentUser();
+        const me = await authApi.getCurrentUser(token);
         setUser(me);
       } catch {
-        // If token is invalid/expired, clear it
+        tokenRef.current = null;
         localStorage.removeItem('access_token');
         setUser(null);
       } finally {
@@ -42,14 +58,13 @@ export function useAuth() {
     try {
       const response = await authApi.login(username, password);
       const token = response.access_token.trim();
+      tokenRef.current = token;
       localStorage.setItem('access_token', token);
 
-      // Use the token we just received for /me so we don't rely on interceptor timing
       try {
         const me = await authApi.getCurrentUser(token);
         setUser(me);
       } catch {
-        // Fallback if /me fails (e.g. backend restart / SECRET_KEY mismatch)
         setUser({ id: 1, username, email: `${username}@example.com` });
       }
 
@@ -75,6 +90,7 @@ export function useAuth() {
   };
 
   const logout = () => {
+    tokenRef.current = null;
     localStorage.removeItem('access_token');
     setUser(null);
   };

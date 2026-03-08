@@ -11,9 +11,20 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token (trim to avoid invalid JWT from whitespace)
+// In-memory token getter (set by useAuth) so requests always use current session token
+let authTokenGetter: (() => string | null) | null = null;
+export function setAuthTokenGetter(getter: (() => string | null) | null) {
+  authTokenGetter = getter;
+}
+// Called on 401 so auth hook can clear in-memory token and user state
+let authClearCallback: (() => void) | null = null;
+export function setAuthClearCallback(cb: (() => void) | null) {
+  authClearCallback = cb;
+}
+
+// Request interceptor: use getter first, then localStorage; trim to avoid invalid JWT
 api.interceptors.request.use((config) => {
-  const raw = localStorage.getItem('access_token');
+  const raw = authTokenGetter?.() ?? localStorage.getItem('access_token');
   const token = typeof raw === 'string' ? raw.trim() : '';
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -28,6 +39,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      authClearCallback?.();
       localStorage.removeItem('access_token');
       if (typeof window !== 'undefined' && !Router.asPath.startsWith('/login')) {
         const detail = error.response?.data?.detail || '';
