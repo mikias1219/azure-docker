@@ -168,19 +168,21 @@ jobs:
               json.dump(data, f, indent=2)
           EOF
           
-          # Delete existing container (if exists); wait for deletion only when delete succeeded
+          # Delete existing container (if exists)
           if az container delete \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --name ${{ env.CONTAINER_NAME }} \
             --yes \
             --output none 2>/dev/null; then
-            echo "Waiting for container to be deleted..."
-            az container wait \
-              --deleted \
-              --name ${{ env.CONTAINER_NAME }} \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --timeout 300 \
-              --output none
+            echo "Waiting for container name to be released (polling up to 5 min)..."
+            for i in $(seq 1 30); do
+              if ! az container show --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query id -o tsv 2>/dev/null; then
+                echo "Container deleted; proceeding to create."
+                break
+              fi
+              if [ "$i" -eq 30 ]; then echo "::warning::Timeout waiting for deletion; attempting create anyway."; fi
+              sleep 10
+            done
           else
             echo "No existing container found; proceeding to create."
           fi
