@@ -26,11 +26,33 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 from app.db import engine, Base, get_db
 from app.models import metadata
 from app import crud, models, schemas
-from app.azure_services import document_intelligence
-from app.text_analytics import text_analytics
-from app.question_answering import question_answering
-from app.clock_service import clock_service
-from app.ai_vision_service import ai_vision
+
+# Azure services: import with fallback so app starts even if one SDK fails (e.g. in container)
+try:
+    from app.azure_services import document_intelligence
+except Exception as e:
+    logger.warning("Azure document_intelligence import failed: %s", e)
+    document_intelligence = None  # type: ignore
+try:
+    from app.text_analytics import text_analytics
+except Exception as e:
+    logger.warning("text_analytics import failed: %s", e)
+    text_analytics = None  # type: ignore
+try:
+    from app.question_answering import question_answering
+except Exception as e:
+    logger.warning("question_answering import failed: %s", e)
+    question_answering = None  # type: ignore
+try:
+    from app.clock_service import clock_service
+except Exception as e:
+    logger.warning("clock_service import failed: %s", e)
+    clock_service = None  # type: ignore
+try:
+    from app.ai_vision_service import ai_vision
+except Exception as e:
+    logger.warning("ai_vision import failed: %s", e)
+    ai_vision = None  # type: ignore
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -70,15 +92,21 @@ async def health_check():
 
 # Services status (which Azure services are configured; for frontend to show Live vs Demo)
 @app.get("/api/services/status", response_model=dict)
-async def services_status(current_user: models.User = Depends(get_current_user)):
+async def services_status(current_user: models.User = Depends(get_current_user)):  # pyright: ignore[reportUndefinedVariable]
     """Return which backend services are configured so the frontend can show real vs demo state."""
+    def _doc(): return getattr(document_intelligence, "client", None) is not None
+    def _openai(): return getattr(document_intelligence, "openai_client", None) is not None
+    def _ta(): return text_analytics.is_configured() if text_analytics and hasattr(text_analytics, "is_configured") else False
+    def _qna(): return question_answering.is_configured() if question_answering and hasattr(question_answering, "is_configured") else False
+    def _clock(): return getattr(clock_service, "client", None) is not None
+    def _vision(): return ai_vision.is_configured() if ai_vision and hasattr(ai_vision, "is_configured") else False
     return {
-        "document_intelligence": document_intelligence.client is not None,
-        "openai": document_intelligence.openai_client is not None,
-        "text_analytics": text_analytics.is_configured(),
-        "qna": question_answering.is_configured(),
-        "clock": clock_service.client is not None,
-        "vision": ai_vision.is_configured(),
+        "document_intelligence": _doc(),
+        "openai": _openai(),
+        "text_analytics": _ta(),
+        "qna": _qna(),
+        "clock": _clock(),
+        "vision": _vision(),
     }
 
 # Authentication functions
