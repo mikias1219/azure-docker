@@ -137,8 +137,12 @@ class ClockService:
                 "raw_result": prediction
             }
         except Exception as e:
+            err_msg = str(e).lower()
+            # If CLU project/deployment not found, use demo so the Clock still works
+            if "not found" in err_msg or "deployment" in err_msg or "cannot be found" in err_msg:
+                logger.warning(f"CLU deployment not found ({e}); using demo mode for query: {query[:50]}")
+                return await self._demo_analyze(query)
             logger.error(f"Error analyzing conversation: {e}")
-            # Return error instead of falling back to demo
             return {
                 "query": query,
                 "error": f"Azure CLU Error: {str(e)}",

@@ -84,6 +84,7 @@ export function QuestionAnswering() {
     try {
       const data = await qnaApi.ask(question);
       setResult(data);
+      setError(data?.error || null);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to get answer. Please try again.');
       console.error('Question answering error:', err);

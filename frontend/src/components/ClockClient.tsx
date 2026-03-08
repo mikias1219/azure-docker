@@ -14,10 +14,11 @@ interface ClockResult {
     category: string;
     text: string;
     confidence: number;
-    offset: number;
-    length: number;
+    offset?: number;
+    length?: number;
   }>;
   response: string;
+  error?: string;
   demo_mode?: boolean;
   raw_result?: any;
 }
@@ -62,6 +63,7 @@ export function ClockClient() {
     try {
       const data = await clockApi.analyze(query);
       setResult(data);
+      setError(data?.error || null);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to analyze query');
     } finally {
@@ -194,6 +196,12 @@ export function ClockClient() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
+            {result.error && (
+              <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{result.error}</span>
+              </div>
+            )}
             {/* Intent Badge */}
             <div className="flex items-center gap-3">
               <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${getIntentColor(result.top_intent)}`}>

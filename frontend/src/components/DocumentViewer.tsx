@@ -97,6 +97,22 @@ export function DocumentViewer({ document, onRefresh }: DocumentViewerProps) {
         </CardContent>
       </Card>
 
+      {!document.extracted_text && !document.ai_analysis && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="py-6">
+            <p className="text-amber-800 font-medium">Processing or waiting for results</p>
+            <p className="text-sm text-amber-700 mt-1">
+              Extracted text and AI analysis are not ready yet. This can take a minute after upload. Click Refresh below to check again. If it stays empty, check that Document Intelligence and OpenAI are configured.
+            </p>
+            {onRefresh && (
+              <Button variant="outline" size="sm" onClick={onRefresh} className="mt-3 border-amber-300 text-amber-800">
+                Refresh
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {document.extracted_text && (
         <Card className="border-slate-200/80 shadow-soft">
           <CardHeader>
@@ -153,21 +169,6 @@ export function DocumentViewer({ document, onRefresh }: DocumentViewerProps) {
                   />
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {!document.extracted_text && !document.ai_analysis && (
-        <Card className="border-slate-200/80 shadow-soft">
-          <CardContent className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-200 border-t-primary-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-2">Processing document</h3>
-            <p className="text-slate-600">Extracting text and running AI analysis. Refresh or check back shortly.</p>
-            {onRefresh && (
-              <Button variant="outline" size="sm" onClick={onRefresh} className="mt-4">
-                Refresh status
-              </Button>
             )}
           </CardContent>
         </Card>

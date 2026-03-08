@@ -118,6 +118,22 @@ export const healthApi = {
   },
 };
 
+export interface ServicesStatus {
+  document_intelligence: boolean;
+  openai: boolean;
+  text_analytics: boolean;
+  qna: boolean;
+  clock: boolean;
+  vision: boolean;
+}
+
+export const servicesApi = {
+  getStatus: async (): Promise<ServicesStatus> => {
+    const response = await api.get<ServicesStatus>('/api/services/status');
+    return response.data;
+  },
+};
+
 export const textAnalyticsApi = {
   analyze: async (text: string): Promise<any> => {
     const response = await api.post('/text-analytics/analyze', { text });

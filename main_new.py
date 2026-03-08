@@ -59,6 +59,20 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
+
+# Services status (which Azure services are configured; for frontend to show Live vs Demo)
+@app.get("/api/services/status", response_model=dict)
+async def services_status(current_user: models.User = Depends(get_current_user)):
+    """Return which backend services are configured so the frontend can show real vs demo state."""
+    return {
+        "document_intelligence": document_intelligence.client is not None,
+        "openai": document_intelligence.openai_client is not None,
+        "text_analytics": text_analytics.is_configured(),
+        "qna": question_answering.is_configured(),
+        "clock": clock_service.client is not None,
+        "vision": ai_vision.is_configured(),
+    }
+
 # Authentication functions
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -498,7 +512,7 @@ async def process_document(document_id: int, file_path: Path):
     db = SessionLocal()
     try:
         # Reload document for metadata (e.g. file_type, owner validation)
-        document = crud.get_document(db, document_id)
+        document = await crud.get_document(db, document_id)
         if not document:
             logger.error("Document %s no longer exists; skipping processing", document_id)
             return
@@ -513,7 +527,7 @@ async def process_document(document_id: int, file_path: Path):
         if extracted_text:
             ai_analysis = await document_intelligence.elaborate_with_ai(extracted_text)
 
-        crud.update_document_analysis(
+        await crud.update_document_analysis(
             db,
             document_id,
             extracted_text or "Text extraction failed",

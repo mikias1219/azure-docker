@@ -11,7 +11,8 @@ import { TextAnalysis } from '@/components/TextAnalysis';
 import { QuestionAnswering } from '@/components/QuestionAnswering';
 import { ClockClient } from '@/components/ClockClient';
 import { AIVision } from '@/components/AIVision';
-import { FileText, LogOut, Brain, Languages, Sparkles, Clock, FolderOpen, X, Search, FileImage } from 'lucide-react';
+import { FileText, LogOut, Brain, Languages, Sparkles, Clock, FolderOpen, X, Search, FileImage, CheckCircle, AlertCircle } from 'lucide-react';
+import { servicesApi, type ServicesStatus } from '@/lib/api';
 
 export default function DashboardPage() {
   const { user, logout, loading: authLoading } = useAuth();
@@ -20,10 +21,16 @@ export default function DashboardPage() {
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'documents' | 'text-analytics' | 'qna' | 'clock' | 'vision'>('documents');
   const [isClient, setIsClient] = useState(false);
+  const [servicesStatus, setServicesStatus] = useState<ServicesStatus | null>(null);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    servicesApi.getStatus().then(setServicesStatus).catch(() => setServicesStatus(null));
+  }, [user]);
 
   useEffect(() => {
     if (isClient && !authLoading && !user) {
@@ -96,6 +103,34 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        {servicesStatus && (
+          <div className="border-t border-slate-200/60 px-6 py-2 bg-slate-50/80">
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <span className="text-slate-500 font-medium">Services:</span>
+              {[
+                { key: 'document_intelligence', label: 'Document Intelligence' },
+                { key: 'openai', label: 'OpenAI' },
+                { key: 'text_analytics', label: 'Text Analytics' },
+                { key: 'qna', label: 'Q&A' },
+                { key: 'clock', label: 'Clock (CLU)' },
+                { key: 'vision', label: 'AI Vision' },
+              ].map(({ key, label }) => {
+                const ok = servicesStatus[key as keyof ServicesStatus];
+                return (
+                  <span
+                    key={key}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${
+                      ok ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                    }`}
+                  >
+                    {ok ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+                    {label} {ok ? 'Live' : '—'}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-6">

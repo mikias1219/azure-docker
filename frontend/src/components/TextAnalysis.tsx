@@ -65,6 +65,7 @@ export function TextAnalysis() {
     try {
       const data = await textAnalyticsApi.analyze(text);
       setResult(data);
+      setError(data?.error || null);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to analyze text. Please try again.');
       console.error('Text analysis error:', err);
@@ -150,6 +151,14 @@ export function TextAnalysis() {
         {result && (
           <div className="space-y-4 animate-fade-in">
             <h3 className="text-lg font-semibold text-slate-900">Analysis Results</h3>
+
+            {/* Top-level API error (e.g. service not configured) */}
+            {result.error && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg">
+                <p className="font-medium">Service message</p>
+                <p className="text-sm mt-1">{result.error}</p>
+              </div>
+            )}
 
             {/* Language Detection */}
             {result.language && !result.language.error && (
