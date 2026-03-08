@@ -90,26 +90,7 @@ async def health_check():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 
-# Services status (which Azure services are configured; for frontend to show Live vs Demo)
-@app.get("/api/services/status", response_model=dict)
-async def services_status(current_user: models.User = Depends(get_current_user)):  # pyright: ignore[reportUndefinedVariable]
-    """Return which backend services are configured so the frontend can show real vs demo state."""
-    def _doc(): return getattr(document_intelligence, "client", None) is not None
-    def _openai(): return getattr(document_intelligence, "openai_client", None) is not None
-    def _ta(): return text_analytics.is_configured() if text_analytics and hasattr(text_analytics, "is_configured") else False
-    def _qna(): return question_answering.is_configured() if question_answering and hasattr(question_answering, "is_configured") else False
-    def _clock(): return getattr(clock_service, "client", None) is not None
-    def _vision(): return ai_vision.is_configured() if ai_vision and hasattr(ai_vision, "is_configured") else False
-    return {
-        "document_intelligence": _doc(),
-        "openai": _openai(),
-        "text_analytics": _ta(),
-        "qna": _qna(),
-        "clock": _clock(),
-        "vision": _vision(),
-    }
-
-# Authentication functions
+# Authentication helpers (must be defined before routes that use get_current_user)
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -139,11 +120,30 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    
     user = await crud.get_user_by_username(db, username)
     if user is None:
         raise credentials_exception
     return user
+
+
+# Services status (which Azure services are configured; for frontend to show Live vs Demo)
+@app.get("/api/services/status", response_model=dict)
+async def services_status(current_user: models.User = Depends(get_current_user)):
+    """Return which backend services are configured so the frontend can show real vs demo state."""
+    def _doc(): return getattr(document_intelligence, "client", None) is not None
+    def _openai(): return getattr(document_intelligence, "openai_client", None) is not None
+    def _ta(): return text_analytics.is_configured() if text_analytics and hasattr(text_analytics, "is_configured") else False
+    def _qna(): return question_answering.is_configured() if question_answering and hasattr(question_answering, "is_configured") else False
+    def _clock(): return getattr(clock_service, "client", None) is not None
+    def _vision(): return ai_vision.is_configured() if ai_vision and hasattr(ai_vision, "is_configured") else False
+    return {
+        "document_intelligence": _doc(),
+        "openai": _openai(),
+        "text_analytics": _ta(),
+        "qna": _qna(),
+        "clock": _clock(),
+        "vision": _vision(),
+    }
 
 # Authentication endpoints
 @app.post("/token", response_model=schemas.Token)
