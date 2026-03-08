@@ -24,6 +24,8 @@ def main():
     data["properties"]["ipAddress"]["dnsNameLabel"] = os.environ.get("DNS_LABEL", "docint")
 
     env_vars = [
+        {"name": "SECRET_KEY", "value": os.environ.get("SECRET_KEY", "change-me-in-production")},
+        {"name": "DATABASE_URL", "value": os.environ.get("DATABASE_URL", "sqlite:///./app.db")},
         {"name": "AZURE_FORM_RECOGNIZER_ENDPOINT", "value": os.environ.get("AZURE_FORM_RECOGNIZER_ENDPOINT", "")},
         {"name": "AZURE_FORM_RECOGNIZER_KEY", "value": os.environ.get("AZURE_FORM_RECOGNIZER_KEY", "")},
         {"name": "AZURE_LANGUAGE_ENDPOINT", "value": os.environ.get("AZURE_LANGUAGE_ENDPOINT", "")},

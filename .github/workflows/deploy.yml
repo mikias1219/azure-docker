@@ -1,10 +1,10 @@
-name: Deploy to Azure Container Instances
+# Build-only workflow for PRs. Production deploy uses deploy-azure.yml (Dockerfile.full, :full image).
+name: Build (PR / optional)
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 env:
   REGISTRY: selamnew.azurecr.io
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      id-token: write
 
     steps:
     - name: Checkout code
@@ -57,56 +57,13 @@ jobs:
           type=ref,event=pr
           type=sha,prefix={{branch}}-
 
-    - name: Build and push Docker image
+    - name: Build and push Docker image (Dockerfile.full for consistency)
       uses: docker/build-push-action@v5
       with:
         context: .
+        file: ./Dockerfile.full
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Azure Login
-      uses: azure/login@v2
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    - name: Deploy to Azure Container Instances
-      run: |
-        az container delete \
-          --name ${{ env.CONTAINER_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --yes || true
-
-        az container create \
-          --name ${{ env.CONTAINER_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main \
-          --os-type Linux \
-          --dns-name-label ${{ env.CONTAINER_NAME }} \
-          --ports 8000 \
-          --cpu 2 \
-          --memory 4 \
-          --registry-username ${{ secrets.ACR_USERNAME }} \
-          --registry-password ${{ secrets.ACR_PASSWORD }} \
-          --environment-variables \
-            AZURE_FORM_RECOGNIZER_ENDPOINT=${{ secrets.AZURE_FORM_RECOGNIZER_ENDPOINT }} \
-            AZURE_FORM_RECOGNIZER_KEY=${{ secrets.AZURE_FORM_RECOGNIZER_KEY }} \
-            AZURE_LANGUAGE_ENDPOINT=${{ secrets.AZURE_LANGUAGE_ENDPOINT }} \
-            AZURE_LANGUAGE_KEY=${{ secrets.AZURE_LANGUAGE_KEY }} \
-            OPENAI_API_BASE=${{ secrets.OPENAI_API_BASE }} \
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
-            OPENAI_DEPLOYMENT_NAME=${{ secrets.OPENAI_DEPLOYMENT_NAME }} \
-            AZURE_AI_VISION_ENDPOINT=${{ secrets.AZURE_AI_VISION_ENDPOINT }} \
-            AZURE_AI_VISION_KEY=${{ secrets.AZURE_AI_VISION_KEY }} \
-          --query "{ipAddress:ipAddress.ip,fqdn:ipAddress.fqdn,provisioningState:provisioningState}"

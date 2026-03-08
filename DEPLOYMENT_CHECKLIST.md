@@ -51,14 +51,19 @@ Create these GitHub secrets in your repository:
    - `AZURE_QNA_PROJECT_NAME` / `AZURE_QNA_DEPLOYMENT_NAME`: QnA knowledge base
    - `AZURE_AI_VISION_ENDPOINT` / `AZURE_AI_VISION_KEY`: Azure AI Vision (image analysis & OCR)
 
+4. **App (optional but recommended)**
+   - `SECRET_KEY`: JWT signing secret for production (if unset, app uses a default)
+
 ## 🚀 Deployment Process
 
 ### Automated Deployment (GitHub Actions)
-1. **Trigger**: Push to `main` branch
-2. **Build**: Docker image built and pushed to ACR
-3. **Deploy**: Azure Container Instance created
+- **Production deploy**: Only **deploy-azure.yml** deploys to ACI (on push to `main`). It builds **Dockerfile.full** (frontend + backend, port 8000) and uses image tag **:full**.
+- The **deploy.yml** workflow only runs on PRs / manual trigger and does **not** deploy (so it won’t overwrite the running container).
+1. **Trigger**: Push to `main` branch runs **deploy-azure.yml**
+2. **Build**: Docker image from Dockerfile.full, pushed to ACR as `document-intelligence-app:full` (and :main, :latest)
+3. **Deploy**: Azure Container Instance created from ACI template (port 8000, liveness probe on /health)
 4. **Configure**: Environment variables and storage set up
-5. **Verify**: Health checks and deployment summary
+5. **Verify**: Health check (from inside container and optionally from runner) and deployment summary. **Use the URL with port 8000**: `http://<ip-or-fqdn>:8000`
 
 ### Manual Deployment
 ```bash
@@ -69,8 +74,8 @@ Create these GitHub secrets in your repository:
 ## 📋 Post-Deployment Verification
 
 ### ✅ Application Health Check
-- [ ] Application responds at `http://<container-fqdn>`
-- [ ] Health endpoint works: `http://<container-fqdn>/health`
+- [ ] Application responds at `http://<container-ip-or-fqdn>:8000` (port 8000 is required)
+- [ ] Health endpoint works: `http://<container-ip-or-fqdn>:8000/health`
 - [ ] User registration and login work
 - [ ] Document upload functionality works
 - [ ] Azure services integration works
