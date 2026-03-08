@@ -207,6 +207,34 @@ jobs:
           echo "container_fqdn=$CONTAINER_FQDN" >> $GITHUB_OUTPUT
           echo "dns_label=$DNS_LABEL" >> $GITHUB_OUTPUT
 
+      - name: Verify container health
+        run: |
+          CONTAINER_IP="${{ steps.deploy.outputs.container_ip }}"
+          CONTAINER_FQDN="${{ steps.deploy.outputs.container_fqdn }}"
+          if [ -z "$CONTAINER_IP" ]; then
+            echo "::warning::No container IP; skipping health check"
+            exit 0
+          fi
+          echo "Verifying app responds at http://$CONTAINER_IP:8000/health (retries: 12, interval 10s)..."
+          for i in $(seq 1 12); do
+            if curl -sf --connect-timeout 10 --max-time 15 "http://$CONTAINER_IP:8000/health" >/dev/null; then
+              echo "Health check passed (attempt $i)."
+              curl -s "http://$CONTAINER_IP:8000/health" | head -c 200
+              echo ""
+              exit 0
+            fi
+            echo "  Attempt $i failed; waiting 10s..."
+            sleep 10
+          done
+          echo "::error::Health check failed after 12 attempts. Container may not be listening on port 8000 or app may have crashed."
+          echo "::group::Container logs"
+          az container logs --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null || true
+          echo "::endgroup::"
+          echo "::group::Container events"
+          az container show --name ${{ env.CONTAINER_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query "properties.instanceView.events" -o table 2>/dev/null || true
+          echo "::endgroup::"
+          exit 1
+
       - name: Create Static IP Reservation (for future use)
         id: static-ip
         run: |
@@ -247,6 +275,6 @@ jobs:
           echo ""
           echo "📝 Notes:"
           echo "  • The app listens on port 8000 (not 80). Always use :8000 in the URL."
-          echo "  • The app will be available within 1-2 minutes"
-          echo "  • Static IP is reserved for future use"
-          echo "  • All environment variables are securely configured"
+          echo "  • If the IP/FQDN does not work: ensure you use http://<ip-or-fqdn>:8000 (port 8000 is required)."
+          echo "  • ACI liveness probe hits /health every 15s; failed probes restart the container."
+          echo "  • If health verification failed above, see Container logs and Container events in this run."
