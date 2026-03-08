@@ -132,43 +132,8 @@ jobs:
           ACR_USER=$(az acr credential show --name selamnew --resource-group AI-102 --query "username" -o tsv)
           ACR_PASS=$(az acr credential show --name selamnew --resource-group AI-102 --query "passwords[0].value" -o tsv)
           export ACR_USER ACR_PASS DNS_LABEL ACI_IMAGE
-          
-          # Update container group configuration (use env vars so Python gets real values, not literal $ACR_USER)
-          python3 << 'PYEOF'
-          import json
-          import os
-          
-          with open('aci/container-group-simple-template.json', 'r') as f:
-              data = json.load(f)
-          
-          data['properties']['imageRegistryCredentials'][0]['username'] = os.environ.get('ACR_USER', '')
-          data['properties']['imageRegistryCredentials'][0]['password'] = os.environ.get('ACR_PASS', '')
-          data['properties']['containers'][0]['properties']['image'] = os.environ.get('ACI_IMAGE', 'selamnew.azurecr.io/document-intelligence-app:full')
-          data['properties']['ipAddress']['dnsNameLabel'] = os.environ.get('DNS_LABEL', 'docint')
-          PYEOF
+          python3 scripts/generate_aci_config.py
 
-          # Wire environment variables through to the container for all Azure AI services in ACI
-          env_vars = [
-              {"name": "AZURE_FORM_RECOGNIZER_ENDPOINT", "value": os.environ.get("AZURE_FORM_RECOGNIZER_ENDPOINT", "")},
-              {"name": "AZURE_FORM_RECOGNIZER_KEY", "value": os.environ.get("AZURE_FORM_RECOGNIZER_KEY", "")},
-              {"name": "AZURE_LANGUAGE_ENDPOINT", "value": os.environ.get("AZURE_LANGUAGE_ENDPOINT", "")},
-              {"name": "AZURE_LANGUAGE_KEY", "value": os.environ.get("AZURE_LANGUAGE_KEY", "")},
-              {"name": "AZURE_QNA_PROJECT_NAME", "value": os.environ.get("AZURE_QNA_PROJECT_NAME", "LearnFAQ")},
-              {"name": "AZURE_QNA_DEPLOYMENT_NAME", "value": os.environ.get("AZURE_QNA_DEPLOYMENT_NAME", "production")},
-              {"name": "OPENAI_API_KEY", "value": os.environ.get("OPENAI_API_KEY", "")},
-              {"name": "OPENAI_API_BASE", "value": os.environ.get("OPENAI_API_BASE", "")},
-              {"name": "OPENAI_DEPLOYMENT_NAME", "value": os.environ.get("OPENAI_DEPLOYMENT_NAME", "")},
-              {"name": "OPENAI_API_VERSION", "value": os.environ.get("OPENAI_API_VERSION", "2024-02-15-preview")},
-              {"name": "AZURE_AI_VISION_ENDPOINT", "value": os.environ.get("AZURE_AI_VISION_ENDPOINT", "")},
-              {"name": "AZURE_AI_VISION_KEY", "value": os.environ.get("AZURE_AI_VISION_KEY", "")},
-          ]
-          data['properties']['containers'][0]['properties']['environmentVariables'] = env_vars
-          
-          # Write updated config
-          with open('aci/container-group-updated.json', 'w') as f:
-              json.dump(data, f, indent=2)
-          EOF
-          
           # Delete existing container (if exists)
           if az container delete \
             --resource-group ${{ env.RESOURCE_GROUP }} \
