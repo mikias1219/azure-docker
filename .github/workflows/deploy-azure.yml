@@ -183,12 +183,13 @@ jobs:
             --timeout 300 \
             --output none || echo "Container was already deleted"
           
-          # Create new container
+          # Create new container (--os-type required by Azure CLI when using --file)
           az container create \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --file aci/container-group-updated.json \
             --name ${{ env.CONTAINER_NAME }} \
             --location eastus \
+            --os-type Linux \
             --dns-name-label $DNS_LABEL
           
           # Get container IP and FQDN

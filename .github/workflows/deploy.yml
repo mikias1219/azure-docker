@@ -92,6 +92,7 @@ jobs:
           --name ${{ env.CONTAINER_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }} \
           --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main \
+          --os-type Linux \
           --dns-name-label ${{ env.CONTAINER_NAME }} \
           --ports 8000 \
           --cpu 2 \

@@ -180,13 +180,14 @@ EOF
         --timeout 300 \
         --output none || log_warning "Container was already deleted"
     
-    # Create new container
+    # Create new container (--os-type required by Azure CLI when using --file)
     log_info "Creating new container instance..."
     az container create \
         --resource-group $RESOURCE_GROUP \
         --file aci/container-group-updated.json \
         --name $CONTAINER_NAME \
-        --location $LOCATION
+        --location $LOCATION \
+        --os-type Linux
     
     # Get container details
     CONTAINER_IP=$(az container show \
