@@ -41,14 +41,15 @@ export function useAuth() {
   const login = async (username: string, password: string) => {
     try {
       const response = await authApi.login(username, password);
-      localStorage.setItem('access_token', response.access_token);
+      const token = response.access_token.trim();
+      localStorage.setItem('access_token', token);
 
-      // After login, try to load the real user
+      // Use the token we just received for /me so we don't rely on interceptor timing
       try {
-        const me = await authApi.getCurrentUser();
+        const me = await authApi.getCurrentUser(token);
         setUser(me);
       } catch {
-        // Fallback if /me fails immediately after login
+        // Fallback if /me fails (e.g. backend restart / SECRET_KEY mismatch)
         setUser({ id: 1, username, email: `${username}@example.com` });
       }
 
@@ -56,7 +57,7 @@ export function useAuth() {
     } catch (error: any) {
       return {
         success: false,
-        error: error.response?.data?.detail || 'Login failed',
+        error: error.response?.data?.detail || error.message || 'Login failed',
       };
     }
   };

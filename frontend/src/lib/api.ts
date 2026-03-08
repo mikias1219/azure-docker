@@ -11,9 +11,10 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token (trim to avoid invalid JWT from whitespace)
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
+  const raw = localStorage.getItem('access_token');
+  const token = typeof raw === 'string' ? raw.trim() : '';
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -43,13 +44,17 @@ export const authApi = {
     const formData = new FormData();
     formData.append('username', username);
     formData.append('password', password);
-    
-    const response = await api.post('/token', formData, {
+
+    const response = await api.post<AuthResponse>('/token', formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
-    return response.data;
+    const data = response.data;
+    if (!data?.access_token || typeof data.access_token !== 'string') {
+      throw new Error('Invalid login response: missing access_token');
+    }
+    return data;
   },
 
   register: async (username: string, email: string, password: string): Promise<User> => {
@@ -61,8 +66,12 @@ export const authApi = {
     return response.data;
   },
 
-  getCurrentUser: async (): Promise<User> => {
-    const response = await api.get('/me');
+  /** Get current user. Pass token to use for this request only (e.g. right after login). */
+  getCurrentUser: async (token?: string | null): Promise<User> => {
+    const config = token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : {};
+    const response = await api.get<User>('/me', config);
     return response.data;
   },
 };
