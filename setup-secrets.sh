@@ -70,30 +70,30 @@ login_to_github() {
     log_success "Logged into GitHub"
 }
 
-# Create or update service principal
+# Create or update service principal. Outputs ONLY the JSON to stdout (for capture); logs to stderr.
 create_service_principal() {
-    log_info "Creating service principal..."
-    
+    log_info "Creating service principal..." >&2
+
     # Get subscription ID
     SUBSCRIPTION_ID=$(az account show --query "id" -o tsv)
-    
+
     # Create service principal
     SP_INFO=$(az ad sp create-for-rbac \
         --name "$SERVICE_PRINCIPAL_NAME" \
         --role contributor \
         --scopes "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP")
-    
+
     # Extract credentials
     CLIENT_ID=$(echo $SP_INFO | jq -r '.appId')
     CLIENT_SECRET=$(echo $SP_INFO | jq -r '.password')
     TENANT_ID=$(echo $SP_INFO | jq -r '.tenant')
-    
-    log_success "Service principal created"
-    echo "Client ID: $CLIENT_ID"
-    echo "Tenant ID: $TENANT_ID"
-    
-    # Save credentials for GitHub
-    AZURE_CREDENTIALS=$(cat <<EOF
+
+    log_success "Service principal created" >&2
+    echo "Client ID: $CLIENT_ID" >&2
+    echo "Tenant ID: $TENANT_ID" >&2
+
+    # Output ONLY the JSON to stdout so AZURE_CREDENTIALS=$(create_service_principal) gets valid JSON
+    cat <<EOF
 {
   "clientId": "$CLIENT_ID",
   "clientSecret": "$CLIENT_SECRET",
@@ -101,9 +101,6 @@ create_service_principal() {
   "tenantId": "$TENANT_ID"
 }
 EOF
-)
-    
-    echo "$AZURE_CREDENTIALS"
 }
 
 # Get ACR credentials

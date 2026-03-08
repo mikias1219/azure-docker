@@ -22,6 +22,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate Azure credentials
+        run: |
+          if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ]; then
+            echo "::error::AZURE_CREDENTIALS secret is empty. Run ./setup-secrets.sh or set it in repo Settings > Secrets."
+            exit 1
+          fi
+          printf '%s' '${{ secrets.AZURE_CREDENTIALS }}' > _creds.json
+          jq -e . _creds.json >/dev/null || {
+            echo "::error::AZURE_CREDENTIALS must be valid JSON only (no extra text or [INFO] etc). Re-run ./setup-secrets.sh or set the secret to exactly: {\"clientId\":\"...\",\"clientSecret\":\"...\",\"subscriptionId\":\"...\",\"tenantId\":\"...\"}"
+            rm -f _creds.json
+            exit 1
+          }
+          rm -f _creds.json
+
       - name: Azure Login
         uses: azure/login@v2
         with:

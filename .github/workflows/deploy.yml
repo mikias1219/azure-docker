@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 env:
-  REGISTRY: mikiasregistry.azurecr.io
-  IMAGE_NAME: azure-practice-app
+  REGISTRY: selamnew.azurecr.io
+  IMAGE_NAME: document-intelligence-app
   RESOURCE_GROUP: AI-102
   CONTAINER_NAME: document-intelligence-container
 
@@ -22,6 +22,20 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Validate Azure credentials
+      run: |
+        if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ]; then
+          echo "::error::AZURE_CREDENTIALS secret is empty."
+          exit 1
+        fi
+        printf '%s' '${{ secrets.AZURE_CREDENTIALS }}' > _creds.json
+        jq -e . _creds.json >/dev/null || {
+          echo "::error::AZURE_CREDENTIALS must be valid JSON only. Re-run ./setup-secrets.sh"
+          rm -f _creds.json
+          exit 1
+        }
+        rm -f _creds.json
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -73,7 +87,7 @@ jobs:
           --name ${{ env.CONTAINER_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }} \
           --yes || true
-        
+
         az container create \
           --name ${{ env.CONTAINER_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }} \
@@ -85,14 +99,13 @@ jobs:
           --registry-username ${{ secrets.ACR_USERNAME }} \
           --registry-password ${{ secrets.ACR_PASSWORD }} \
           --environment-variables \
-            AZURE_AI_LANGUAGE_ENDPOINT=${{ secrets.AZURE_AI_LANGUAGE_ENDPOINT }} \
-            AZURE_AI_LANGUAGE_KEY=${{ secrets.AZURE_AI_LANGUAGE_KEY }} \
-            AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=${{ secrets.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT }} \
-            AZURE_DOCUMENT_INTELLIGENCE_KEY=${{ secrets.AZURE_DOCUMENT_INTELLIGENCE_KEY }} \
-            AZURE_OPENAI_ENDPOINT=${{ secrets.AZURE_OPENAI_ENDPOINT }} \
-            AZURE_OPENAI_KEY=${{ secrets.AZURE_OPENAI_KEY }} \
-            AZURE_OPENAI_DEPLOYMENT=${{ secrets.AZURE_OPENAI_DEPLOYMENT }} \
+            AZURE_FORM_RECOGNIZER_ENDPOINT=${{ secrets.AZURE_FORM_RECOGNIZER_ENDPOINT }} \
+            AZURE_FORM_RECOGNIZER_KEY=${{ secrets.AZURE_FORM_RECOGNIZER_KEY }} \
+            AZURE_LANGUAGE_ENDPOINT=${{ secrets.AZURE_LANGUAGE_ENDPOINT }} \
+            AZURE_LANGUAGE_KEY=${{ secrets.AZURE_LANGUAGE_KEY }} \
+            OPENAI_API_BASE=${{ secrets.OPENAI_API_BASE }} \
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            OPENAI_DEPLOYMENT_NAME=${{ secrets.OPENAI_DEPLOYMENT_NAME }} \
             AZURE_AI_VISION_ENDPOINT=${{ secrets.AZURE_AI_VISION_ENDPOINT }} \
             AZURE_AI_VISION_KEY=${{ secrets.AZURE_AI_VISION_KEY }} \
-          --assign-identity \
-          --query "{ipAddress:ipAddress.ip,fqdn:fqdn,provisioningState:provisioningState}"
+          --query "{ipAddress:ipAddress.ip,fqdn:ipAddress.fqdn,provisioningState:provisioningState}"
