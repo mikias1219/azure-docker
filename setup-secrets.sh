@@ -272,7 +272,7 @@ main() {
     else
         log_info "SKIP_LOGIN=1: using existing az/gh session"
         az account show -o none || { log_error "Not logged into Azure. Run: az login"; exit 1; }
-        gh auth status -h github.com -s || { log_error "Not logged into GitHub. Run: gh auth login"; exit 1; }
+        gh auth status || { log_error "Not logged into GitHub. Run: gh auth login"; exit 1; }
     fi
 
     # Create service principal and get credentials
