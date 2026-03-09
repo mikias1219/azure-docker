@@ -1,0 +1,124 @@
+{
+  "location": "eastus",
+  "properties": {
+    "imageRegistryCredentials": [
+      {
+        "server": "selamnew.azurecr.io",
+        "username": "",
+        "password": ""
+      }
+    ],
+    "containers": [
+      {
+        "name": "document-intelligence-app",
+        "properties": {
+          "image": "selamnew.azurecr.io/document-intelligence-app:full",
+          "resources": {
+            "requests": {
+              "cpu": 1,
+              "memoryInGb": 2
+            }
+          },
+          "ports": [
+            {
+              "port": 8000
+            }
+          ],
+          "livenessProbe": {
+            "httpGet": {
+              "path": "/health",
+              "port": 8000,
+              "scheme": "http"
+            },
+            "initialDelaySeconds": 20,
+            "periodSeconds": 15,
+            "failureThreshold": 3,
+            "timeoutSeconds": 5
+          },
+          "environmentVariables": [
+            {
+              "name": "SECRET_KEY",
+              "value": "change-me-in-production"
+            },
+            {
+              "name": "DATABASE_URL",
+              "value": "sqlite:///./app.db"
+            },
+            {
+              "name": "AZURE_FORM_RECOGNIZER_ENDPOINT",
+              "value": ""
+            },
+            {
+              "name": "AZURE_FORM_RECOGNIZER_KEY",
+              "value": ""
+            },
+            {
+              "name": "AZURE_LANGUAGE_ENDPOINT",
+              "value": ""
+            },
+            {
+              "name": "AZURE_LANGUAGE_KEY",
+              "value": ""
+            },
+            {
+              "name": "AZURE_QNA_PROJECT_NAME",
+              "value": "LearnFAQ"
+            },
+            {
+              "name": "AZURE_QNA_DEPLOYMENT_NAME",
+              "value": "production"
+            },
+            {
+              "name": "OPENAI_API_KEY",
+              "value": ""
+            },
+            {
+              "name": "OPENAI_API_BASE",
+              "value": ""
+            },
+            {
+              "name": "OPENAI_DEPLOYMENT_NAME",
+              "value": ""
+            },
+            {
+              "name": "OPENAI_API_VERSION",
+              "value": "2024-02-15-preview"
+            },
+            {
+              "name": "AZURE_AI_VISION_ENDPOINT",
+              "value": ""
+            },
+            {
+              "name": "AZURE_AI_VISION_KEY",
+              "value": ""
+            },
+            {
+              "name": "AZURE_SEARCH_ENDPOINT",
+              "value": ""
+            },
+            {
+              "name": "AZURE_SEARCH_KEY",
+              "value": ""
+            },
+            {
+              "name": "AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME",
+              "value": ""
+            }
+          ]
+        }
+      }
+    ],
+    "osType": "Linux",
+    "ipAddress": {
+      "type": "Public",
+      "ports": [
+        {
+          "protocol": "tcp",
+          "port": 8000
+        }
+      ],
+      "dnsNameLabel": "docint"
+    },
+    "restartPolicy": "OnFailure"
+  }
+}
