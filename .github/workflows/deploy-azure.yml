@@ -27,7 +27,7 @@ jobs:
       - name: Validate Azure credentials
         run: |
           if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ]; then
-            echo "::error::AZURE_CREDENTIALS secret is empty. Run ./setup-secrets.sh or set it in repo Settings > Secrets."
+            echo "::error::Set AZURE_CREDENTIALS in repo Settings > Secrets (service principal JSON). All other credentials are fetched from Azure in this workflow."
             exit 1
           fi
           printf '%s' '${{ secrets.AZURE_CREDENTIALS }}' > _creds.json
@@ -43,6 +43,26 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Ensure Azure resources
+        run: |
+          chmod +x scripts/create_all_azure_services.sh
+          export RESOURCE_GROUP="${{ env.RESOURCE_GROUP }}"
+          export LOCATION=eastus
+          ./scripts/create_all_azure_services.sh
+
+      - name: Assess Azure resources
+        run: |
+          chmod +x scripts/assess_azure_resources.sh
+          export RESOURCE_GROUP="${{ env.RESOURCE_GROUP }}"
+          ./scripts/assess_azure_resources.sh
+        continue-on-error: true
+
+      - name: Get deployment credentials from Azure
+        run: |
+          chmod +x scripts/get_credentials_for_ci.sh
+          export RESOURCE_GROUP="${{ env.RESOURCE_GROUP }}"
+          . ./scripts/get_credentials_for_ci.sh
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -50,8 +70,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          username: ${{ env.ACR_USERNAME }}
+          password: ${{ env.ACR_PASSWORD }}
 
       - name: Extract metadata
         id: meta
@@ -81,28 +101,27 @@ jobs:
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           DATABASE_URL: "sqlite:///./app.db"
-          AZURE_FORM_RECOGNIZER_ENDPOINT: ${{ secrets.AZURE_FORM_RECOGNIZER_ENDPOINT }}
-          AZURE_FORM_RECOGNIZER_KEY: ${{ secrets.AZURE_FORM_RECOGNIZER_KEY }}
-          AZURE_LANGUAGE_ENDPOINT: ${{ secrets.AZURE_LANGUAGE_ENDPOINT }}
-          AZURE_LANGUAGE_KEY: ${{ secrets.AZURE_LANGUAGE_KEY }}
-          AZURE_QNA_PROJECT_NAME: ${{ secrets.AZURE_QNA_PROJECT_NAME }}
-          AZURE_QNA_DEPLOYMENT_NAME: ${{ secrets.AZURE_QNA_DEPLOYMENT_NAME }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_API_BASE: ${{ secrets.OPENAI_API_BASE }}
-          OPENAI_DEPLOYMENT_NAME: ${{ secrets.OPENAI_DEPLOYMENT_NAME }}
-          OPENAI_API_VERSION: ${{ secrets.OPENAI_API_VERSION }}
-          AZURE_AI_VISION_ENDPOINT: ${{ secrets.AZURE_AI_VISION_ENDPOINT }}
-          AZURE_AI_VISION_KEY: ${{ secrets.AZURE_AI_VISION_KEY }}
-          AZURE_SEARCH_ENDPOINT: ${{ secrets.AZURE_SEARCH_ENDPOINT }}
-          AZURE_SEARCH_KEY: ${{ secrets.AZURE_SEARCH_KEY }}
-          AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME: ${{ secrets.AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME }}
+          AZURE_FORM_RECOGNIZER_ENDPOINT: ${{ env.AZURE_FORM_RECOGNIZER_ENDPOINT }}
+          AZURE_FORM_RECOGNIZER_KEY: ${{ env.AZURE_FORM_RECOGNIZER_KEY }}
+          AZURE_LANGUAGE_ENDPOINT: ${{ env.AZURE_LANGUAGE_ENDPOINT }}
+          AZURE_LANGUAGE_KEY: ${{ env.AZURE_LANGUAGE_KEY }}
+          AZURE_QNA_PROJECT_NAME: ${{ env.AZURE_QNA_PROJECT_NAME }}
+          AZURE_QNA_DEPLOYMENT_NAME: ${{ env.AZURE_QNA_DEPLOYMENT_NAME }}
+          OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+          OPENAI_API_BASE: ${{ env.OPENAI_API_BASE }}
+          OPENAI_DEPLOYMENT_NAME: ${{ env.OPENAI_DEPLOYMENT_NAME }}
+          OPENAI_API_VERSION: ${{ env.OPENAI_API_VERSION }}
+          AZURE_AI_VISION_ENDPOINT: ${{ env.AZURE_AI_VISION_ENDPOINT }}
+          AZURE_AI_VISION_KEY: ${{ env.AZURE_AI_VISION_KEY }}
+          AZURE_SEARCH_ENDPOINT: ${{ env.AZURE_SEARCH_ENDPOINT }}
+          AZURE_SEARCH_KEY: ${{ env.AZURE_SEARCH_KEY }}
+          AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME: ${{ env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME }}
         run: |
           # Generate unique DNS label
           DNS_LABEL="docint-${{ github.run_number }}-$(date +%s)"
           ACI_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:full"
-          # Get ACR credentials
-          ACR_USER=$(az acr credential show --name selamnew --resource-group AI-102 --query "username" -o tsv)
-          ACR_PASS=$(az acr credential show --name selamnew --resource-group AI-102 --query "passwords[0].value" -o tsv)
+          ACR_USER="${{ env.ACR_USERNAME }}"
+          ACR_PASS="${{ env.ACR_PASSWORD }}"
           export ACR_USER ACR_PASS DNS_LABEL ACI_IMAGE
           python3 scripts/generate_aci_config.py
 

@@ -24,13 +24,23 @@ export function setAuthClearCallback(cb: (() => void) | null) {
 
 // Request interceptor: use getter first, then localStorage; trim to avoid invalid JWT
 api.interceptors.request.use((config) => {
-  const raw = authTokenGetter?.() ?? localStorage.getItem('access_token');
+  const raw = authTokenGetter?.() ?? (typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null);
   const token = typeof raw === 'string' ? raw.trim() : '';
   if (token) {
+    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+/** Get current auth headers (for multipart/form-data so Authorization is not dropped). */
+export function getAuthHeaders(): Record<string, string> {
+  const raw = authTokenGetter?.() ?? (typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null);
+  const token = typeof raw === 'string' ? raw.trim() : '';
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
 
 // Response interceptor: clear token and redirect only on 401.
 // We do NOT clear token on network errors or 5xx, so user credentials persist
@@ -95,6 +105,7 @@ export const documentsApi = {
     
     const response = await api.post('/upload', formData, {
       headers: {
+        ...getAuthHeaders(),
         'Content-Type': 'multipart/form-data',
       },
       onUploadProgress: (progressEvent) => {
@@ -218,7 +229,7 @@ export const visionApi = {
     formData.append('file', file);
     formData.append('features', features.join(','));
     const response = await api.post('/vision/analyze', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   },
@@ -226,7 +237,7 @@ export const visionApi = {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post('/vision/read-text', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   },
@@ -237,7 +248,7 @@ export const infoExtractionApi = {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post('/api/info-extraction/analyze', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   },
@@ -245,7 +256,7 @@ export const infoExtractionApi = {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post('/api/document-intelligence/analyze-invoice', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   },

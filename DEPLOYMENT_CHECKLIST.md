@@ -35,33 +35,24 @@ Run `./scripts/assess_azure_resources.sh` after `az login` to verify and get cre
 
 ## 🔐 GitHub Secrets Setup
 
-### Automated Setup (Recommended)
+The deployment workflow runs all setup scripts in GitHub Actions. You only need to set **one required secret** (and one optional):
+
+1. **Required**
+   - `AZURE_CREDENTIALS`: Service principal JSON `{"clientId":"...","clientSecret":"...","subscriptionId":"...","tenantId":"..."}` with **Contributor** on the subscription or resource group. Create once (e.g. run `./setup-secrets.sh` locally to create the SP and set this secret, or create in Azure Portal and paste the JSON into repo Settings > Secrets).
+
+2. **Optional (recommended for stable login)**
+   - `SECRET_KEY`: JWT signing secret. If unset, the app uses a default; set this once so tokens stay valid across redeploys.
+
+**No other secrets are required.** The workflow automatically:
+- Runs `scripts/create_all_azure_services.sh` to create/ensure Azure resources (RG, ACR, Document Intelligence, OpenAI, Language, Vision, Search).
+- Runs `scripts/assess_azure_resources.sh` to verify resources.
+- Runs `scripts/get_credentials_for_ci.sh` to fetch ACR and all Azure service keys/endpoints from Azure and passes them into the deploy step.
+
+### One-time: get AZURE_CREDENTIALS
 ```bash
-# Run the automated setup script
+# Optional: run locally once to create service principal and set AZURE_CREDENTIALS (and SECRET_KEY if missing)
 ./setup-secrets.sh
 ```
-
-### Manual Setup
-Create these GitHub secrets in your repository:
-
-1. **Azure Credentials**
-   - `AZURE_CREDENTIALS`: Service principal JSON with client_id, client_secret, subscription_id, tenant_id
-
-2. **Container Registry**
-   - `ACR_USERNAME`: Azure Container Registry username
-   - `ACR_PASSWORD`: Azure Container Registry password
-
-3. **Azure Services**
-   - `AZURE_FORM_RECOGNIZER_ENDPOINT` / `AZURE_FORM_RECOGNIZER_KEY`: Document Intelligence
-   - `OPENAI_API_KEY` / `OPENAI_API_BASE` / `OPENAI_DEPLOYMENT_NAME` / `OPENAI_API_VERSION`: Azure OpenAI
-   - `AZURE_LANGUAGE_ENDPOINT` / `AZURE_LANGUAGE_KEY`: Azure AI Language (Text, QnA, CLU)
-   - `AZURE_QNA_PROJECT_NAME` / `AZURE_QNA_DEPLOYMENT_NAME`: QnA knowledge base
-   - `AZURE_AI_VISION_ENDPOINT` / `AZURE_AI_VISION_KEY`: Azure AI Vision (image analysis & OCR)
-  - `AZURE_SEARCH_ENDPOINT` / `AZURE_SEARCH_KEY`: Azure AI Search (Knowledge Mining + RAG)
-  - `AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME`: Embedding deployment for RAG (e.g. text-embedding-ada-002)
-
-4. **App (optional but recommended)**
-   - `SECRET_KEY`: JWT signing secret for production (if unset, app uses a default)
 
 ## 🚀 Deployment Process
 
@@ -119,7 +110,11 @@ az storage account list --resource-group AI-102 --output table
    az container show --resource-group AI-102 --name document-intelligence-container
    ```
 
-2. **Authentication issues**
+2. **"Could not validate credentials" or 401 on API calls (e.g. Info Extract, Text Analytics)**
+   - **Cause:** JWT was signed with a different `SECRET_KEY` than the running app (e.g. after redeploy or first deploy without the secret).
+   - **Fix:** Ensure `SECRET_KEY` is set in GitHub repo secrets and the workflow passes it to the container. Run `SKIP_LOGIN=1 ./setup-secrets.sh` to set SECRET_KEY if missing (it only sets it when not already present). Redeploy, then **log in again** in the app so a new token is issued with the current key.
+
+3. **Azure / ACR authentication issues**
    ```bash
    # Verify Azure credentials
    az account show
@@ -128,12 +123,12 @@ az storage account list --resource-group AI-102 --output table
    az acr login --name selamnew
    ```
 
-3. **Environment variables not working**
+4. **Environment variables not working**
    - Check GitHub secrets configuration
    - Verify container group JSON template
    - Review deployment logs
 
-4. **Storage issues**
+5. **Storage issues**
    ```bash
    # Check storage account
    az storage account show --resource-group AI-102 --name <storage-account-name>

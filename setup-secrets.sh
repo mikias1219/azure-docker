@@ -244,6 +244,15 @@ set_github_secrets() {
     [ -n "$AZURE_SEARCH_KEY" ] && gh secret set AZURE_SEARCH_KEY --body "$AZURE_SEARCH_KEY" --repo "$REPO_NAME"
     gh secret set AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME --body "$AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME" --repo "$REPO_NAME"
 
+    # JWT secret: set only if not already set (keeps existing tokens valid)
+    if ! gh secret list --repo "$REPO_NAME" | grep -qw SECRET_KEY; then
+        SECRET_KEY_VALUE=$(openssl rand -hex 32 2>/dev/null || python3 -c "import secrets; print(secrets.token_hex(32))")
+        gh secret set SECRET_KEY --body "$SECRET_KEY_VALUE" --repo "$REPO_NAME"
+        log_success "SECRET_KEY set (new). Redeploy so the app uses it; then log in again."
+    else
+        log_info "SECRET_KEY already set; leaving unchanged so existing sessions stay valid."
+    fi
+
     log_success "All GitHub secrets set successfully"
 }
 
@@ -313,6 +322,7 @@ main() {
     echo "  • AZURE_SEARCH_ENDPOINT"
     echo "  • AZURE_SEARCH_KEY"
     echo "  • AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"
+    echo "  • SECRET_KEY (JWT signing; set once, do not rotate or all users must re-login)"
     echo ""
     echo "🚀 You can now push to main branch to trigger deployment!"
 }
