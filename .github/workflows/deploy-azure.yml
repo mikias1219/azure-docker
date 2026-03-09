@@ -64,6 +64,7 @@ jobs:
           . ./scripts/get_credentials_for_ci.sh
 
       - name: Ensure Azure OpenAI model deployments
+        continue-on-error: true
         run: |
           chmod +x scripts/ensure_openai_deployments.sh
           export RESOURCE_GROUP="${{ env.RESOURCE_GROUP }}"

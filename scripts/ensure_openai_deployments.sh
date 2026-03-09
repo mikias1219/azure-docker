@@ -18,7 +18,7 @@
 #
 # Notes:
 # - Model/version availability depends on your Azure OpenAI region/quota.
-# - If all attempts fail, the workflow will surface the error.
+# - If all attempts fail, we log a warning but do NOT fail the workflow; manual setup may still be required.
 
 set -euo pipefail
 
@@ -89,15 +89,19 @@ create_deployment_try_versions() {
 if deployment_exists "$CHAT_DEPLOYMENT"; then
   echo "[OK] Chat deployment exists: ${CHAT_DEPLOYMENT}"
 else
-  create_deployment_try_versions "$CHAT_DEPLOYMENT" "$CHAT_MODEL" "$CHAT_VERSIONS"
+  if ! create_deployment_try_versions "$CHAT_DEPLOYMENT" "$CHAT_MODEL" "$CHAT_VERSIONS"; then
+    echo "[WARN] Chat deployment '${CHAT_DEPLOYMENT}' could not be auto-created. You may need to create it manually in Azure OpenAI Studio or adjust OPENAI_DEPLOYMENT_NAME / model settings."
+  fi
 fi
 
 # Embeddings deployment (often already exists)
 if deployment_exists "$EMBED_DEPLOYMENT"; then
   echo "[OK] Embedding deployment exists: ${EMBED_DEPLOYMENT}"
 else
-  create_deployment_try_versions "$EMBED_DEPLOYMENT" "$EMBED_MODEL" "$EMBED_VERSIONS"
+  if ! create_deployment_try_versions "$EMBED_DEPLOYMENT" "$EMBED_MODEL" "$EMBED_VERSIONS"; then
+    echo "[WARN] Embedding deployment '${EMBED_DEPLOYMENT}' could not be auto-created. You may need to create it manually or adjust AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME / model settings."
+  fi
 fi
 
-echo "[OK] Azure OpenAI deployments are ready."
+echo "[OK] Azure OpenAI deployment check finished (best-effort)."
 
