@@ -66,6 +66,9 @@ Thumbs.db
 # Uploads
 uploads/
 
+# Generated ACI config (contains env vars/secrets at deploy time)
+aci/container-group-updated.json
+
 # Logs
 logs/
 *.log

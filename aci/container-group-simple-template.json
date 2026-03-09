@@ -23,18 +23,7 @@
             {
               "port": 8000
             }
-          ],
-          "livenessProbe": {
-            "httpGet": {
-              "path": "/health",
-              "port": 8000,
-              "scheme": "http"
-            },
-            "initialDelaySeconds": 20,
-            "periodSeconds": 15,
-            "failureThreshold": 3,
-            "timeoutSeconds": 5
-          }
+          ]
         }
       }
     ],

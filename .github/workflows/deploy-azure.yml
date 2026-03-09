@@ -63,6 +63,13 @@ jobs:
           export RESOURCE_GROUP="${{ env.RESOURCE_GROUP }}"
           . ./scripts/get_credentials_for_ci.sh
 
+      - name: Ensure persistence (Azure File Share for DB/uploads)
+        run: |
+          chmod +x scripts/ensure_aci_fileshare.sh
+          export RESOURCE_GROUP="${{ env.RESOURCE_GROUP }}"
+          export LOCATION=eastus
+          ./scripts/ensure_aci_fileshare.sh
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -100,7 +107,12 @@ jobs:
         id: deploy
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DATABASE_URL: "sqlite:///./app.db"
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          UPLOADS_DIR: ${{ env.UPLOADS_DIR }}
+          STORAGE_ACCOUNT_NAME: ${{ env.STORAGE_ACCOUNT_NAME }}
+          STORAGE_ACCOUNT_KEY: ${{ env.STORAGE_ACCOUNT_KEY }}
+          FILE_SHARE_NAME: ${{ env.FILE_SHARE_NAME }}
+          MOUNT_PATH: /mnt/data
           AZURE_FORM_RECOGNIZER_ENDPOINT: ${{ env.AZURE_FORM_RECOGNIZER_ENDPOINT }}
           AZURE_FORM_RECOGNIZER_KEY: ${{ env.AZURE_FORM_RECOGNIZER_KEY }}
           AZURE_LANGUAGE_ENDPOINT: ${{ env.AZURE_LANGUAGE_ENDPOINT }}

@@ -235,7 +235,7 @@ async def upload_document(
     Upload a document for the current user, persist it, and kick off AI processing.
     """
     try:
-        uploads_dir = Path("uploads")
+        uploads_dir = Path(os.getenv("UPLOADS_DIR", "uploads"))
         uploads_dir.mkdir(exist_ok=True)
 
         file_content = await file.read()
