@@ -716,9 +716,6 @@ async def rag_ingest(
         deployment = rag_service.get_embedding_deployment()
         if not deployment or not openai_client:
             return {"indexed": 0, "error": "OpenAI embedding deployment not configured (AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME)"}
-        from app.search_service import get_search_client
-        if not get_search_client(rag_service.RAG_INDEX_NAME):
-            return {"indexed": 0, "error": "Azure AI Search not configured or RAG index missing. Call POST /api/rag/ensure-index first."}
         result = rag_service.ingest_document(
             document.original_filename or f"doc-{document_id}",
             text,

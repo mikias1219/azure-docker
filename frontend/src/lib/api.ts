@@ -301,10 +301,14 @@ export const ragApi = {
     return response.data;
   },
   ingest: async (documentId: number): Promise<{ indexed: number; chunks?: number; error?: string }> => {
+    // Make ingestion resilient: ensure index exists first
+    try { await ragApi.ensureIndex(); } catch {}
     const response = await api.post('/api/rag/ingest', null, { params: { document_id: documentId } });
     return response.data;
   },
   ask: async (question: string): Promise<{ answer: string; sources: any[]; error?: string }> => {
+    // Make Q&A resilient: ensure index exists first
+    try { await ragApi.ensureIndex(); } catch {}
     const response = await api.post('/api/rag/ask', { question });
     return response.data;
   },

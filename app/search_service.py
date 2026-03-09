@@ -81,8 +81,33 @@ def keyword_search(
         )
         return {"results": results, "count": len(results)}
     except Exception as e:
+        # If index is missing, try to create the RAG index automatically (idempotent)
+        msg = str(e)
+        try:
+            from azure.core.exceptions import ResourceNotFoundError  # type: ignore
+        except Exception:
+            ResourceNotFoundError = ()  # type: ignore
+
+        is_missing = ("was not found" in msg.lower() and "index" in msg.lower()) or isinstance(e, ResourceNotFoundError)
+        if is_missing:
+            try:
+                from app import rag_service
+                if rag_service and hasattr(rag_service, "ensure_rag_index") and index_name == getattr(rag_service, "RAG_INDEX_NAME", "rag-content-index"):
+                    if rag_service.ensure_rag_index():
+                        # Retry once
+                        results = list(
+                            client.search(
+                                search_text=search_text,
+                                select=select,
+                                top=top,
+                            )
+                        )
+                        return {"results": results, "count": len(results)}
+            except Exception:
+                pass
+
         logger.exception("Search failed: %s", e)
-        return {"results": [], "count": 0, "error": str(e)}
+        return {"results": [], "count": 0, "error": msg}
 
 
 def get_rag_index_name() -> str:

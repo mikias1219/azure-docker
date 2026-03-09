@@ -171,8 +171,24 @@ def ingest_document(
         succeeded = sum(1 for r in result if r.succeeded)
         return {"indexed": succeeded, "chunks": len(docs)}
     except Exception as e:
+        # Auto-create index if missing, then retry once
+        msg = str(e)
+        missing = "index" in msg.lower() and "was not found" in msg.lower()
+        try:
+            from azure.core.exceptions import ResourceNotFoundError  # type: ignore
+            missing = missing or isinstance(e, ResourceNotFoundError)
+        except Exception:
+            pass
+        if missing and ensure_rag_index():
+            try:
+                result = search_client.upload_documents(documents=docs)
+                succeeded = sum(1 for r in result if r.succeeded)
+                return {"indexed": succeeded, "chunks": len(docs)}
+            except Exception as e2:
+                logger.exception("RAG ingest retry failed: %s", e2)
+                return {"indexed": 0, "error": str(e2)}
         logger.exception("RAG ingest upload failed: %s", e)
-        return {"indexed": 0, "error": str(e)}
+        return {"indexed": 0, "error": msg}
 
 
 def rag_retrieve(
@@ -191,10 +207,10 @@ def rag_retrieve(
     vec = embed_text(openai_client, deployment, question)
     if not vec:
         return {"context": "", "sources": [], "error": "Failed to embed question"}
-    try:
+    def _search_once():
         from azure.search.documents.models import VectorizedQuery
         vector_query = VectorizedQuery(vector=vec, k_nearest_neighbors=top_k, fields="content_vector")
-        results = list(
+        return list(
             search_client.search(
                 search_text=question,
                 vector_queries=[vector_query],
@@ -202,6 +218,9 @@ def rag_retrieve(
                 top=top_k,
             )
         )
+
+    try:
+        results = _search_once()
         context_parts = []
         sources = []
         for r in results:
@@ -212,8 +231,31 @@ def rag_retrieve(
                 sources.append({"file_name": fn, "content_preview": content[:200] + "..." if len(content) > 200 else content})
         return {"context": "\n\n---\n\n".join(context_parts), "sources": sources}
     except Exception as e:
+        # If index missing, create it and retry once (avoids manual ensure-index)
+        msg = str(e)
+        missing = "index" in msg.lower() and "was not found" in msg.lower()
+        try:
+            from azure.core.exceptions import ResourceNotFoundError  # type: ignore
+            missing = missing or isinstance(e, ResourceNotFoundError)
+        except Exception:
+            pass
+        if missing and ensure_rag_index():
+            try:
+                results = _search_once()
+                context_parts = []
+                sources = []
+                for r in results:
+                    fn = r.get("file_name", "Unknown")
+                    content = r.get("content", "")
+                    if content:
+                        context_parts.append(f"[Source: {fn}]\n{content}")
+                        sources.append({"file_name": fn, "content_preview": content[:200] + "..." if len(content) > 200 else content})
+                return {"context": "\n\n---\n\n".join(context_parts), "sources": sources}
+            except Exception as e2:
+                logger.exception("RAG retrieve retry failed: %s", e2)
+                return {"context": "", "sources": [], "error": str(e2)}
         logger.exception("RAG retrieve failed: %s", e)
-        return {"context": "", "sources": [], "error": str(e)}
+        return {"context": "", "sources": [], "error": msg}
 
 
 def rag_answer(question: str, context: str, openai_chat_client, chat_deployment: str) -> Optional[str]:
