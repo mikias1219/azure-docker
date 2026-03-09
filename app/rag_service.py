@@ -180,13 +180,20 @@ def ingest_document(
         except Exception:
             pass
         if missing and ensure_rag_index():
-            try:
-                result = search_client.upload_documents(documents=docs)
-                succeeded = sum(1 for r in result if r.succeeded)
-                return {"indexed": succeeded, "chunks": len(docs)}
-            except Exception as e2:
-                logger.exception("RAG ingest retry failed: %s", e2)
-                return {"indexed": 0, "error": str(e2)}
+            # Index creation can be eventually consistent; retry a few times with short backoff
+            import time
+            last_err: Optional[Exception] = None
+            for delay in (0.5, 1.0, 2.0):
+                time.sleep(delay)
+                try:
+                    result = search_client.upload_documents(documents=docs)
+                    succeeded = sum(1 for r in result if r.succeeded)
+                    return {"indexed": succeeded, "chunks": len(docs)}
+                except Exception as e2:
+                    last_err = e2
+                    continue
+            logger.exception("RAG ingest retry failed: %s", last_err)
+            return {"indexed": 0, "error": str(last_err) if last_err else "Upload failed after ensuring index"}
         logger.exception("RAG ingest upload failed: %s", e)
         return {"indexed": 0, "error": msg}
 
@@ -240,20 +247,27 @@ def rag_retrieve(
         except Exception:
             pass
         if missing and ensure_rag_index():
-            try:
-                results = _search_once()
-                context_parts = []
-                sources = []
-                for r in results:
-                    fn = r.get("file_name", "Unknown")
-                    content = r.get("content", "")
-                    if content:
-                        context_parts.append(f"[Source: {fn}]\n{content}")
-                        sources.append({"file_name": fn, "content_preview": content[:200] + "..." if len(content) > 200 else content})
-                return {"context": "\n\n---\n\n".join(context_parts), "sources": sources}
-            except Exception as e2:
-                logger.exception("RAG retrieve retry failed: %s", e2)
-                return {"context": "", "sources": [], "error": str(e2)}
+            # Index creation can be eventually consistent; retry a few times with short backoff
+            import time
+            last_err: Optional[Exception] = None
+            for delay in (0.5, 1.0, 2.0):
+                time.sleep(delay)
+                try:
+                    results = _search_once()
+                    context_parts = []
+                    sources = []
+                    for r in results:
+                        fn = r.get("file_name", "Unknown")
+                        content = r.get("content", "")
+                        if content:
+                            context_parts.append(f"[Source: {fn}]\n{content}")
+                            sources.append({"file_name": fn, "content_preview": content[:200] + "..." if len(content) > 200 else content})
+                    return {"context": "\n\n---\n\n".join(context_parts), "sources": sources}
+                except Exception as e2:
+                    last_err = e2
+                    continue
+            logger.exception("RAG retrieve retry failed: %s", last_err)
+            return {"context": "", "sources": [], "error": str(last_err) if last_err else "Search failed after ensuring index"}
         logger.exception("RAG retrieve failed: %s", e)
         return {"context": "", "sources": [], "error": msg}
 

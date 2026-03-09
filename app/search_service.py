@@ -94,15 +94,23 @@ def keyword_search(
                 from app import rag_service
                 if rag_service and hasattr(rag_service, "ensure_rag_index") and index_name == getattr(rag_service, "RAG_INDEX_NAME", "rag-content-index"):
                     if rag_service.ensure_rag_index():
-                        # Retry once
-                        results = list(
-                            client.search(
-                                search_text=search_text,
-                                select=select,
-                                top=top,
-                            )
-                        )
-                        return {"results": results, "count": len(results)}
+                        # Index creation can be eventually consistent; retry a few times with short backoff
+                        import time
+                        last_err: Optional[Exception] = None
+                        for delay in (0.5, 1.0, 2.0):
+                            time.sleep(delay)
+                            try:
+                                results = list(
+                                    client.search(
+                                        search_text=search_text,
+                                        select=select,
+                                        top=top,
+                                    )
+                                )
+                                return {"results": results, "count": len(results)}
+                            except Exception as e2:
+                                last_err = e2
+                                continue
             except Exception:
                 pass
 
