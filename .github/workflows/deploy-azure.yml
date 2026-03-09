@@ -63,6 +63,14 @@ jobs:
           export RESOURCE_GROUP="${{ env.RESOURCE_GROUP }}"
           . ./scripts/get_credentials_for_ci.sh
 
+      - name: Ensure Azure OpenAI model deployments
+        run: |
+          chmod +x scripts/ensure_openai_deployments.sh
+          export RESOURCE_GROUP="${{ env.RESOURCE_GROUP }}"
+          export OPENAI_ACCOUNT_NAME=openai-ai102
+          # Uses OPENAI_DEPLOYMENT_NAME and AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME from previous step (defaults if unset)
+          ./scripts/ensure_openai_deployments.sh
+
       - name: Ensure persistence (Azure File Share for DB/uploads)
         run: |
           chmod +x scripts/ensure_aci_fileshare.sh

@@ -17,6 +17,7 @@ az login
 ./scripts/create_all_azure_services.sh   # Creates RG, ACR, Doc Intel, OpenAI, Language, Vision, Azure AI Search
 ```
 Then in **Azure OpenAI Studio** create deployments: **chat** (e.g. gpt-35-turbo) and **embedding** (e.g. text-embedding-ada-002).
+> **Automation note:** GitHub Actions now runs `scripts/ensure_openai_deployments.sh` to create these deployments automatically if they’re missing (best-effort; depends on region/quota/model availability).
 
 Run `./scripts/assess_azure_resources.sh` after `az login` to verify and get create commands for any missing resources.
 
@@ -47,6 +48,7 @@ The deployment workflow runs all setup scripts in GitHub Actions. You only need 
 - Runs `scripts/create_all_azure_services.sh` to create/ensure Azure resources (RG, ACR, Document Intelligence, OpenAI, Language, Vision, Search).
 - Runs `scripts/assess_azure_resources.sh` to verify resources.
 - Runs `scripts/get_credentials_for_ci.sh` to fetch ACR and all Azure service keys/endpoints from Azure and passes them into the deploy step.
+- Runs `scripts/ensure_openai_deployments.sh` to ensure Azure OpenAI **chat** + **embedding** deployments exist (so you don’t get `DeploymentNotFound` at runtime).
 
 ### One-time: get AZURE_CREDENTIALS
 ```bash
@@ -61,7 +63,7 @@ The deployment workflow runs all setup scripts in GitHub Actions. You only need 
 - The **deploy.yml** workflow only runs on PRs / manual trigger and does **not** deploy (so it won’t overwrite the running container).
 1. **Trigger**: Push to `main` branch runs **deploy-azure.yml**
 2. **Build**: Docker image from Dockerfile.full, pushed to ACR as `document-intelligence-app:full` (and :main, :latest)
-3. **Deploy**: Azure Container Instance created from ACI template (port 8000, liveness probe on /health)
+3. **Deploy**: Azure Container Instance created from ACI template (port 8000)
 4. **Configure**: Environment variables and storage set up
 5. **Verify**: Health check (from inside container and optionally from runner) and deployment summary. **Use the URL with port 8000**: `http://<ip-or-fqdn>:8000`
 
