@@ -9,6 +9,9 @@ A modern FastAPI application with **Azure Document Intelligence** and **OpenAI**
 - 📄 **Document Upload & Analysis**: Support for PDF, Word, text, and image files
 - 🧠 **AI-Powered Insights**: Extract text and get AI analysis using Azure services
 - 👁️ **AI Vision**: Image analysis (caption, tags, objects, people) and OCR via Azure AI Vision (aligned with [Microsoft Learn AI Vision](https://github.com/MicrosoftLearning/mslearn-ai-vision))
+- 📇 **Information Extraction**: Extract structured fields (e.g. business card: Name, Company, Email, Phone) from images/documents ([mslearn-ai-information-extraction](https://github.com/microsoftlearning/mslearn-ai-information-extraction))
+- 🔍 **Knowledge Mining**: Keyword search over indexed documents via Azure AI Search
+- 💬 **RAG Q&A**: Ingest documents into a vector index and ask questions with retrieval-augmented generation
 - 🔐 **Secure Authentication**: JWT-based user authentication system
 - 🎨 **Modern UI**: Responsive, user-friendly interface
 - 🚀 **Automated CI/CD**: GitHub Actions pipeline with zero-downtime deployment
@@ -38,12 +41,25 @@ git push origin main
 ./deploy.sh
 ```
 
+### Create all Azure services and push secrets (one-time)
+
+To create every required Azure resource and push their endpoints/keys to GitHub secrets:
+
+```bash
+az login
+./scripts/create_all_azure_services.sh   # Creates RG, ACR, Document Intelligence, OpenAI, Language, Vision, Search
+# In Azure OpenAI Studio: create chat + embedding deployments (e.g. gpt-35-turbo, text-embedding-ada-002)
+./setup-secrets.sh                         # Pushes all credentials to GitHub secrets
+```
+
+Then push to `main` to deploy. See [docs/AZURE_RESOURCES.md](docs/AZURE_RESOURCES.md) for details.
+
 ## 📋 Prerequisites
 
 - **Azure CLI**: Install and configure
 - **GitHub CLI**: Install and authenticate
 - **Docker**: For local development
-- **Azure Resources**: Document Intelligence and OpenAI services
+- **Azure Resources**: Document Intelligence, OpenAI, and (for RAG/Knowledge) Azure AI Search and an OpenAI embedding deployment
 
 ## 🔧 Local Development
 

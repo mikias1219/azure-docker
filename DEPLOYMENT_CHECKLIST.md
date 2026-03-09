@@ -11,6 +11,13 @@
 - [ ] Azure AI Vision service `ai-vision-ai102` is created (Computer Vision / image analysis)
 - [ ] Storage account for file uploads will be created automatically by the workflow
 
+**One-command create (all services):**
+```bash
+az login
+./scripts/create_all_azure_services.sh   # Creates RG, ACR, Doc Intel, OpenAI, Language, Vision, Azure AI Search
+```
+Then in **Azure OpenAI Studio** create deployments: **chat** (e.g. gpt-35-turbo) and **embedding** (e.g. text-embedding-ada-002).
+
 Run `./scripts/assess_azure_resources.sh` after `az login` to verify and get create commands for any missing resources.
 
 ### ✅ Local Development Setup
@@ -50,6 +57,8 @@ Create these GitHub secrets in your repository:
    - `AZURE_LANGUAGE_ENDPOINT` / `AZURE_LANGUAGE_KEY`: Azure AI Language (Text, QnA, CLU)
    - `AZURE_QNA_PROJECT_NAME` / `AZURE_QNA_DEPLOYMENT_NAME`: QnA knowledge base
    - `AZURE_AI_VISION_ENDPOINT` / `AZURE_AI_VISION_KEY`: Azure AI Vision (image analysis & OCR)
+  - `AZURE_SEARCH_ENDPOINT` / `AZURE_SEARCH_KEY`: Azure AI Search (Knowledge Mining + RAG)
+  - `AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME`: Embedding deployment for RAG (e.g. text-embedding-ada-002)
 
 4. **App (optional but recommended)**
    - `SECRET_KEY`: JWT signing secret for production (if unset, app uses a default)

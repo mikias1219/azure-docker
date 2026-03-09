@@ -140,7 +140,8 @@ get_azure_service_credentials() {
         --resource-group $RESOURCE_GROUP \
         --query "properties.endpoint" -o tsv)
     
-    OPENAI_DEPLOYMENT_NAME="text-embedding-ada-002"
+    # Chat model for document analysis and RAG answers (create this deployment in Azure OpenAI Studio)
+    OPENAI_DEPLOYMENT_NAME="${OPENAI_DEPLOYMENT_NAME:-gpt-35-turbo}"
 
     # Azure AI Language (Text Analytics, QnA, CLU) - try language-ai102, then ai-language-ai102, then azure-language-ai102
     set +e
@@ -182,6 +183,31 @@ get_azure_service_credentials() {
         AI_VISION_KEY=""
     fi
 
+    # Azure AI Search (Knowledge Mining / RAG) - try ai102search, then any search service in RG
+    set +e
+    SEARCH_NAME="${SEARCH_NAME:-ai102search}"
+    SEARCH_ENDPOINT=$(az search service show --name "$SEARCH_NAME" --resource-group "$RESOURCE_GROUP" --query "endpoint" -o tsv 2>/dev/null)
+    AZURE_SEARCH_KEY=$(az search admin-key show --resource-group "$RESOURCE_GROUP" --service-name "$SEARCH_NAME" --query "primaryKey" -o tsv 2>/dev/null)
+    if [ -z "$SEARCH_ENDPOINT" ] || [ -z "$AZURE_SEARCH_KEY" ]; then
+        SEARCH_NAME=$(az search service list --resource-group "$RESOURCE_GROUP" --query "[0].name" -o tsv 2>/dev/null)
+        if [ -n "$SEARCH_NAME" ]; then
+            SEARCH_ENDPOINT=$(az search service show --name "$SEARCH_NAME" --resource-group "$RESOURCE_GROUP" --query "endpoint" -o tsv 2>/dev/null)
+            AZURE_SEARCH_KEY=$(az search admin-key show --resource-group "$RESOURCE_GROUP" --service-name "$SEARCH_NAME" --query "primaryKey" -o tsv 2>/dev/null)
+        fi
+    fi
+    set -e
+    if [ -n "$SEARCH_ENDPOINT" ] && [ -n "$AZURE_SEARCH_KEY" ]; then
+        AZURE_SEARCH_ENDPOINT="$SEARCH_ENDPOINT"
+        log_success "Azure AI Search: $SEARCH_NAME"
+    else
+        log_warning "No Azure AI Search found in $RESOURCE_GROUP. Run ./scripts/create_all_azure_services.sh"
+        AZURE_SEARCH_ENDPOINT=""
+        AZURE_SEARCH_KEY=""
+    fi
+
+    # Embedding deployment for RAG (optional; can be same as chat or e.g. text-embedding-ada-002)
+    AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME="${AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME:-text-embedding-ada-002}"
+
     log_success "Azure service credentials retrieved"
 }
 
@@ -214,6 +240,9 @@ set_github_secrets() {
     gh secret set AZURE_QNA_DEPLOYMENT_NAME --body "$AZURE_QNA_DEPLOYMENT_NAME" --repo "$REPO_NAME"
     [ -n "$AI_VISION_ENDPOINT" ] && gh secret set AZURE_AI_VISION_ENDPOINT --body "$AI_VISION_ENDPOINT" --repo "$REPO_NAME"
     [ -n "$AI_VISION_KEY" ] && gh secret set AZURE_AI_VISION_KEY --body "$AI_VISION_KEY" --repo "$REPO_NAME"
+    [ -n "$AZURE_SEARCH_ENDPOINT" ] && gh secret set AZURE_SEARCH_ENDPOINT --body "$AZURE_SEARCH_ENDPOINT" --repo "$REPO_NAME"
+    [ -n "$AZURE_SEARCH_KEY" ] && gh secret set AZURE_SEARCH_KEY --body "$AZURE_SEARCH_KEY" --repo "$REPO_NAME"
+    gh secret set AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME --body "$AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME" --repo "$REPO_NAME"
 
     log_success "All GitHub secrets set successfully"
 }
@@ -237,9 +266,15 @@ main() {
     
     check_github_cli
     check_azure_cli
-    login_to_azure
-    login_to_github
-    
+    if [ "${SKIP_LOGIN:-0}" != "1" ]; then
+        login_to_azure
+        login_to_github
+    else
+        log_info "SKIP_LOGIN=1: using existing az/gh session"
+        az account show -o none || { log_error "Not logged into Azure. Run: az login"; exit 1; }
+        gh auth status -h github.com -s || { log_error "Not logged into GitHub. Run: gh auth login"; exit 1; }
+    fi
+
     # Create service principal and get credentials
     AZURE_CREDENTIALS=$(create_service_principal)
     
@@ -275,6 +310,9 @@ main() {
     echo "  • AZURE_QNA_DEPLOYMENT_NAME"
     echo "  • AZURE_AI_VISION_ENDPOINT"
     echo "  • AZURE_AI_VISION_KEY"
+    echo "  • AZURE_SEARCH_ENDPOINT"
+    echo "  • AZURE_SEARCH_KEY"
+    echo "  • AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"
     echo ""
     echo "🚀 You can now push to main branch to trigger deployment!"
 }

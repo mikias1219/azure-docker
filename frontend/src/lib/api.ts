@@ -148,6 +148,8 @@ export interface ServicesStatus {
   qna: boolean;
   clock: boolean;
   vision: boolean;
+  search?: boolean;
+  rag?: boolean;
 }
 
 export const servicesApi = {
@@ -226,6 +228,53 @@ export const visionApi = {
     const response = await api.post('/vision/read-text', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    return response.data;
+  },
+};
+
+export const infoExtractionApi = {
+  analyze: async (file: File): Promise<{ fields: Record<string, string>; raw_text?: string; error?: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/info-extraction/analyze', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+  analyzeInvoice: async (file: File): Promise<{ fields: Record<string, any>; content?: string; error?: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/document-intelligence/analyze-invoice', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+};
+
+export const knowledgeSearchApi = {
+  search: async (query: string, index?: string): Promise<{ results: any[]; count: number; error?: string }> => {
+    const response = await api.post('/api/knowledge/search', { query, index });
+    return response.data;
+  },
+  searchGet: async (q: string, index?: string): Promise<{ results: any[]; count: number; error?: string }> => {
+    const params = new URLSearchParams({ q });
+    if (index) params.set('index', index);
+    const response = await api.get(`/api/knowledge/search?${params}`);
+    return response.data;
+  },
+};
+
+export const ragApi = {
+  ensureIndex: async (): Promise<{ ok: boolean; index?: string; error?: string }> => {
+    const response = await api.post('/api/rag/ensure-index');
+    return response.data;
+  },
+  ingest: async (documentId: number): Promise<{ indexed: number; chunks?: number; error?: string }> => {
+    const response = await api.post('/api/rag/ingest', null, { params: { document_id: documentId } });
+    return response.data;
+  },
+  ask: async (question: string): Promise<{ answer: string; sources: any[]; error?: string }> => {
+    const response = await api.post('/api/rag/ask', { question });
     return response.data;
   },
 };

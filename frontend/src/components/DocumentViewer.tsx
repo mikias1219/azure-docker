@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Document } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { FileText, Brain, Download, Calendar, HardDrive, MessageCircle, Send, Loader2, CheckCircle } from 'lucide-react';
+import { FileText, Brain, Download, Calendar, HardDrive, MessageCircle, Send, Loader2, CheckCircle, Database } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { documentsApi } from '@/lib/api';
+import { documentsApi, ragApi } from '@/lib/api';
 
 interface DocumentViewerProps {
   document: Document;
@@ -15,6 +15,8 @@ export function DocumentViewer({ document, onRefresh }: DocumentViewerProps) {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [ingesting, setIngesting] = useState(false);
+  const [ingestMsg, setIngestMsg] = useState<string | null>(null);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -42,6 +44,21 @@ export function DocumentViewer({ document, onRefresh }: DocumentViewerProps) {
       setAnswer('Failed to get an answer. Try again.');
     } finally {
       setAsking(false);
+    }
+  };
+
+  const handleIngestToRag = async () => {
+    if (ingesting || !document.extracted_text) return;
+    setIngesting(true);
+    setIngestMsg(null);
+    try {
+      const res = await ragApi.ingest(document.id);
+      if (res.error) setIngestMsg(res.error);
+      else setIngestMsg(`Indexed ${res.indexed} chunk(s).`);
+    } catch {
+      setIngestMsg('Ingest failed.');
+    } finally {
+      setIngesting(false);
     }
   };
 
@@ -175,17 +192,38 @@ export function DocumentViewer({ document, onRefresh }: DocumentViewerProps) {
       )}
 
       {document.extracted_text && (
-        <Card className="border-slate-200/80 shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-900">
-              <MessageCircle className="w-5 h-5 text-primary-500" />
-              Ask a question
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600 mb-3">
-              Get answers from the document content using AI.
-            </p>
+        <>
+          <Card className="border-slate-200/80 shadow-soft">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-slate-900">
+                <Database className="w-5 h-5 text-violet-500" />
+                Add to RAG index
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 mb-3">
+                Index this document for Knowledge Mining and RAG Q&A.
+              </p>
+              <Button onClick={handleIngestToRag} disabled={ingesting} variant="outline" size="sm">
+                {ingesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                {ingesting ? 'Ingesting…' : 'Ingest to RAG'}
+              </Button>
+              {ingestMsg && (
+                <p className="text-sm mt-2 text-slate-600">{ingestMsg}</p>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200/80 shadow-soft">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-slate-900">
+                <MessageCircle className="w-5 h-5 text-primary-500" />
+                Ask a question
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-600 mb-3">
+                Get answers from the document content using AI.
+              </p>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -208,6 +246,7 @@ export function DocumentViewer({ document, onRefresh }: DocumentViewerProps) {
             )}
           </CardContent>
         </Card>
+        </>
       )}
 
       <div className="flex justify-end gap-3">

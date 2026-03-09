@@ -22,6 +22,7 @@ azure-ai-language-questionanswering
 azure-ai-language-conversations==1.1.0
 azure-ai-vision-imageanalysis
 azure-identity
+azure-search-documents
 openai
 
 # Environment variables

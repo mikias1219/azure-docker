@@ -54,6 +54,21 @@ try:
 except Exception as e:
     logger.warning("ai_vision import failed: %s", e)
     ai_vision = None  # type: ignore
+try:
+    from app import search_service
+except Exception as e:
+    logger.warning("search_service import failed: %s", e)
+    search_service = None  # type: ignore
+try:
+    from app import rag_service
+except Exception as e:
+    logger.warning("rag_service import failed: %s", e)
+    rag_service = None  # type: ignore
+try:
+    from app import info_extraction_service
+except Exception as e:
+    logger.warning("info_extraction_service import failed: %s", e)
+    info_extraction_service = None  # type: ignore
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -146,6 +161,11 @@ async def services_status(current_user: models.User = Depends(get_current_user))
     def _qna(): return question_answering.is_configured() if question_answering and hasattr(question_answering, "is_configured") else False
     def _clock(): return getattr(clock_service, "client", None) is not None
     def _vision(): return ai_vision.is_configured() if ai_vision and hasattr(ai_vision, "is_configured") else False
+    def _search(): return search_service.is_configured() if search_service and hasattr(search_service, "is_configured") else False
+    def _rag(): return bool(
+        search_service and getattr(search_service, "is_configured", lambda: False)()
+        and rag_service and rag_service.get_embedding_deployment()
+    )
     return {
         "document_intelligence": _doc(),
         "openai": _openai(),
@@ -153,6 +173,8 @@ async def services_status(current_user: models.User = Depends(get_current_user))
         "qna": _qna(),
         "clock": _clock(),
         "vision": _vision(),
+        "search": _search(),
+        "rag": _rag(),
     }
 
 # Authentication endpoints
@@ -553,6 +575,173 @@ async def ask_document(
         )
     answer = await document_intelligence.answer_question(text, body.question or "")
     return schemas.AskResponse(answer=answer or "No answer could be generated.")
+
+
+# ---------- Prebuilt Invoice (mslearn-ai-info: prebuilt document intelligence) ----------
+@app.post("/api/document-intelligence/analyze-invoice", response_model=dict)
+async def analyze_invoice(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Extract invoice fields (VendorName, CustomerName, InvoiceTotal, etc.) using Document Intelligence prebuilt-invoice."""
+    if not document_intelligence or not document_intelligence.client:
+        raise HTTPException(status_code=503, detail="Document Intelligence not configured")
+    try:
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            content = await file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+        try:
+            result = await asyncio.to_thread(
+                document_intelligence.analyze_invoice,
+                tmp_path,
+            )
+            return result
+        finally:
+            os.unlink(tmp_path)
+    except Exception as e:
+        logger.exception("Invoice analysis failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------- Information Extraction (mslearn-ai-info: business card / structured fields) ----------
+@app.post("/api/info-extraction/analyze", response_model=dict)
+async def info_extraction_analyze(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Extract structured fields (e.g. Name, Company, Email, Phone) from image/document using Document Intelligence + OpenAI."""
+    if not document_intelligence or not document_intelligence.client:
+        raise HTTPException(status_code=503, detail="Document Intelligence not configured")
+    try:
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file.filename or "bin").suffix) as tmp:
+            content = await file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+        try:
+            file_type = file.content_type or "application/octet-stream"
+            extracted_text, _ = await document_intelligence.analyze_document(tmp_path, file_type)
+        finally:
+            os.unlink(tmp_path)
+        if not extracted_text or not extracted_text.strip():
+            return {"fields": {}, "raw_text": "", "error": "No text could be extracted from the document."}
+        fields = None
+        if document_intelligence.openai_client and document_intelligence.openai_deployment:
+            from app.info_extraction_service import extract_from_text_with_openai
+            fields = extract_from_text_with_openai(
+                extracted_text,
+                document_intelligence.openai_client,
+                document_intelligence.openai_deployment,
+            )
+        if not fields:
+            from app.info_extraction_service import extract_contact_simple
+            fields = extract_contact_simple(extracted_text)
+        return {"fields": fields, "raw_text": extracted_text[:2000]}
+    except Exception as e:
+        logger.exception("Info extraction failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------- Knowledge Mining (Azure AI Search keyword search) ----------
+@app.get("/api/knowledge/search", response_model=dict)
+async def knowledge_search_get(
+    q: str = "",
+    index: str = "",
+    current_user: models.User = Depends(get_current_user),
+):
+    """Keyword search over Azure AI Search index."""
+    if not search_service or not getattr(search_service, "is_configured", lambda: False)():
+        return {"results": [], "count": 0, "error": "Azure AI Search not configured"}
+    index_name = index or os.getenv("AZURE_SEARCH_INDEX_NAME", "rag-content-index")
+    if not q or not q.strip():
+        return {"results": [], "count": 0}
+    return search_service.keyword_search(index_name, q.strip(), select=["file_name", "content", "summary"], top=15)
+
+
+@app.post("/api/knowledge/search", response_model=dict)
+async def knowledge_search_post(
+    body: dict = None,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Keyword search (POST body: query, index)."""
+    if not search_service or not getattr(search_service, "is_configured", lambda: False)():
+        return {"results": [], "count": 0, "error": "Azure AI Search not configured"}
+    body = body or {}
+    query = (body.get("query") or body.get("q") or "").strip()
+    index_name = (body.get("index") or os.getenv("AZURE_SEARCH_INDEX_NAME", "rag-content-index")).strip()
+    if not query:
+        return {"results": [], "count": 0}
+    return search_service.keyword_search(index_name, query, select=["file_name", "content", "summary"], top=15)
+
+
+# ---------- RAG pipeline ----------
+@app.post("/api/rag/ensure-index", response_model=dict)
+async def rag_ensure_index(current_user: models.User = Depends(get_current_user)):
+    """Create or update the RAG vector index (admin)."""
+    if not rag_service or not hasattr(rag_service, "ensure_rag_index"):
+        return {"ok": False, "error": "RAG service not available"}
+    ok = rag_service.ensure_rag_index()
+    return {"ok": ok, "index": rag_service.RAG_INDEX_NAME}
+
+
+@app.post("/api/rag/ingest", response_model=dict)
+async def rag_ingest(
+    document_id: Optional[int] = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Ingest a document into the RAG index (by document_id). Extracts text via Document Intelligence, chunks, embeds, indexes."""
+    if not rag_service:
+        return {"indexed": 0, "error": "RAG service not available"}
+    if document_id is not None:
+        document = await crud.get_document(db, document_id)
+        if not document or document.owner_id != current_user.id:
+            raise HTTPException(status_code=404, detail="Document not found")
+        text = (document.extracted_text or "").strip()
+        if not text:
+            return {"indexed": 0, "error": "Document has no extracted text yet. Wait for processing or re-upload."}
+        openai_client = document_intelligence.openai_client if document_intelligence else None
+        deployment = rag_service.get_embedding_deployment()
+        if not deployment or not openai_client:
+            return {"indexed": 0, "error": "OpenAI embedding deployment not configured (AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME)"}
+        from app.search_service import get_search_client
+        if not get_search_client(rag_service.RAG_INDEX_NAME):
+            return {"indexed": 0, "error": "Azure AI Search not configured or RAG index missing. Call POST /api/rag/ensure-index first."}
+        result = rag_service.ingest_document(
+            document.original_filename or f"doc-{document_id}",
+            text,
+            document_intelligence=document_intelligence,
+            openai_client=openai_client,
+        )
+        return result
+    return {"indexed": 0, "error": "Provide document_id to ingest."}
+
+
+@app.post("/api/rag/ask", response_model=dict)
+async def rag_ask(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+):
+    """RAG Q&A: retrieve relevant chunks from index, then answer with OpenAI chat."""
+    if not rag_service:
+        return {"answer": "", "sources": [], "error": "RAG service not available"}
+    question = (body.get("question") or body.get("query") or "").strip()
+    if not question:
+        return {"answer": "", "sources": [], "error": "question is required"}
+    retrieved = rag_service.rag_retrieve(question, top_k=5)
+    if retrieved.get("error"):
+        return {"answer": "", "sources": [], "error": retrieved["error"]}
+    context = retrieved.get("context", "")
+    sources = retrieved.get("sources", [])
+    openai_client = document_intelligence.openai_client if document_intelligence else None
+    chat_deployment = getattr(document_intelligence, "openai_deployment", None) if document_intelligence else os.getenv("OPENAI_DEPLOYMENT_NAME")
+    if not openai_client or not chat_deployment:
+        return {"answer": "", "sources": sources, "error": "OpenAI chat not configured"}
+    answer = rag_service.rag_answer(question, context, openai_client, chat_deployment)
+    return {"answer": answer or "Could not generate an answer.", "sources": sources}
+
 
 async def process_document(document_id: int, file_path: Path):
     """

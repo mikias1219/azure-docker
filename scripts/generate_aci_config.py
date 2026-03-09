@@ -38,6 +38,9 @@ def main():
         {"name": "OPENAI_API_VERSION", "value": os.environ.get("OPENAI_API_VERSION", "2024-02-15-preview")},
         {"name": "AZURE_AI_VISION_ENDPOINT", "value": os.environ.get("AZURE_AI_VISION_ENDPOINT", "")},
         {"name": "AZURE_AI_VISION_KEY", "value": os.environ.get("AZURE_AI_VISION_KEY", "")},
+        {"name": "AZURE_SEARCH_ENDPOINT", "value": os.environ.get("AZURE_SEARCH_ENDPOINT", "")},
+        {"name": "AZURE_SEARCH_KEY", "value": os.environ.get("AZURE_SEARCH_KEY", "")},
+        {"name": "AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME", "value": os.environ.get("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME", "")},
     ]
     data["properties"]["containers"][0]["properties"]["environmentVariables"] = env_vars
 

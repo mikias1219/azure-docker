@@ -79,12 +79,21 @@ else
   fail "Azure AI Vision (create with: az cognitiveservices account create -n ai-vision-ai102 -g $RESOURCE_GROUP -l $LOCATION --kind ComputerVision --sku S1)"
 fi
 
+# Azure AI Search (Knowledge Mining / RAG)
+SEARCH_NAME="${SEARCH_NAME:-ai102search}"
+if az search service show --name "$SEARCH_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+  ok "Azure AI Search: $SEARCH_NAME"
+else
+  fail "Azure AI Search (run: ./scripts/create_azure_search.sh or az search service create -n $SEARCH_NAME -g $RESOURCE_GROUP -l $LOCATION --sku basic)"
+fi
+
 echo ""
 info "Endpoint and key commands (use the Language resource name you have):"
 echo "  Document Intelligence: az cognitiveservices account show -n document-intelligence-ai102 -g $RESOURCE_GROUP --query properties.endpoint -o tsv"
 echo "  OpenAI:                az cognitiveservices account show -n openai-ai102 -g $RESOURCE_GROUP --query properties.endpoint -o tsv"
 echo "  Language:              az cognitiveservices account show -n ai-language-ai102 -g $RESOURCE_GROUP --query properties.endpoint -o tsv"
 echo "  AI Vision:             az cognitiveservices account show -n ai-vision-ai102 -g $RESOURCE_GROUP --query properties.endpoint -o tsv"
+echo "  Azure Search:          az search service show -n $SEARCH_NAME -g $RESOURCE_GROUP --query hostName -o tsv (prefix https://)"
 echo ""
 info "Then run ./setup-secrets.sh to push credentials to GitHub secrets for CI/CD."
 echo ""

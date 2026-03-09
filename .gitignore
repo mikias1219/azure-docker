@@ -75,5 +75,6 @@ logs/
 *.temp
 .tmp/
 
-# Cloned reference repo (not part of this app)
+# Cloned reference repos (not part of this app)
 _mslearn-ai-vision/
+mslearn-ai-info/

@@ -1,7 +1,7 @@
 import os
 import logging
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
@@ -95,6 +95,45 @@ class AzureDocumentIntelligence:
         except Exception as e:
             logger.error("Error analyzing document: %s", e)
             return None, None
+
+    def _field_value(self, field: Any) -> Any:
+        """Extract display value from Document Intelligence field."""
+        if field is None:
+            return None
+        if getattr(field, "content", None) not in (None, ""):
+            return field.content
+        for attr in ("value_string", "value_number", "value_date", "value_time", "value_phone_number"):
+            v = getattr(field, attr, None)
+            if v is not None:
+                return v
+        if getattr(field, "value_currency", None) is not None:
+            cur = field.value_currency
+            if hasattr(cur, "amount") and hasattr(cur, "currency_symbol"):
+                return f"{cur.currency_symbol or ''}{cur.amount}"
+            return str(cur)
+        if getattr(field, "value_address", None) is not None:
+            return str(field.value_address)
+        return None
+
+    def analyze_invoice(self, file_path: str) -> Dict[str, Any]:
+        """Analyze an invoice using prebuilt-invoice model. Returns dict with VendorName, CustomerName, InvoiceTotal, etc."""
+        if not self.client:
+            return {"error": "Document Intelligence not configured", "fields": {}}
+        try:
+            with open(file_path, "rb") as f:
+                poller = self.client.begin_analyze_document("prebuilt-invoice", document=f)
+            result = poller.result()
+            fields: Dict[str, Any] = {}
+            if result.documents:
+                doc = result.documents[0]
+                for name, field in (getattr(doc, "fields", None) or {}).items():
+                    val = self._field_value(field)
+                    if val is not None:
+                        fields[name] = val
+            return {"fields": fields, "content": (getattr(result, "content", None) or "")[:5000]}
+        except Exception as e:
+            logger.exception("Invoice analysis failed: %s", e)
+            return {"error": str(e), "fields": {}}
 
     async def elaborate_with_ai(self, extracted_text: str) -> Optional[str]:
         """Use Azure OpenAI to generate a rich analysis for the document text."""

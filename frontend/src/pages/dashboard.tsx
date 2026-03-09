@@ -11,7 +11,10 @@ import { TextAnalysis } from '@/components/TextAnalysis';
 import { QuestionAnswering } from '@/components/QuestionAnswering';
 import { ClockClient } from '@/components/ClockClient';
 import { AIVision } from '@/components/AIVision';
-import { FileText, LogOut, Brain, Languages, Sparkles, Clock, FolderOpen, X, Search, FileImage, CheckCircle, AlertCircle } from 'lucide-react';
+import { InfoExtraction } from '@/components/InfoExtraction';
+import { KnowledgeMining } from '@/components/KnowledgeMining';
+import { RAGQA } from '@/components/RAGQA';
+import { FileText, LogOut, Brain, Languages, Sparkles, Clock, FolderOpen, X, Search, FileImage, CheckCircle, AlertCircle, ScanLine, Database, MessageSquare } from 'lucide-react';
 import { servicesApi, type ServicesStatus } from '@/lib/api';
 
 export default function DashboardPage() {
@@ -19,7 +22,7 @@ export default function DashboardPage() {
   const { documents, loading, uploadDocument, getDocument, fetchDocuments } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'documents' | 'text-analytics' | 'qna' | 'clock' | 'vision'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'text-analytics' | 'qna' | 'clock' | 'vision' | 'info-extraction' | 'knowledge' | 'rag'>('documents');
   const [isClient, setIsClient] = useState(false);
   const [servicesStatus, setServicesStatus] = useState<ServicesStatus | null>(null);
 
@@ -67,11 +70,14 @@ export default function DashboardPage() {
   }
 
   const tabs = [
-    { id: 'documents', label: 'Documents & Analysis', icon: FolderOpen, description: 'Upload, view and analyze documents' },
+    { id: 'documents', label: 'Documents', icon: FolderOpen, description: 'Upload, view and analyze documents' },
     { id: 'text-analytics', label: 'Text Analytics', icon: Languages, description: 'Language detection, sentiment & entities' },
-    { id: 'qna', label: 'Ask AI Assistant', icon: Sparkles, description: 'Intelligent Q&A with LLM enhancement' },
-    { id: 'clock', label: 'Smart Clock', icon: Clock, description: 'Natural language time queries' },
-    { id: 'vision', label: 'AI Vision', icon: FileImage, description: 'Image analysis and OCR' },
+    { id: 'qna', label: 'Q&A', icon: Sparkles, description: 'Intelligent Q&A with LLM' },
+    { id: 'clock', label: 'Clock', icon: Clock, description: 'Natural language time' },
+    { id: 'vision', label: 'Vision', icon: FileImage, description: 'Image analysis and OCR' },
+    { id: 'info-extraction', label: 'Info Extract', icon: ScanLine, description: 'Business card / structured fields' },
+    { id: 'knowledge', label: 'Knowledge', icon: Database, description: 'Search indexed docs' },
+    { id: 'rag', label: 'RAG Q&A', icon: MessageSquare, description: 'Ask over indexed docs' },
   ];
 
   return (
@@ -108,12 +114,14 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-center gap-3 text-xs">
               <span className="text-slate-500 font-medium">Services:</span>
               {[
-                { key: 'document_intelligence', label: 'Document Intelligence' },
+                { key: 'document_intelligence', label: 'Doc Intel' },
                 { key: 'openai', label: 'OpenAI' },
-                { key: 'text_analytics', label: 'Text Analytics' },
+                { key: 'text_analytics', label: 'Text' },
                 { key: 'qna', label: 'Q&A' },
-                { key: 'clock', label: 'Clock (CLU)' },
-                { key: 'vision', label: 'AI Vision' },
+                { key: 'clock', label: 'Clock' },
+                { key: 'vision', label: 'Vision' },
+                { key: 'search', label: 'Search' },
+                { key: 'rag', label: 'RAG' },
               ].map(({ key, label }) => {
                 const ok = servicesStatus[key as keyof ServicesStatus];
                 return (
@@ -293,6 +301,48 @@ export default function DashboardPage() {
                 <p className="text-slate-600">Analyze images, detect objects, and extract text with Azure AI Vision</p>
               </div>
               <AIVision />
+            </div>
+          )}
+
+          {/* Information Extraction Tab */}
+          {activeTab === 'info-extraction' && (
+            <div className="col-span-12">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <ScanLine className="w-6 h-6 text-indigo-600" />
+                  Information Extraction
+                </h2>
+                <p className="text-slate-600">Extract structured fields (e.g. business card) from images or documents</p>
+              </div>
+              <InfoExtraction />
+            </div>
+          )}
+
+          {/* Knowledge Mining Tab */}
+          {activeTab === 'knowledge' && (
+            <div className="col-span-12">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <Database className="w-6 h-6 text-emerald-600" />
+                  Knowledge Mining
+                </h2>
+                <p className="text-slate-600">Search across your indexed documents with Azure AI Search</p>
+              </div>
+              <KnowledgeMining />
+            </div>
+          )}
+
+          {/* RAG Q&A Tab */}
+          {activeTab === 'rag' && (
+            <div className="col-span-12">
+              <div className="mb-4">
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <MessageSquare className="w-6 h-6 text-violet-600" />
+                  RAG Q&A
+                </h2>
+                <p className="text-slate-600">Ask questions over your indexed documents (RAG pipeline)</p>
+              </div>
+              <RAGQA />
             </div>
           )}
         </div>
