@@ -132,18 +132,12 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    # Get token: Authorization header first (reliable for all content types), then OAuth2 scheme
-    token = None
+    # Read token only from Authorization header (same for JSON and multipart; avoids OAuth2 scheme quirks)
+    token = ""
     if request.headers:
         auth = request.headers.get("Authorization") or request.headers.get("authorization")
-        if auth and auth.startswith("Bearer "):
+        if auth and isinstance(auth, str) and auth.startswith("Bearer "):
             token = auth[7:].strip()
-    if not token:
-        try:
-            scheme_result = oauth2_scheme(request)
-            token = await scheme_result if asyncio.iscoroutine(scheme_result) else scheme_result
-        except Exception:
-            pass
     token = (token or "").strip()
     if not token:
         raise credentials_exception

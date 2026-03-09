@@ -42,20 +42,43 @@ export function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
-// Response interceptor: clear token and redirect only on 401.
-// We do NOT clear token on network errors or 5xx, so user credentials persist
-// across app rebuilds/redeploys when the same origin is used.
+/** Multipart request headers: always include Authorization when we have a token (avoids 401 on 2nd request). */
+function multipartHeaders(): Record<string, string> {
+  const h: Record<string, string> = { 'Content-Type': 'multipart/form-data' };
+  const auth = getAuthHeaders();
+  if (auth.Authorization) h.Authorization = auth.Authorization;
+  return h;
+}
+
+// Response interceptor: on 401, retry once (avoids logout on spurious 401); then clear and redirect.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      authClearCallback?.();
-      localStorage.removeItem('access_token');
-      if (typeof window !== 'undefined' && !Router.asPath.startsWith('/login')) {
-        const detail = error.response?.data?.detail || '';
-        const expired = typeof detail === 'string' && detail.toLowerCase().includes('expired');
-        Router.replace(expired ? '/login?reason=expired' : '/login');
+  async (error) => {
+    if (error.response?.status !== 401) return Promise.reject(error);
+
+    const config = error.config;
+    const alreadyRetried = (config as any).__retry401;
+    if (!alreadyRetried && config) {
+      (config as any).__retry401 = true;
+      const token = authTokenGetter?.() ?? (typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null);
+      const t = typeof token === 'string' ? token.trim() : '';
+      if (t) {
+        try {
+          config.headers = { ...config.headers, Authorization: `Bearer ${t}` };
+          const res = await api.request(config);
+          return res;
+        } catch (retryErr) {
+          // Retry also failed; fall through to clear and redirect
+        }
       }
+    }
+
+    authClearCallback?.();
+    if (typeof localStorage !== 'undefined') localStorage.removeItem('access_token');
+    if (typeof window !== 'undefined' && !Router.asPath.startsWith('/login')) {
+      const detail = error.response?.data?.detail || '';
+      const expired = typeof detail === 'string' && detail.toLowerCase().includes('expired');
+      Router.replace(expired ? '/login?reason=expired' : '/login');
     }
     return Promise.reject(error);
   }
@@ -104,10 +127,7 @@ export const documentsApi = {
     formData.append('file', file);
     
     const response = await api.post('/upload', formData, {
-      headers: {
-        ...getAuthHeaders(),
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: multipartHeaders(),
       onUploadProgress: (progressEvent) => {
         const progress = Math.round(
           (progressEvent.loaded * 100) / (progressEvent.total || 1)
@@ -229,7 +249,7 @@ export const visionApi = {
     formData.append('file', file);
     formData.append('features', features.join(','));
     const response = await api.post('/vision/analyze', formData, {
-      headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' },
+      headers: multipartHeaders(),
     });
     return response.data;
   },
@@ -237,7 +257,7 @@ export const visionApi = {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post('/vision/read-text', formData, {
-      headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' },
+      headers: multipartHeaders(),
     });
     return response.data;
   },
@@ -248,7 +268,7 @@ export const infoExtractionApi = {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post('/api/info-extraction/analyze', formData, {
-      headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' },
+      headers: multipartHeaders(),
     });
     return response.data;
   },
@@ -256,7 +276,7 @@ export const infoExtractionApi = {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post('/api/document-intelligence/analyze-invoice', formData, {
-      headers: { ...getAuthHeaders(), 'Content-Type': 'multipart/form-data' },
+      headers: multipartHeaders(),
     });
     return response.data;
   },
