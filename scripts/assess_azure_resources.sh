@@ -81,7 +81,11 @@ fi
 
 # Azure AI Search (Knowledge Mining / RAG)
 SEARCH_NAME="${SEARCH_NAME:-ai102search}"
-if az search service show --name "$SEARCH_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+EXISTING_SEARCH=$(az search service list --resource-group "$RESOURCE_GROUP" --query "[0].name" -o tsv 2>/dev/null || true)
+if [ -n "$EXISTING_SEARCH" ]; then
+  ok "Azure AI Search: $EXISTING_SEARCH"
+  SEARCH_NAME="$EXISTING_SEARCH"
+elif az search service show --name "$SEARCH_NAME" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
   ok "Azure AI Search: $SEARCH_NAME"
 else
   fail "Azure AI Search (run: ./scripts/create_azure_search.sh or az search service create -n $SEARCH_NAME -g $RESOURCE_GROUP -l $LOCATION --sku basic)"

@@ -35,25 +35,6 @@ EMBED_VERSIONS="${OPENAI_EMBED_MODEL_VERSIONS:-2 1}"
 
 echo "[INFO] Ensuring Azure OpenAI deployments in ${RESOURCE_GROUP}/${OPENAI_ACCOUNT_NAME}..."
 
-retry_az() {
-  # Retry az command on transient 5xx
-  local tries=5
-  local delay=2
-  local i=1
-  while true; do
-    if az "$@"; then
-      return 0
-    fi
-    if [ "$i" -ge "$tries" ]; then
-      return 1
-    fi
-    echo "[WARN] az $* failed; retrying in ${delay}s (attempt $i/${tries})..."
-    sleep "$delay"
-    delay=$((delay * 2))
-    i=$((i + 1))
-  done
-}
-
 deployment_exists() {
   local dep="$1"
   az cognitiveservices account deployment show \
@@ -68,7 +49,7 @@ create_deployment_try_versions() {
   local versions="$3"
   for v in $versions; do
     echo "[INFO] Creating deployment '${dep}' with model '${model}' version '${v}'..."
-    if retry_az cognitiveservices account deployment create \
+    if az cognitiveservices account deployment create \
       -g "$RESOURCE_GROUP" -n "$OPENAI_ACCOUNT_NAME" \
       --deployment-name "$dep" \
       --model-format OpenAI \
