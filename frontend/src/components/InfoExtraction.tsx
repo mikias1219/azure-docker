@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Loader2, FileUp, User, Building, Mail, Phone, Briefcase, FileText, Receipt } from 'lucide-react';
+import {
+  Loader2, FileUp, User, Building, Mail, Phone,
+  Briefcase, FileText, Receipt, Zap, Terminal,
+  ShieldCheck, Info, Database, Search
+} from 'lucide-react';
 import { infoExtractionApi } from '@/lib/api';
 
-const FIELD_LABELS: Record<string, { label: string; icon: any }> = {
-  Name: { label: 'Name', icon: User },
-  Company: { label: 'Company', icon: Building },
-  Title: { label: 'Title', icon: Briefcase },
-  Email: { label: 'Email', icon: Mail },
-  Phone: { label: 'Phone', icon: Phone },
-  VendorName: { label: 'Vendor', icon: Building },
-  CustomerName: { label: 'Customer', icon: User },
-  InvoiceTotal: { label: 'Total', icon: Receipt },
-  InvoiceId: { label: 'Invoice ID', icon: FileText },
-  DueDate: { label: 'Due Date', icon: FileText },
-  InvoiceDate: { label: 'Invoice Date', icon: FileText },
+const FIELD_LABELS: Record<string, { label: string; icon: any; color: string }> = {
+  Name: { label: 'ENTITY_NAME', icon: User, color: 'text-blue-400' },
+  Company: { label: 'ORG_AFFILIATION', icon: Building, color: 'text-purple-400' },
+  Title: { label: 'ROLE_IDENTIFIER', icon: Briefcase, color: 'text-amber-400' },
+  Email: { label: 'CONTACT_SMTP', icon: Mail, color: 'text-emerald-400' },
+  Phone: { label: 'CONTACT_TEL', icon: Phone, color: 'text-rose-400' },
+  VendorName: { label: 'VENDOR_UID', icon: Building, color: 'text-purple-400' },
+  CustomerName: { label: 'CLIENT_UID', icon: User, color: 'text-blue-400' },
+  InvoiceTotal: { label: 'FINANCIAL_SUM', icon: Receipt, color: 'text-emerald-400' },
+  InvoiceId: { label: 'TRANSACTION_ID', icon: FileText, color: 'text-slate-400' },
+  DueDate: { label: 'TEMPORAL_DEADLINE', icon: FileText, color: 'text-rose-400' },
+  InvoiceDate: { label: 'TEMPORAL_STAMP', icon: FileText, color: 'text-slate-400' },
 };
 
 type Mode = 'businesscard' | 'invoice';
@@ -24,7 +28,7 @@ export function InfoExtraction() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<Mode>('businesscard');
-  const [result, setResult] = useState<{ fields: Record<string, any>; raw_text?: string; content?: string; error?: string } | null>(null);
+  const [result, setResult] = useState<any>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -42,89 +46,131 @@ export function InfoExtraction() {
         : await infoExtractionApi.analyze(file);
       setResult(data);
     } catch (err: any) {
-      setResult({ fields: {}, error: err.response?.data?.detail || 'Analysis failed' });
+      setResult({ fields: {}, error: 'Prebuilt extraction engine failure.' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      <Card className="border-slate-200/80 shadow-soft">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-800">
-            <FileText className="w-5 h-5 text-indigo-600" />
-            Information Extraction
-          </CardTitle>
-          <p className="text-sm text-slate-500 mt-1">
-            Extract structured data: business card (Name, Company, Email, Phone) or invoice (Vendor, Customer, Total).
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => { setMode('businesscard'); setResult(null); }}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${mode === 'businesscard' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}
-            >
-              Business card
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode('invoice'); setResult(null); }}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${mode === 'invoice' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}
-            >
-              Invoice
-            </button>
-          </div>
-          <div className="flex gap-2 items-end">
-            <input
-              type="file"
-              accept={mode === 'invoice' ? '.pdf,image/*' : 'image/*,.pdf'}
-              onChange={handleFileChange}
-              className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-slate-300 file:bg-slate-50 file:text-slate-700"
-            />
-            <Button onClick={handleAnalyze} disabled={loading || !file}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
-              {loading ? 'Extracting…' : 'Extract'}
-            </Button>
-          </div>
-          {result?.error && (
-            <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 text-sm">
-              {result.error}
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+        {/* Input Panel */}
+        <div className="md:col-span-5 space-y-6">
+          <Card className="card-engineer border-indigo-500/20 bg-indigo-500/[0.02]">
+            <CardHeader className="py-4 border-b border-white/5">
+              <CardTitle className="text-xs font-mono uppercase tracking-widest text-indigo-400 flex items-center gap-2">
+                <Terminal className="w-4 h-4" />
+                Extraction Controller
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 mb-6">
+                <button
+                  onClick={() => { setMode('businesscard'); setResult(null); }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all ${mode === 'businesscard' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  <Briefcase className="w-3.5 h-3.5" /> CARDS
+                </button>
+                <button
+                  onClick={() => { setMode('invoice'); setResult(null); }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all ${mode === 'invoice' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  <Receipt className="w-3.5 h-3.5" /> INVOICES
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center bg-black/40 hover:border-indigo-500/50 transition-all cursor-pointer relative group">
+                  <input type="file" accept=".pdf,image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  <FileUp className="w-8 h-8 text-slate-600 mx-auto mb-3 group-hover:text-indigo-400 transition-colors" />
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{file ? file.name : 'Ingest Document'}</div>
+                  <div className="text-[8px] text-slate-600 mt-1 uppercase">PDF, PNG, JPEG SUPPORTED</div>
+                </div>
+
+                <Button onClick={handleAnalyze} disabled={loading || !file} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold h-11 tracking-widest">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+                  {loading ? 'PARSING FIELDSTREAM...' : 'EXECUTE EXTRACTION'}
+                </Button>
+              </div>
+
+              {result?.error && (
+                <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-mono flex items-center gap-2 tracking-tight">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                  {result.error}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Results Pane */}
+        <div className="md:col-span-7 space-y-6">
+          {!result && !loading ? (
+            <div className="h-full border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
+              <Database className="w-12 h-12 text-slate-800 mb-6" />
+              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Field Mapping Idle</h4>
+              <p className="text-[10px] text-slate-600 mt-2 max-w-[250px]">Upload a document to initialize the Azure Document Intelligence prebuilt model.</p>
             </div>
-          )}
-          {result && !result.error && (
-            <div className="space-y-4">
-              <div className="grid gap-3">
+          ) : result ? (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-mono font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4" />
+                  Neural Field Map
+                </h3>
+                <span className="text-[9px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">VERIFIED</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {Object.entries(result.fields || {}).map(([key, value]) => {
-                  const meta = FIELD_LABELS[key] || { label: key.replace(/([A-Z])/g, ' $1').trim(), icon: FileText };
+                  const meta = FIELD_LABELS[key] || { label: key.toUpperCase(), icon: FileText, color: 'text-slate-400' };
                   const Icon = meta.icon;
-                  if (value == null || value === '') return null;
+                  if (!value) return null;
                   const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+
                   return (
-                    <div key={key} className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
-                      <Icon className="w-4 h-4 text-slate-500 shrink-0" />
-                      <div>
-                        <p className="text-xs text-slate-500">{meta.label}</p>
-                        <p className="text-sm font-medium text-slate-800">{str}</p>
-                      </div>
-                    </div>
+                    <Card key={key} className="card-engineer bg-white/[0.01] border-white/5 group hover:border-indigo-500/30 transition-all">
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center ${meta.color}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter mb-0.5">{meta.label}</div>
+                          <div className="text-xs font-bold text-white truncate">{str}</div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
+
+              {/* Audit Context */}
               {(result.raw_text || result.content) && (
-                <details className="rounded-lg border border-slate-200 bg-slate-50/50">
-                  <summary className="px-3 py-2 text-sm font-medium text-slate-600 cursor-pointer">Raw extracted text</summary>
-                  <pre className="p-3 text-xs text-slate-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
-                    {result.raw_text ?? result.content ?? ''}
-                  </pre>
-                </details>
+                <Card className="card-engineer bg-black/40 border-slate-800">
+                  <CardHeader className="py-2 border-b border-white/5">
+                    <CardTitle className="text-[9px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                      <Search className="w-3 h-3" />
+                      Linguistic Base Layer
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 max-h-48 overflow-y-auto custom-scrollbar font-mono text-[10px] text-slate-500 leading-relaxed">
+                    <pre className="whitespace-pre-wrap">{result.raw_text ?? result.content ?? ''}</pre>
+                  </CardContent>
+                </Card>
               )}
             </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center gap-6">
+              <div className="w-16 h-16 relative">
+                <div className="absolute inset-0 border-4 border-indigo-500/10 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest animate-pulse">Mapping Key-Value Pairs...</div>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

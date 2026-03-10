@@ -1,264 +1,145 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { Loader2, MessageCircle, HelpCircle, BookOpen, CheckCircle, AlertCircle, ChevronDown, Search } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import {
+  Sparkles, Send, Loader2, Info, Zap, Terminal,
+  MessageSquare, History, ChevronRight
+} from 'lucide-react';
 import { qnaApi } from '@/lib/api';
-
-interface Answer {
-  answer: string;
-  confidence: number;
-  source: string;
-  questions?: string[];
-  metadata?: Record<string, string>;
-}
-
-interface QnAResult {
-  answers: Answer[];
-  question: string;
-  project_name: string;
-  deployment_name: string;
-  note?: string;
-  error?: string;
-}
-
-interface QnAInfo {
-  project_name: string;
-  deployment_name: string;
-  endpoint: string;
-  configured: boolean;
-  endpoint_configured: boolean;
-  key_configured: boolean;
-}
-
-// Simplified popular questions from the recruitment procedure
-const QUICK_QUESTIONS = [
-  'What is the recruitment process?',
-  'How is recruitment initiated?',
-  'What is the hiring plan?',
-  'What is internal delegation?',
-  'What is external job advertisement?',
-  'What is pre-selection?',
-  'What is the interview process?',
-  'What is the offering process?',
-  'What is pre-onboarding?',
-  'What is probation period?',
-  'What is mid evaluation?',
-  'How are foreign employees hired?',
-];
 
 export function QuestionAnswering() {
   const [question, setQuestion] = useState('');
+  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<QnAResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<QnAInfo | null>(null);
-  const [infoLoading, setInfoLoading] = useState(true);
-  const [showQuickQuestions, setShowQuickQuestions] = useState(false);
 
-  useEffect(() => {
-    loadInfo();
-  }, []);
-
-  const loadInfo = async () => {
-    try {
-      const data = await qnaApi.getInfo();
-      setInfo(data);
-    } catch (err: any) {
-      console.error('Failed to load QnA info:', err);
-    } finally {
-      setInfoLoading(false);
-    }
-  };
-
-  const askQuestion = async () => {
-    if (!question.trim()) {
-      setError('Please enter a question');
-      return;
-    }
-
+  const handleAsk = async () => {
+    if (!question.trim() || loading) return;
     setLoading(true);
-    setError(null);
     setResult(null);
-
     try {
-      const data = await qnaApi.ask(question);
-      setResult(data);
-      setError(data?.error || null);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to get answer. Please try again.');
-      console.error('Question answering error:', err);
+      const res = await qnaApi.ask(question.trim());
+      setResult(res);
+    } catch {
+      setResult({ answer: 'Failed to connect to the Cognitive Language service.' });
     } finally {
       setLoading(false);
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return 'text-emerald-600 bg-emerald-50';
-    if (confidence >= 0.5) return 'text-amber-600 bg-amber-50';
-    return 'text-red-600 bg-red-50';
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !loading) {
-      askQuestion();
-    }
-  };
-
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
-      {/* Main Q&A Card */}
-      <Card className="border-slate-200/60 shadow-sm overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-200/60 py-4">
-          <CardTitle className="flex items-center gap-2 text-slate-800">
-            <HelpCircle className="w-5 h-5 text-blue-600" />
-            Ask Your Question
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 space-y-4">
-          {/* Quick Questions Toggle */}
-          <div>
-            <button
-              onClick={() => setShowQuickQuestions(!showQuickQuestions)}
-              className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
-            >
-              <BookOpen className="w-4 h-4" />
-              {showQuickQuestions ? 'Hide' : 'Show'} common questions
-              <ChevronDown className={`w-4 h-4 transition-transform ${showQuickQuestions ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Quick Questions Grid */}
-            {showQuickQuestions && (
-              <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <p className="text-xs text-slate-500 mb-2">Click any question to auto-fill:</p>
-                <div className="flex flex-wrap gap-2">
-                  {QUICK_QUESTIONS.map((q) => (
-                    <button
-                      key={q}
-                      onClick={() => {
-                        setQuestion(q);
-                        setShowQuickQuestions(false);
-                      }}
-                      className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
-                        question === q
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-400 hover:text-blue-600'
-                      }`}
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Question Input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <Input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your question or select from above..."
-              disabled={loading}
-              className="w-full pl-10 pr-4 py-3 text-base"
-            />
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Ask Button */}
-          <Button
-            onClick={askQuestion}
-            disabled={loading || !question.trim()}
-            className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Getting answer...
-              </>
-            ) : (
-              <>
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Ask AI Assistant
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Answer Card */}
-      {result && (
-        <Card className="border-slate-200/60 shadow-sm overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-slate-200/60 py-4">
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <MessageCircle className="w-5 h-5 text-emerald-600" />
-              Answer
-              {result.note && (
-                <span className="text-xs font-normal text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                  {result.note}
-                </span>
-              )}
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Input Terminal */}
+        <Card className="card-engineer border-blue-500/20 bg-blue-500/[0.02]">
+          <CardHeader className="py-4 border-b border-white/5">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-blue-400 flex items-center gap-2">
+              <Terminal className="w-4 h-4" />
+              Inference Request
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            <div className="text-sm text-slate-500 bg-slate-100 px-3 py-2 rounded-lg">
-              <strong>Q:</strong> {result.question}
+          <CardContent className="p-6">
+            <p className="text-[11px] text-slate-500 mb-4 font-mono">Input a natural language query for the Knowledge Base.</p>
+            <div className="space-y-4">
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Query syntax or natural language..."
+                className="w-full h-32 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder:text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none font-mono resize-none transition-all"
+              />
+              <Button
+                onClick={handleAsk}
+                disabled={loading || !question.trim()}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 shadow-[0_4px_15px_rgba(37,99,235,0.3)] transition-all active:scale-95"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+                {loading ? 'EXECUTING INFERENCE...' : 'RUN INFERENCE'}
+              </Button>
             </div>
-
-            {result.answers && result.answers.length > 0 ? (
-              <div className="space-y-4">
-                {result.answers.map((answer, index) => (
-                  <div key={index} className="bg-slate-50 rounded-xl p-4 space-y-3">
-                    <div className="text-slate-800 leading-relaxed text-base">
-                      {answer.answer}
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${getConfidenceColor(answer.confidence)}`}>
-                        {Math.round(answer.confidence * 100)}% confidence
-                      </span>
-                      <span className="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded-full">
-                        {answer.source}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-slate-600 text-center py-4">
-                No answer found. Try rephrasing your question.
-              </div>
-            )}
           </CardContent>
         </Card>
-      )}
 
-      {/* Info Footer */}
-      <div className="flex items-center justify-center gap-4 text-xs text-slate-500">
-        {infoLoading ? (
-          <span className="flex items-center gap-1">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            Loading...
-          </span>
-        ) : info?.configured ? (
-          <span className="flex items-center gap-1 text-emerald-600">
-            <CheckCircle className="w-3 h-3" />
-            Azure AI Q&A connected
-          </span>
-        ) : (
-          <span className="flex items-center gap-1 text-amber-600">
-            <AlertCircle className="w-3 h-3" />
-            Demo mode
-          </span>
-        )}
+        {/* Results / Reasoning Terminal */}
+        <div className="space-y-6">
+          {!result && !loading ? (
+            <div className="h-full border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-8 bg-white/[0.01]">
+              <Sparkles className="w-12 h-12 text-slate-800 mb-4" />
+              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Awaiting Signal</h4>
+              <p className="text-[10px] text-slate-600 mt-2 max-w-[200px]">Send a query to initialize the AI Language Q&A reasoning engine.</p>
+            </div>
+          ) : result ? (
+            <>
+              <Card className="card-engineer border-emerald-500/20 bg-emerald-500/[0.02]">
+                <CardHeader className="py-3 border-b border-white/10">
+                  <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" />
+                    Synthesized Answer
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-5">
+                  <p className="text-sm text-slate-200 leading-relaxed text-shadow-sm">
+                    {result.answer}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {result.reasoning && (
+                <Card className="card-engineer border-purple-500/20 bg-purple-500/[0.02]">
+                  <CardHeader className="py-2 border-b border-white/10">
+                    <CardTitle className="text-[9px] font-mono uppercase tracking-widest text-purple-400 flex items-center gap-2">
+                      <History className="w-3.5 h-3.5" />
+                      Internal Reasoning
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <p className="text-[11px] text-purple-200/60 italic font-mono leading-relaxed">
+                      "{result.reasoning}"
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {result.debug && (
+                <div className="p-4 rounded-xl bg-black/40 border border-slate-800/50 font-mono text-[10px] space-y-2">
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span>DOC_MODEL:</span>
+                    <span className="text-blue-400">{result.debug.model || 'cognitiveservices-qna'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span>LATENCY:</span>
+                    <span className="text-emerald-500">{result.debug.latency_ms}ms</span>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full gap-4">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full border-4 border-blue-500/20 border-t-blue-500 animate-spin"></div>
+                <div className="absolute inset-0 blur-lg bg-blue-500/20 rounded-full"></div>
+              </div>
+              <span className="text-[10px] font-mono text-slate-500 animate-pulse">PROCESSING AI NEURONS...</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Suggested Queries */}
+      <div className="glass-studio p-4 rounded-xl border-white/5">
+        <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <ChevronRight className="w-3 h-3" />
+          Pre-approved Context Queries
+        </h4>
+        <div className="flex flex-wrap gap-2">
+          {['How do I reset my password?', 'What services can I use?', 'Contact support hours'].map(q => (
+            <button
+              key={q}
+              onClick={() => setQuestion(q)}
+              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-[10px] text-slate-400 hover:bg-white/10 hover:border-white/10 transition-all"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -125,7 +125,7 @@ export const documentsApi = {
   upload: async (file: File): Promise<UploadResponse> => {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const response = await api.post('/upload', formData, {
       headers: multipartHeaders(),
       onUploadProgress: (progressEvent) => {
@@ -282,7 +282,7 @@ export const infoExtractionApi = {
   },
 };
 
-export const knowledgeSearchApi = {
+export const searchApi = {
   search: async (query: string, index?: string): Promise<{ results: any[]; count: number; error?: string }> => {
     const response = await api.post('/api/knowledge/search', { query, index });
     return response.data;
@@ -302,13 +302,13 @@ export const ragApi = {
   },
   ingest: async (documentId: number): Promise<{ indexed: number; chunks?: number; error?: string }> => {
     // Make ingestion resilient: ensure index exists first
-    try { await ragApi.ensureIndex(); } catch {}
+    try { await ragApi.ensureIndex(); } catch { }
     const response = await api.post('/api/rag/ingest', null, { params: { document_id: documentId } });
     return response.data;
   },
   ask: async (question: string): Promise<{ answer: string; sources: any[]; error?: string }> => {
     // Make Q&A resilient: ensure index exists first
-    try { await ragApi.ensureIndex(); } catch {}
+    try { await ragApi.ensureIndex(); } catch { }
     const response = await api.post('/api/rag/ask', { question });
     return response.data;
   },

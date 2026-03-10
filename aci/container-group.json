@@ -21,13 +21,21 @@
           },
           "ports": [
             {
-              "port": 80
+              "port": 8000
             }
           ],
           "environmentVariables": [
             {
+              "name": "SECRET_KEY",
+              "secureValue": "__SECRET_KEY__"
+            },
+            {
               "name": "DATABASE_URL",
               "value": "sqlite:///./app.db"
+            },
+            {
+              "name": "UPLOADS_DIR",
+              "value": "uploads"
             },
             {
               "name": "AZURE_FORM_RECOGNIZER_ENDPOINT",
@@ -35,11 +43,27 @@
             },
             {
               "name": "AZURE_FORM_RECOGNIZER_KEY",
-              "value": "__AZURE_FORM_RECOGNIZER_KEY__"
+              "secureValue": "__AZURE_FORM_RECOGNIZER_KEY__"
+            },
+            {
+              "name": "AZURE_LANGUAGE_ENDPOINT",
+              "value": "__AZURE_LANGUAGE_ENDPOINT__"
+            },
+            {
+              "name": "AZURE_LANGUAGE_KEY",
+              "secureValue": "__AZURE_LANGUAGE_KEY__"
+            },
+            {
+              "name": "AZURE_QNA_PROJECT_NAME",
+              "value": "LearnFAQ"
+            },
+            {
+              "name": "AZURE_QNA_DEPLOYMENT_NAME",
+              "value": "production"
             },
             {
               "name": "OPENAI_API_KEY",
-              "value": "__OPENAI_API_KEY__"
+              "secureValue": "__OPENAI_API_KEY__"
             },
             {
               "name": "OPENAI_API_BASE",
@@ -48,16 +72,40 @@
             {
               "name": "OPENAI_DEPLOYMENT_NAME",
               "value": "__OPENAI_DEPLOYMENT_NAME__"
+            },
+            {
+              "name": "OPENAI_API_VERSION",
+              "value": "2024-02-15-preview"
+            },
+            {
+              "name": "AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME",
+              "value": "__AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME__"
+            },
+            {
+              "name": "AZURE_AI_VISION_ENDPOINT",
+              "value": "__AZURE_AI_VISION_ENDPOINT__"
+            },
+            {
+              "name": "AZURE_AI_VISION_KEY",
+              "secureValue": "__AZURE_AI_VISION_KEY__"
+            },
+            {
+              "name": "AZURE_SEARCH_ENDPOINT",
+              "value": "__AZURE_SEARCH_ENDPOINT__"
+            },
+            {
+              "name": "AZURE_SEARCH_KEY",
+              "secureValue": "__AZURE_SEARCH_KEY__"
+            },
+            {
+              "name": "AZURE_SEARCH_INDEX_NAME",
+              "value": "rag-content-index"
             }
           ],
           "volumeMounts": [
             {
               "name": "app-data",
               "mountPath": "/app/uploads"
-            },
-            {
-              "name": "app-db",
-              "mountPath": "/app"
             }
           ]
         }
@@ -69,7 +117,7 @@
       "ports": [
         {
           "protocol": "tcp",
-          "port": 80
+          "port": 8000
         }
       ],
       "dnsNameLabel": "__DNS_LABEL__"
@@ -78,14 +126,10 @@
       {
         "name": "app-data",
         "azureFile": {
-          "shareName": "app-uploads",
+          "shareName": "__FILE_SHARE_NAME__",
           "storageAccountName": "__STORAGE_ACCOUNT__",
           "storageAccountKey": "__STORAGE_KEY__"
         }
-      },
-      {
-        "name": "app-db",
-        "emptyDir": {}
       }
     ],
     "restartPolicy": "OnFailure"

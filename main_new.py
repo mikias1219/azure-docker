@@ -583,8 +583,10 @@ async def ask_document(
         return schemas.AskResponse(
             answer="Document Q&A is not available (Azure OpenAI not configured). You can read the extracted text above."
         )
-    answer = await document_intelligence.answer_question(text, body.question or "")
-    return schemas.AskResponse(answer=answer or "No answer could be generated.")
+    answer_data = await document_intelligence.answer_question(text, body.question or "")
+    if isinstance(answer_data, str):
+        return schemas.AskResponse(answer=answer_data)
+    return schemas.AskResponse(**answer_data)
 
 
 # ---------- Prebuilt Invoice (mslearn-ai-info: prebuilt document intelligence) ----------
@@ -740,14 +742,26 @@ async def rag_ask(
     retrieved = rag_service.rag_retrieve(question, top_k=5)
     if retrieved.get("error"):
         return {"answer": "", "sources": [], "error": retrieved["error"]}
-    context = retrieved.get("context", "")
-    sources = retrieved.get("sources", [])
+        return schemas.AskResponse(answer="", sources=[], error="RAG service not available")
+    query = (body.get("question") or body.get("query") or "").strip()
+    if not query:
+        return schemas.AskResponse(answer="", sources=[], error="question is required")
+    
     openai_client = document_intelligence.openai_client if document_intelligence else None
-    chat_deployment = getattr(document_intelligence, "openai_deployment", None) if document_intelligence else os.getenv("OPENAI_DEPLOYMENT_NAME")
-    if not openai_client or not chat_deployment:
-        return {"answer": "", "sources": sources, "error": "OpenAI chat not configured"}
-    answer = rag_service.rag_answer(question, context, openai_client, chat_deployment)
-    return {"answer": answer or "Could not generate an answer.", "sources": sources}
+    deployment = getattr(document_intelligence, "openai_deployment", None) if document_intelligence else os.getenv("OPENAI_DEPLOYMENT_NAME")
+    if not openai_client or not deployment:
+        return schemas.AskResponse(answer="", sources=[], error="OpenAI chat not configured")
+
+    retrieve_res = rag_service.rag_retrieve(query, top_k=5)
+    if retrieve_res.get("error"):
+        return schemas.AskResponse(answer="", sources=[], error=retrieve_res["error"])
+    else:
+        # LLM Synthesis: returns Dict with answer, reasoning, debug
+        result = rag_service.rag_answer(query, retrieve_res["context"], openai_client, deployment)
+        return schemas.AskResponse(
+            **result,
+            sources=retrieve_res.get("sources")
+        )
 
 
 async def process_document(document_id: int, file_path: Path):
@@ -775,7 +789,9 @@ async def process_document(document_id: int, file_path: Path):
 
         ai_analysis = None
         if extracted_text:
-            ai_analysis = await document_intelligence.elaborate_with_ai(extracted_text)
+            ai_res = await document_intelligence.elaborate_with_ai(extracted_text)
+            import json
+            ai_analysis = json.dumps(ai_res)
 
         await crud.update_document_analysis(
             db,
@@ -798,6 +814,27 @@ async def startup():
     logger.info("Application startup: creating database tables")
     metadata.create_all(bind=engine)
     logger.info("Database connected and tables verified")
+    # Print a clear service status banner for easy debugging in container logs
+    svc_status = {
+        "Document Intelligence": document_intelligence is not None and getattr(document_intelligence, "client", None) is not None,
+        "Azure OpenAI (Chat)":   document_intelligence is not None and getattr(document_intelligence, "openai_client", None) is not None,
+        "Text Analytics":        text_analytics is not None and getattr(text_analytics, "client", None) is not None,
+        "Question Answering":    question_answering is not None and getattr(question_answering, "client", None) is not None,
+        "CLU / Clock":           clock_service is not None and getattr(clock_service, "client", None) is not None,
+        "AI Vision":             ai_vision is not None and getattr(ai_vision, "client", None) is not None,
+        "Azure AI Search":       search_service is not None and getattr(search_service, "is_configured", lambda: False)(),
+        "RAG Pipeline":          (
+            search_service is not None and getattr(search_service, "is_configured", lambda: False)()
+            and rag_service is not None and bool(getattr(rag_service, "get_embedding_deployment", lambda: None)())
+        ),
+    }
+    logger.info("=" * 60)
+    logger.info("  Azure AI Services Configuration Status")
+    logger.info("=" * 60)
+    for name, configured in svc_status.items():
+        status_icon = "✅  LIVE" if configured else "⚠️  NOT CONFIGURED"
+        logger.info("  %-30s %s", name, status_icon)
+    logger.info("=" * 60)
 
 @app.on_event("shutdown")
 async def shutdown():

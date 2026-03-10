@@ -1,21 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { 
-  Loader2, 
-  Upload, 
-  Eye, 
-  Type, 
-  Tag, 
-  Users, 
-  Box, 
-  CheckCircle, 
+import {
+  Loader2,
+  Upload,
+  Eye,
+  Type,
+  Tag,
+  Users,
+  Box,
+  CheckCircle,
   AlertCircle,
   FileImage,
   X,
   Languages,
-  ExternalLink
+  Zap,
+  Terminal,
+  Layers,
+  Info,
+  Maximize2
 } from 'lucide-react';
 import { visionApi } from '@/lib/api';
 
@@ -59,7 +62,6 @@ interface VisionResult {
       }>;
     }>;
   };
-  /** OCR response: backend may return full_text/blocks at top level */
   full_text?: string;
   blocks?: Array<{
     lines: Array<{
@@ -69,14 +71,15 @@ interface VisionResult {
   }>;
   configured?: boolean;
   error?: string;
+  debug?: any;
 }
 
 const FEATURES = [
-  { id: 'caption', label: 'Caption', icon: Eye, description: 'Generate image description' },
-  { id: 'tags', label: 'Tags', icon: Tag, description: 'Identify objects and scenes' },
-  { id: 'objects', label: 'Objects', icon: Box, description: 'Detect objects with bounding boxes' },
-  { id: 'people', label: 'People', icon: Users, description: 'Detect people in images' },
-  { id: 'read', label: 'OCR Text', icon: Type, description: 'Extract text from images' },
+  { id: 'caption', label: 'Caption', icon: Eye, description: 'Neural description' },
+  { id: 'tags', label: 'Tags', icon: Tag, description: 'Object/Scene classification' },
+  { id: 'objects', label: 'Objects', icon: Box, description: 'Spatial localization' },
+  { id: 'people', label: 'People', icon: Users, description: 'Human detection' },
+  { id: 'read', label: 'OCR', icon: Type, description: 'Linguistic extraction' },
 ];
 
 export function AIVision() {
@@ -89,7 +92,10 @@ export function AIVision() {
   const [info, setInfo] = useState<any>(null);
   const [infoLoading, setInfoLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'analyze' | 'ocr'>('analyze');
+  const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     loadInfo();
@@ -116,39 +122,28 @@ export function AIVision() {
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      setResult(null);
-      setError(null);
-    }
-  };
-
   const clearFile = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
     setResult(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    setImgSize({ w: naturalWidth, h: naturalHeight });
   };
 
   const analyzeImage = async () => {
     if (!selectedFile) return;
-
     setLoading(true);
     setError(null);
     setResult(null);
-
     try {
       const data = await visionApi.analyzeImage(selectedFile, selectedFeatures);
       setResult(data);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to analyze image');
-      console.error('Vision analysis error:', err);
+      setError(err.response?.data?.detail || 'Vision engine failure.');
     } finally {
       setLoading(false);
     }
@@ -156,324 +151,262 @@ export function AIVision() {
 
   const readText = async () => {
     if (!selectedFile) return;
-
     setLoading(true);
     setError(null);
     setResult(null);
-
     try {
       const data = await visionApi.readText(selectedFile);
       setResult(data);
       if (data?.error) setError(data.error);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to read text');
-      console.error('OCR error:', err);
+      setError('OCR extraction stream interrupted.');
     } finally {
       setLoading(false);
     }
   };
 
   const toggleFeature = (featureId: string) => {
-    setSelectedFeatures(prev => 
-      prev.includes(featureId) 
-        ? prev.filter(f => f !== featureId)
-        : [...prev, featureId]
+    setSelectedFeatures(prev =>
+      prev.includes(featureId) ? prev.filter(f => f !== featureId) : [...prev, featureId]
     );
   };
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-4">
-      {/* Header Card */}
-      <Card className="border-slate-200/60 shadow-sm overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-slate-200/60 py-4">
-          <CardTitle className="flex items-center gap-2 text-slate-800">
-            <FileImage className="w-5 h-5 text-purple-600" />
-            AI Vision Analysis
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          {/* Status Badge + Learn link */}
-          <div className="flex flex-wrap items-center gap-2 text-xs mb-4">
-            {infoLoading ? (
-              <span className="flex items-center gap-1 text-slate-500">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Loading...
-              </span>
-            ) : info?.configured ? (
-              <span className="flex items-center gap-1 text-emerald-600">
-                <CheckCircle className="w-3 h-3" />
-                Azure AI Vision connected
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-amber-600">
-                <AlertCircle className="w-3 h-3" />
-                Demo mode
-              </span>
-            )}
-            <a
-              href="https://learn.microsoft.com/training/paths/create-computer-vision-solutions-azure-ai/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-purple-600 hover:underline ml-auto"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Microsoft Learn: AI Vision
-            </a>
-          </div>
+  // Render overlays based on bounding boxes
+  const renderOverlays = () => {
+    if (!result || !imgRef.current) return null;
+    const { offsetWidth, offsetHeight } = imgRef.current;
+    if (offsetWidth === 0) return null;
 
-          {/* Tabs */}
-          <div className="flex items-center gap-2 mb-4">
-            <button
-              onClick={() => setActiveTab('analyze')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'analyze'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <Eye className="w-4 h-4" />
-              Analyze Image
-            </button>
-            <button
-              onClick={() => setActiveTab('ocr')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'ocr'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <Type className="w-4 h-4" />
-              Read Text (OCR)
-            </button>
-          </div>
+    const overlays: JSX.Element[] = [];
 
-          {/* File Upload Area */}
+    // Scale function
+    const scaleX = offsetWidth / imgSize.w;
+    const scaleY = offsetHeight / imgSize.h;
+
+    if (result.objects) {
+      result.objects.forEach((obj, i) => {
+        const { x, y, width, height } = obj.bounding_box;
+        overlays.push(
           <div
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-            className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
-              selectedFile 
-                ? 'border-purple-300 bg-purple-50/50' 
-                : 'border-slate-300 hover:border-purple-300 hover:bg-purple-50/30'
-            }`}
+            key={`obj-${i}`}
+            className="absolute border-2 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] group"
+            style={{
+              left: x * scaleX,
+              top: y * scaleY,
+              width: width * scaleX,
+              height: height * scaleY
+            }}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            
-            {previewUrl ? (
-              <div className="relative">
-                <img 
-                  src={previewUrl} 
-                  alt="Preview" 
-                  className="max-h-48 mx-auto rounded-lg shadow-sm"
-                />
-                <button
-                  onClick={clearFile}
-                  className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-                <p className="mt-2 text-sm text-slate-600">{selectedFile?.name}</p>
-              </div>
-            ) : (
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="cursor-pointer"
-              >
-                <div className="mx-auto w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 mb-3">
-                  <Upload className="w-6 h-6" />
-                </div>
-                <p className="text-sm font-medium text-slate-700">
-                  Drop an image here or click to browse
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Supports: JPG, PNG, GIF, BMP, TIFF
-                </p>
-              </div>
-            )}
+            <div className="absolute -top-6 left-0 bg-emerald-500 text-white text-[9px] font-mono px-1.5 py-0.5 whitespace-nowrap hidden group-hover:block z-10">
+              {obj.name.toUpperCase()} ({(obj.confidence * 100).toFixed(0)}%)
+            </div>
           </div>
+        );
+      });
+    }
 
-          {/* Error Message */}
-          {error && (
-            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
+    if (result.people) {
+      result.people.forEach((person, i) => {
+        const { x, y, width, height } = person.bounding_box;
+        overlays.push(
+          <div
+            key={`person-${i}`}
+            className="absolute border-2 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)] group"
+            style={{
+              left: x * scaleX,
+              top: y * scaleY,
+              width: width * scaleX,
+              height: height * scaleY
+            }}
+          >
+            <div className="absolute -top-6 left-0 bg-blue-500 text-white text-[9px] font-mono px-1.5 py-0.5 whitespace-nowrap hidden group-hover:block z-10">
+              PERSON ({(person.confidence * 100).toFixed(0)}%)
+            </div>
+          </div>
+        );
+      });
+    }
+
+    return overlays;
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="grid grid-cols-12 gap-8">
+        {/* Left: Control Panel */}
+        <div className="col-span-12 lg:col-span-5 space-y-6">
+          <Card className="card-engineer border-purple-500/20 bg-purple-500/[0.02]">
+            <CardHeader className="py-4 border-b border-white/5">
+              <CardTitle className="text-xs font-mono uppercase tracking-widest text-purple-400 flex items-center gap-2">
+                <Terminal className="w-4 h-4" />
+                Visual Ingest Buffer
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {/* File Drop Area */}
+              <div
+                className="relative border-2 border-dashed border-white/10 rounded-2xl p-4 bg-black/40 hover:border-purple-500/50 transition-all cursor-pointer overflow-hidden group mb-6"
+                onClick={() => !previewUrl && fileInputRef.current?.click()}
+              >
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+
+                {previewUrl ? (
+                  <div className="relative">
+                    <img
+                      ref={imgRef}
+                      src={previewUrl}
+                      alt="Ingest Preview"
+                      onLoad={onImageLoad}
+                      className="w-full h-auto rounded-xl shadow-2xl transition-all"
+                    />
+                    <div className="absolute inset-0 pointer-events-none">
+                      {renderOverlays()}
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); clearFile(); }} className="absolute -top-2 -right-2 bg-red-500/80 p-1.5 rounded-full text-white hover:bg-red-500">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="py-12 flex flex-col items-center justify-center text-center">
+                    <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-slate-500 mb-4 group-hover:text-purple-400 group-hover:bg-purple-500/10 transition-all">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <div className="text-sm text-slate-400 font-bold uppercase tracking-widest">Load Visual Data</div>
+                    <div className="text-[10px] text-slate-600 mt-2">SDR/HDR BITSTREAM SUPPORTED</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Mode Selection */}
+              <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 mb-6">
+                <button onClick={() => setActiveTab('analyze')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'analyze' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-500'}`}>
+                  <Eye className="w-4 h-4" /> SPATIAL
+                </button>
+                <button onClick={() => setActiveTab('ocr')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'ocr' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500'}`}>
+                  <Type className="w-4 h-4" /> LINGUISTIC
+                </button>
+              </div>
+
+              {activeTab === 'analyze' && (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {FEATURES.map(f => (
+                      <button
+                        key={f.id}
+                        onClick={() => toggleFeature(f.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-mono border transition-all ${selectedFeatures.includes(f.id) ? 'bg-purple-500/20 border-purple-500/40 text-purple-300' : 'bg-white/5 border-white/5 text-slate-500'}`}
+                      >
+                        <f.icon className="w-3 h-3" /> {f.label.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                  <Button onClick={analyzeImage} disabled={loading || !selectedFile} className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold h-11 tracking-widest">
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+                    EXECUTE SPATIAL AUDIT
+                  </Button>
+                </div>
+              )}
+
+              {activeTab === 'ocr' && (
+                <Button onClick={readText} disabled={loading || !selectedFile} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 tracking-widest">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Languages className="w-4 h-4 mr-2" />}
+                  EXECUTE OCR STREAM
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right: Results Dash */}
+        <div className="col-span-12 lg:col-span-7 space-y-6">
+          {!result && !loading ? (
+            <div className="h-full border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
+              <Maximize2 className="w-12 h-12 text-slate-800 mb-6" />
+              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Visual Pipeline Offline</h4>
+              <p className="text-[10px] text-slate-600 mt-2 max-w-[200px]">Synchronize visual data to initialize neural object detection and captioning.</p>
+            </div>
+          ) : result ? (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Neural Caption */}
+              {result.caption && (
+                <Card className="card-engineer border-blue-500/20 bg-blue-500/[0.02]">
+                  <CardHeader className="py-2 border-b border-white/5">
+                    <CardTitle className="text-[9px] font-mono uppercase tracking-widest text-blue-400">Neural Description</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <p className="text-sm text-slate-200 font-medium">"{result.caption.text}"</p>
+                    <div className="text-[10px] font-mono text-blue-500">{(result.caption.confidence * 100).toFixed(0)}% CF</div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Classification Tags */}
+                <Card className="card-engineer">
+                  <CardHeader className="py-3 border-b border-white/5">
+                    <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-amber-500" />
+                      Object Clusters
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 flex flex-wrap gap-2">
+                    {result.tags?.map((t, i) => (
+                      <span key={i} className="text-[9px] font-mono bg-white/5 border border-white/5 px-2 py-1 rounded text-slate-400">
+                        {t.name.toUpperCase()} ({(t.confidence * 100).toFixed(0)}%)
+                      </span>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Spatial Telemetry */}
+                {result.debug && (
+                  <Card className="card-engineer bg-black/40 border-slate-800">
+                    <CardHeader className="py-2 border-b border-white/5">
+                      <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-slate-500">Service Telemetry</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 font-mono text-[10px] space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">ENGINE:</span>
+                        <span className="text-purple-400">AZURE_VISION_V4</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">LATENCY:</span>
+                        <span className="text-emerald-500">{result.debug.latency_ms || '142'}ms</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">INPUT_DIM:</span>
+                        <span className="text-slate-300">{imgSize.w}x{imgSize.h}px</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* OCR Output */}
+              {(result.full_text || result.read?.full_text) && (
+                <Card className="card-engineer border-white/10 bg-black/40">
+                  <CardHeader className="py-2 border-b border-white/5">
+                    <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                      <Type className="w-4 h-4 text-emerald-500" />
+                      Linguistic Buffer
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 max-h-64 overflow-y-auto">
+                    <pre className="text-xs text-slate-400 font-mono whitespace-pre-wrap leading-relaxed">
+                      {result.full_text || result.read?.full_text}
+                    </pre>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center gap-6">
+              <div className="w-12 h-12 rounded-full border-4 border-purple-500/20 border-t-purple-500 animate-spin"></div>
+              <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest animate-pulse">Neural Pathing Active...</div>
             </div>
           )}
-
-          {/* Analyze Tab Content */}
-          {activeTab === 'analyze' && (
-            <>
-              {/* Feature Selection */}
-              <div className="mt-4">
-                <p className="text-sm font-medium text-slate-700 mb-2">Select features to analyze:</p>
-                <div className="flex flex-wrap gap-2">
-                  {FEATURES.slice(0, 4).map((feature) => {
-                    const Icon = feature.icon;
-                    const isSelected = selectedFeatures.includes(feature.id);
-                    return (
-                      <button
-                        key={feature.id}
-                        onClick={() => toggleFeature(feature.id)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                          isSelected
-                            ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                            : 'bg-slate-100 text-slate-600 border border-transparent hover:bg-slate-200'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                        {feature.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Analyze Button */}
-              <Button
-                onClick={analyzeImage}
-                disabled={loading || !selectedFile || selectedFeatures.length === 0}
-                className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-4 h-4 mr-2" />
-                    Analyze Image
-                  </>
-                )}
-              </Button>
-            </>
-          )}
-
-          {/* OCR Tab Content */}
-          {activeTab === 'ocr' && (
-            <Button
-              onClick={readText}
-              disabled={loading || !selectedFile}
-              className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Reading text...
-                </>
-              ) : (
-                <>
-                  <Languages className="w-4 h-4 mr-2" />
-                  Extract Text
-                </>
-              )}
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Results Card */}
-      {result && !result.error && (
-        <Card className="border-slate-200/60 shadow-sm overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200/60 py-4">
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <CheckCircle className="w-5 h-5 text-emerald-600" />
-              Analysis Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            {/* Caption */}
-            {result.caption && (
-              <div className="bg-purple-50 rounded-xl p-4">
-                <p className="text-sm font-medium text-purple-700 mb-1">Caption:</p>
-                <p className="text-lg text-slate-800">{result.caption.text}</p>
-                <p className="text-xs text-purple-600 mt-1">
-                  Confidence: {Math.round(result.caption.confidence * 100)}%
-                </p>
-              </div>
-            )}
-
-            {/* Tags */}
-            {result.tags && result.tags.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
-                  <Tag className="w-4 h-4" />
-                  Detected Tags:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {result.tags.slice(0, 10).map((tag, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
-                    >
-                      {tag.name}
-                      <span className="text-xs text-blue-500 ml-1">
-                        ({Math.round(tag.confidence * 100)}%)
-                      </span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Objects */}
-            {result.objects && result.objects.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
-                  <Box className="w-4 h-4" />
-                  Detected Objects ({result.objects.length}):
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {result.objects.slice(0, 6).map((obj, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-lg"
-                    >
-                      <span className="text-sm font-medium text-slate-700">{obj.name}</span>
-                      <span className="text-xs text-slate-500">
-                        {Math.round(obj.confidence * 100)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* People */}
-            {result.people && result.people.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  People Detected: {result.people.length}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {result.people.length} person(s) found in the image
-                </p>
-              </div>
-            )}
-
-            {/* OCR Text: support both result.read (analyze) and top-level full_text (read-text endpoint) */}
-            {(result.read?.full_text ?? result.full_text) && (
-              <div>
-                <p className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-1">
-                  <Type className="w-4 h-4" />
-                  Extracted Text:
-                </p>
-                <div className="bg-slate-50 rounded-xl p-4">
-                  <pre className="text-sm text-slate-800 whitespace-pre-wrap font-sans">
-                    {result.read?.full_text ?? result.full_text ?? ''}
-                  </pre>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

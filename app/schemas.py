@@ -67,3 +67,7 @@ class AskRequest(BaseModel):
 
 class AskResponse(BaseModel):
     answer: str
+    reasoning: Optional[str] = None
+    evidence: Optional[str] = None
+    sources: Optional[list] = None
+    debug: Optional[dict] = None

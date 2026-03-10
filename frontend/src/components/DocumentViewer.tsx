@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Document } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { FileText, Brain, Download, Calendar, HardDrive, MessageCircle, Send, Loader2, CheckCircle, Database } from 'lucide-react';
+import {
+  FileText, Brain, Download, Calendar, HardDrive, MessageCircle,
+  Send, Loader2, CheckCircle, Database, Terminal, Zap, Info, ShieldCheck
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { documentsApi, ragApi } from '@/lib/api';
 
@@ -13,35 +16,42 @@ interface DocumentViewerProps {
 
 export function DocumentViewer({ document, onRefresh }: DocumentViewerProps) {
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState<string | null>(null);
+  const [askResult, setAskResult] = useState<any>(null);
   const [asking, setAsking] = useState(false);
   const [ingesting, setIngesting] = useState(false);
   const [ingestMsg, setIngestMsg] = useState<string | null>(null);
 
+  // Parse structured AI analysis if it's JSON
+  const analysisData = useMemo(() => {
+    if (!document.ai_analysis) return null;
+    try {
+      // If it starts with {, it's likely our new JSON format
+      if (document.ai_analysis.trim().startsWith('{')) {
+        return JSON.parse(document.ai_analysis);
+      }
+      return { report: document.ai_analysis, reasoning: 'Legacy analysis format.' };
+    } catch (e) {
+      return { report: document.ai_analysis, reasoning: 'Text-only analysis.' };
+    }
+  }, [document.ai_analysis]);
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizeLabels = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getFileIcon = (fileType: string) => {
-    if (fileType.includes('pdf')) return '📄';
-    if (fileType.includes('word') || fileType.includes('doc')) return '📝';
-    if (fileType.includes('image')) return '🖼️';
-    return '📄';
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizeLabels[i];
   };
 
   const handleAsk = async () => {
     if (!question.trim() || asking) return;
     setAsking(true);
-    setAnswer(null);
+    setAskResult(null);
     try {
       const res = await documentsApi.askDocument(document.id, question.trim());
-      setAnswer(res.answer);
+      setAskResult(res);
     } catch {
-      setAnswer('Failed to get an answer. Try again.');
+      setAskResult({ answer: 'Failed to get an answer. Try again.' });
     } finally {
       setAsking(false);
     }
@@ -54,209 +64,214 @@ export function DocumentViewer({ document, onRefresh }: DocumentViewerProps) {
     try {
       const res = await ragApi.ingest(document.id);
       if (res.error) setIngestMsg(res.error);
-      else setIngestMsg(`Indexed ${res.indexed} chunk(s).`);
+      else setIngestMsg(`SUCCESS: Vectorized ${res.indexed} nodes.`);
     } catch {
-      setIngestMsg('Ingest failed.');
+      setIngestMsg('ERROR: Ingestion stream interrupted.');
     } finally {
       setIngesting(false);
     }
   };
 
-  const steps = [
-    { done: !!document.extracted_text, label: 'Text extracted' },
-    { done: !!document.ai_analysis, label: 'AI analysis' },
-  ];
-  const allDone = document.extracted_text && document.ai_analysis;
-
   return (
-    <div className="space-y-6">
-      <Card className="border-slate-200/80 shadow-soft overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            <span className="text-2xl">{getFileIcon(document.file_type)}</span>
-            {document.original_filename}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 mb-4">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <HardDrive className="w-4 h-4 text-slate-400" />
-              <span>{formatFileSize(document.file_size)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <span>{formatDistanceToNow(new Date(document.created_at), { addSuffix: true })}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <FileText className="w-4 h-4 text-slate-400" />
-              <span>{document.file_type}</span>
+    <div className="space-y-6 pb-12">
+      {/* File Metadata Header */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="glass-studio p-4 rounded-xl flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
+            <HardDrive className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Storage Size</div>
+            <div className="text-sm font-mono text-white font-bold">{formatFileSize(document.file_size)}</div>
+          </div>
+        </div>
+        <div className="glass-studio p-4 rounded-xl flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
+            <Calendar className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Initialized</div>
+            <div className="text-sm font-mono text-white font-bold">{formatDistanceToNow(new Date(document.created_at), { addSuffix: true })}</div>
+          </div>
+        </div>
+        <div className="glass-studio p-4 rounded-xl flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">System Status</div>
+            <div className="text-sm font-mono text-emerald-500 font-bold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              VERIFIED
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-medium text-slate-700">Steps:</span>
-            {steps.map((s, i) => (
-              <span
-                key={i}
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                  s.done ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
-                }`}
-              >
-                {s.done ? <CheckCircle className="w-3.5 h-3.5" /> : null}
-                {s.label}
-              </span>
-            ))}
-            {allDone && (
-              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-primary-100 text-primary-700">
-                <CheckCircle className="w-3.5 h-3.5" /> Ready
-              </span>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {!document.extracted_text && !document.ai_analysis && (
-        <Card className="border-amber-200 bg-amber-50/50">
-          <CardContent className="py-6">
-            <p className="text-amber-800 font-medium">Processing or waiting for results</p>
-            <p className="text-sm text-amber-700 mt-1">
-              Extracted text and AI analysis are not ready yet. This can take a minute after upload. Click Refresh below to check again. If it stays empty, check that Document Intelligence and OpenAI are configured.
-            </p>
-            {onRefresh && (
-              <Button variant="outline" size="sm" onClick={onRefresh} className="mt-3 border-amber-300 text-amber-800">
-                Refresh
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
+      {/* Main Content: Extracted Text */}
       {document.extracted_text && (
-        <Card className="border-slate-200/80 shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-900">
-              <FileText className="w-5 h-5 text-primary-500" />
-              Extracted Text
+        <Card className="card-engineer">
+          <CardHeader className="border-b border-white/5 bg-white/[0.02] flex flex-row items-center justify-between py-3">
+            <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-blue-500" />
+              Raw OCR Output
             </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigator.clipboard.writeText(document.extracted_text || '')}
+              className="h-7 text-[10px] px-2 bg-white/5 border-white/10 hover:bg-white/10"
+            >
+              COPY BUFFER
+            </Button>
           </CardHeader>
-          <CardContent>
-            <div className="bg-slate-50 rounded-xl p-4 max-h-96 overflow-y-auto border border-slate-100">
-              <pre className="whitespace-pre-wrap text-sm text-slate-700 font-mono">
-                {document.extracted_text}
-              </pre>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigator.clipboard.writeText(document.extracted_text || '')}
-                className="border-slate-200"
-              >
-                Copy text
-              </Button>
+          <CardContent className="p-0">
+            <div className="bg-black/50 p-6 max-h-80 overflow-y-auto font-mono text-xs leading-relaxed text-slate-400">
+              <pre className="whitespace-pre-wrap">{document.extracted_text}</pre>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {document.ai_analysis && (
-        <Card className="border-slate-200/80 shadow-soft">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-900">
-              <Brain className="w-5 h-5 text-primary-500" />
-              AI Analysis
+      {/* AI Intelligence Panel */}
+      {analysisData && (
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12 lg:col-span-8">
+            <Card className="card-engineer h-full">
+              <CardHeader className="border-b border-white/5 bg-white/[0.02]">
+                <CardTitle className="text-xs font-mono uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-purple-500" />
+                  AI Synthesis Report
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 prose prose-invert max-w-none">
+                <div
+                  className="text-slate-300 text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: analysisData.report?.replace(/\n/g, '<br />') }}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="col-span-12 lg:col-span-4 space-y-6">
+            {/* Reasoning Module */}
+            <Card className="card-engineer border-purple-500/20 bg-purple-500/5">
+              <CardHeader className="py-3 border-b border-white/5">
+                <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-purple-400 flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Internal Reasoning
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <p className="text-xs text-purple-200/70 italic leading-relaxed">
+                  "{analysisData.reasoning}"
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Performance/Debug Metadata */}
+            {analysisData.debug && (
+              <Card className="card-engineer bg-black/40 border-slate-800">
+                <CardHeader className="py-2 border-b border-white/5">
+                  <CardTitle className="text-[9px] font-mono uppercase tracking-widest text-slate-500">System Metadata</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-2 font-mono text-[10px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">ENGINE:</span>
+                    <span className="text-blue-400">{analysisData.debug.model}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">LATENCY:</span>
+                    <span className="text-emerald-500">{analysisData.debug.latency_ms}ms</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">TOKENS:</span>
+                    <span className="text-amber-500">{analysisData.debug.tokens || 'N/A'}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* RAG Ingestion */}
+        <Card className="card-engineer bg-emerald-500/[0.02] border-emerald-500/10">
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-emerald-400">
+              <Database className="w-4 h-4" />
+              Vector Knowledge Mining
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div
-              className="bg-primary-50/50 rounded-xl p-4 text-sm text-slate-700 whitespace-pre-wrap border border-primary-100"
-              dangerouslySetInnerHTML={{
-                __html: document.ai_analysis.replace(/\n/g, '<br />'),
-              }}
-            />
-            {document.analysis_confidence != null && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-sm text-slate-600 mb-1">
-                  <span>Confidence</span>
-                  <span className="font-medium">{Math.round(document.analysis_confidence * 100)}%</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-primary-500 h-2 rounded-full transition-all"
-                    style={{ width: `${document.analysis_confidence * 100}%` }}
-                  />
-                </div>
+          <CardContent className="px-6 pb-6 pt-0">
+            <p className="text-xs text-slate-500 mb-4 font-medium">Inject this document context into the global RAG vector store for semantic querying.</p>
+            <Button onClick={handleIngestToRag} disabled={ingesting || !document.extracted_text} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-10">
+              {ingesting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+              {ingesting ? 'PROCESSING STREAM...' : 'EXECUTE INGESTION'}
+            </Button>
+            {ingestMsg && (
+              <div className="mt-3 p-2 bg-black/40 border border-white/5 rounded font-mono text-[10px] text-emerald-500">
+                {ingestMsg}
               </div>
             )}
           </CardContent>
         </Card>
-      )}
 
-      {document.extracted_text && (
-        <>
-          <Card className="border-slate-200/80 shadow-soft">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-900">
-                <Database className="w-5 h-5 text-violet-500" />
-                Add to RAG index
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600 mb-3">
-                Index this document for Knowledge Mining and RAG Q&A.
-              </p>
-              <Button onClick={handleIngestToRag} disabled={ingesting} variant="outline" size="sm">
-                {ingesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-                {ingesting ? 'Ingesting…' : 'Ingest to RAG'}
-              </Button>
-              {ingestMsg && (
-                <p className="text-sm mt-2 text-slate-600">{ingestMsg}</p>
-              )}
-            </CardContent>
-          </Card>
-          <Card className="border-slate-200/80 shadow-soft">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-900">
-                <MessageCircle className="w-5 h-5 text-primary-500" />
-                Ask a question
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-600 mb-3">
-                Get answers from the document content using AI.
-              </p>
+        {/* Local Q&A */}
+        <Card className="card-engineer border-blue-500/20 flex flex-col">
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-blue-400">
+              <MessageCircle className="w-4 h-4" />
+              Scoped QA Assistant
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-6 pb-6 pt-0 flex-grow">
             <div className="flex gap-2">
               <input
                 type="text"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
-                placeholder="e.g. What is the main conclusion?"
-                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Query scoped to this context..."
+                className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none font-mono"
               />
-              <Button onClick={handleAsk} disabled={asking || !question.trim()}>
+              <Button
+                onClick={handleAsk}
+                disabled={asking || !question.trim()}
+                className="bg-blue-600 hover:bg-blue-500 h-9"
+              >
                 {asking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                <span className="ml-2">{asking ? 'Asking…' : 'Ask'}</span>
               </Button>
             </div>
-            {answer != null && (
-              <div className="mt-4 rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm text-slate-700 animate-fade-in">
-                <p className="font-medium text-slate-600 mb-1">Answer</p>
-                <p className="whitespace-pre-wrap">{answer}</p>
+            {askResult && (
+              <div className="mt-4 space-y-3">
+                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-xs text-slate-300">
+                  <div className="font-bold text-blue-500 mb-1 uppercase tracking-widest text-[9px]">Answer Synthesized:</div>
+                  {askResult.answer}
+                </div>
+                {askResult.reasoning && (
+                  <div className="flex items-start gap-2 text-[10px] text-slate-500 italic">
+                    <Info className="w-3 h-3 mt-0.5 shrink-0" />
+                    <span>Logic: {askResult.reasoning}</span>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
-        </>
-      )}
+      </div>
 
-      <div className="flex justify-end gap-3">
-        <Button variant="outline" className="border-slate-200">
-          <Download className="w-4 h-4 mr-2" />
-          Download original
+      {/* Footer Actions */}
+      <div className="flex justify-end gap-3 pt-6 border-t border-white/5">
+        <Button variant="ghost" className="text-slate-500 hover:text-white hover:bg-white/5 text-xs">
+          <Download className="w-3.5 h-3.5 mr-2" />
+          EXTRACT RAW (.TXT)
         </Button>
-        <Button>
-          <FileText className="w-4 h-4 mr-2" />
-          Export analysis
+        <Button variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs">
+          <FileText className="w-3.5 h-3.5 mr-2" />
+          GENERATE FULL AUDIT
         </Button>
       </div>
     </div>

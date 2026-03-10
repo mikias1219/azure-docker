@@ -136,6 +136,7 @@ jobs:
           AZURE_AI_VISION_KEY: ${{ env.AZURE_AI_VISION_KEY }}
           AZURE_SEARCH_ENDPOINT: ${{ env.AZURE_SEARCH_ENDPOINT }}
           AZURE_SEARCH_KEY: ${{ env.AZURE_SEARCH_KEY }}
+          AZURE_SEARCH_INDEX_NAME: ${{ env.AZURE_SEARCH_INDEX_NAME }}
           AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME: ${{ env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME }}
         run: |
           # Generate unique DNS label

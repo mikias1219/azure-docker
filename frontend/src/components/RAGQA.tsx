@@ -1,86 +1,171 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { Loader2, MessageCircle, Send, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import {
+  MessageSquare, Send, Loader2, Database, Zap, Terminal,
+  Layers, Search, Share2, Info, ChevronRight, BarChart3
+} from 'lucide-react';
 import { ragApi } from '@/lib/api';
 
 export function RAGQA() {
   const [question, setQuestion] = useState('');
+  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ answer: string; sources: any[]; error?: string } | null>(null);
 
   const handleAsk = async () => {
-    if (!question.trim()) return;
+    if (!question.trim() || loading) return;
     setLoading(true);
     setResult(null);
     try {
-      const data = await ragApi.ask(question.trim());
-      setResult(data);
-    } catch (err: any) {
-      setResult({ answer: '', sources: [], error: err.response?.data?.detail || 'Request failed' });
+      const res = await ragApi.ask(question.trim());
+      setResult(res);
+    } catch {
+      setResult({ answer: 'Communication error: RAG pipeline non-responsive.' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
-      <Card className="border-slate-200/80 shadow-soft">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-800">
-            <MessageCircle className="w-5 h-5 text-violet-600" />
-            RAG Q&A
-          </CardTitle>
-          <p className="text-sm text-slate-500 mt-1">
-            Ask questions over your indexed documents. Ingest documents first (Documents tab → select doc → Ingest to RAG).
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
-              placeholder="Ask a question about your documents..."
-              className="flex-1"
-            />
-            <Button onClick={handleAsk} disabled={loading || !question.trim()}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              Ask
-            </Button>
-          </div>
-          {result?.error && (
-            <div className="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 text-sm">
-              {result.error}
-            </div>
-          )}
-          {result && !result.error && result.answer && (
-            <div className="space-y-4">
-              <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-                <p className="text-sm font-medium text-slate-600 mb-2">Answer</p>
-                <p className="text-slate-800 whitespace-pre-wrap">{result.answer}</p>
+    <div className="space-y-6">
+      {/* Search Header */}
+      <div className="glass-studio p-1.5 rounded-2xl flex items-center gap-2 border-white/5 shadow-2xl">
+        <div className="flex-1 relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
+            placeholder="Query global vectorized knowledge store..."
+            className="w-full bg-black/20 border-none rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder:text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none font-mono"
+          />
+        </div>
+        <Button
+          onClick={handleAsk}
+          disabled={loading || !question.trim()}
+          className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 px-6 rounded-xl"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+          {loading ? 'MINING...' : 'RUN PIPELINE'}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-12 gap-8">
+        {/* Main Answer Panel */}
+        <div className="col-span-12 lg:col-span-8 space-y-6">
+          {!result && !loading ? (
+            <div className="h-[400px] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.02] flex items-center justify-center mb-6">
+                <Database className="w-8 h-8 text-slate-700" />
               </div>
-              {result.sources && result.sources.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-slate-500 mb-2">Sources</p>
-                  <div className="flex flex-wrap gap-2">
-                    {result.sources.map((s: any, i: number) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-700"
-                      >
-                        <FileText className="w-3 h-3" />
-                        {s.file_name || 'Document'}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <h4 className="text-lg font-bold text-slate-500 uppercase tracking-widest">Knowledge Store Idle</h4>
+              <p className="text-slate-600 text-sm max-w-sm">Enter a query to perform hybrid search across all vectorized document fragments.</p>
+            </div>
+          ) : result ? (
+            <>
+              <Card className="card-engineer border-blue-500/20 bg-blue-500/[0.02]">
+                <CardHeader className="py-4 border-b border-white/10 flex flex-row items-center justify-between">
+                  <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-blue-400 flex items-center gap-2">
+                    <Terminal className="w-4 h-4" />
+                    Synthesized Knowledge Result
+                  </CardTitle>
+                  <span className="text-[9px] font-mono text-slate-500">ENGINE: RAG-V3-ALPHA</span>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <p className="text-base text-slate-100 leading-relaxed font-sans">
+                    {result.answer}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Internal Reasoning Section */}
+              <Card className="card-engineer border-purple-500/20 bg-purple-500/[0.02]">
+                <CardHeader className="py-3 border-b border-white/5">
+                  <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-purple-400 flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Strategic Reasoning
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <p className="text-xs text-purple-200/70 italic font-mono leading-relaxed">
+                    "{result.reasoning || 'Heuristic logic applied to retrieved chunks.'}"
+                  </p>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <div className="h-[400px] flex flex-col items-center justify-center gap-6">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full border-4 border-blue-500/10 border-t-blue-500 animate-spin"></div>
+                <div className="absolute inset-0 blur-2xl bg-blue-500/10 rounded-full animate-pulse"></div>
+              </div>
+              <div className="text-center space-y-2">
+                <div className="text-xs font-mono text-slate-400 uppercase tracking-[0.2em] animate-pulse">Scanning Vector Space</div>
+                <div className="text-[10px] font-mono text-slate-600">Retrieving Top-K Semantic Chunks...</div>
+              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Sidebar: Chunks & Metadata */}
+        <div className="col-span-12 lg:col-span-4 space-y-6">
+          {result?.debug && (
+            <Card className="card-engineer bg-black/40 border-slate-800">
+              <CardHeader className="py-3 border-b border-white/5">
+                <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Pipeline Telemetry
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3 font-mono text-[10px]">
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-slate-500">RETRIEVAL ENGINE:</span>
+                  <span className="text-blue-400">AZURE SEARCH</span>
+                </div>
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-slate-500">LATENCY:</span>
+                  <span className="text-emerald-500">{result.debug.latency_ms}ms</span>
+                </div>
+                <div className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-slate-500">MODEL_ID:</span>
+                  <span className="text-amber-500">{result.debug.model}</span>
+                </div>
+                <div className="flex justify-between pb-2 text-[11px] text-white font-bold">
+                  <span className="text-slate-500">TOKENS:</span>
+                  <span>{result.debug.tokens || 'N/A'}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {result?.sources && result.sources.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <Layers className="w-3 h-3" />
+                Semantic Source Chunks
+              </h4>
+              {result.sources.map((src: any, i: number) => (
+                <Card key={i} className="card-engineer bg-white/[0.01] border-white/5 group hover:border-blue-500/30">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-[9px] font-mono text-blue-500 uppercase tracking-tight font-bold truncate max-w-[150px]">
+                        FILE: {src.file_name}
+                      </div>
+                      <div className="text-[9px] font-mono text-slate-600 bg-white/5 px-1.5 py-0.5 rounded">
+                        SCORE: {src.score?.toFixed(3) || '0.00'}
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 line-clamp-3 leading-relaxed group-hover:text-slate-300 transition-colors">
+                      "{src.content_preview}"
+                    </p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

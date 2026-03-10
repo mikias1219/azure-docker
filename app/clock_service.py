@@ -117,16 +117,26 @@ class ClockService:
             entities = prediction.get("entities", [])
             
             # Process the intent
+            start_time = datetime.now()
             response = await self._process_intent(top_intent, entities, query)
+            end_time = datetime.now()
             
             intents_list = [
                 {"intent": i.get("category") or i.get("intent") or "Unknown", "confidence": i.get("confidenceScore", 0.0)}
                 for i in intents
             ]
+            
+            confidence = intents[0].get("confidenceScore", 0.0) if intents else 0.0
+            reasoning = f"Matched intent '{top_intent}' with {confidence*100:.1f}% confidence. "
+            if entities:
+                reasoning += f"Extracted entities: {', '.join([e.get('category','') for e in entities])}."
+            else:
+                reasoning += "No specific entities extracted; using default context."
+
             return {
                 "query": query,
                 "top_intent": top_intent,
-                "confidence": intents[0].get("confidenceScore", 0.0) if intents else 0.0,
+                "confidence": confidence,
                 "intents": intents_list,
                 "entities": [
                     {
@@ -139,6 +149,13 @@ class ClockService:
                     for e in entities
                 ],
                 "response": response,
+                "reasoning": reasoning,
+                "debug": {
+                    "project": self.project_name,
+                    "deployment": self.deployment_name,
+                    "latency_ms": int((end_time - start_time).total_seconds() * 1000),
+                    "timestamp": datetime.now().isoformat()
+                },
                 "raw_result": prediction
             }
         except Exception as e:

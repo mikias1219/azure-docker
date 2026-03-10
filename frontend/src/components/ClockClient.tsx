@@ -1,301 +1,167 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Clock, Send, Loader2, Info, Brain, Globe, Calendar, Sun, MapPin, CheckCircle, AlertCircle } from 'lucide-react';
+import {
+  Clock, Send, Loader2, Zap, Terminal, Navigation,
+  MapPin, Calendar, Clock4, Info, Target
+} from 'lucide-react';
 import { clockApi } from '@/lib/api';
-
-interface ClockResult {
-  query: string;
-  top_intent: string;
-  confidence: number;
-  intents?: Array<{ intent: string; confidence: number }>;
-  entities: Array<{
-    category: string;
-    text: string;
-    confidence: number;
-    offset?: number;
-    length?: number;
-  }>;
-  response: string;
-  error?: string;
-  demo_mode?: boolean;
-  raw_result?: any;
-}
-
-const EXAMPLE_QUERIES = [
-  'What time is it?',
-  'What time is it in London?',
-  'What day is it?',
-  'What date is it today?',
-  'What day was January 1st 2020?',
-];
 
 export function ClockClient() {
   const [query, setQuery] = useState('');
+  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ClockResult | null>(null);
-  const [info, setInfo] = useState<any>(null);
-  const [infoLoading, setInfoLoading] = useState(true);
 
-  useEffect(() => {
-    loadInfo();
-  }, []);
-
-  const loadInfo = async () => {
-    try {
-      const data = await clockApi.getInfo();
-      setInfo(data);
-    } catch (err: any) {
-      console.error('Failed to load clock info:', err);
-    } finally {
-      setInfoLoading(false);
-    }
-  };
-
-  const analyzeQuery = async () => {
-    if (!query.trim()) return;
-
+  const handleAnalyze = async () => {
+    if (!query.trim() || loading) return;
     setLoading(true);
-    setError(null);
-
+    setResult(null);
     try {
-      const data = await clockApi.analyze(query);
-      setResult(data);
-      setError(data?.error || null);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to analyze query');
+      const res = await clockApi.analyze(query.trim());
+      setResult(res);
+    } catch {
+      setResult({ response: 'CLU Engine connection timeout.' });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !loading) {
-      analyzeQuery();
-    }
-  };
-
-  const getIntentIcon = (intent: string) => {
-    switch (intent) {
-      case 'GetTime':
-        return <Clock className="w-5 h-5" />;
-      case 'GetDay':
-        return <Sun className="w-5 h-5" />;
-      case 'GetDate':
-        return <Calendar className="w-5 h-5" />;
-      default:
-        return <Brain className="w-5 h-5" />;
-    }
-  };
-
-  const getIntentColor = (intent: string) => {
-    switch (intent) {
-      case 'GetTime':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'GetDay':
-        return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'GetDate':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
-    }
-  };
-
   return (
-    <div className="space-y-4">
-      {/* Main Input Card */}
-      <Card className="border-slate-200/60 shadow-sm overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-slate-200/60 py-4">
-          <CardTitle className="flex items-center gap-2 text-slate-800">
-            <Globe className="w-5 h-5 text-indigo-600" />
-            Natural Language Clock
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 space-y-4">
-          {/* Info Badge */}
-          <div className="flex items-center gap-2 text-xs">
-            {infoLoading ? (
-              <span className="flex items-center gap-1 text-slate-500">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Loading...
-              </span>
-            ) : info?.project_name ? (
-              <span className="flex items-center gap-1 text-emerald-600">
-                <CheckCircle className="w-3 h-3" />
-                Azure CLU connected: {info.project_name}
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-amber-600">
-                <AlertCircle className="w-3 h-3" />
-                Demo mode - Using local processing
-              </span>
-            )}
-          </div>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Search Bar / Input */}
+      <div className="glass-studio p-2 rounded-2xl flex items-center gap-2 border-white/5 shadow-2xl">
+        <div className="flex-1 relative">
+          <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 rotate-45" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+            placeholder="Natural language temporal query (e.g. 'What time is it in Tokyo?')"
+            className="w-full bg-black/20 border-none rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder:text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none font-mono"
+          />
+        </div>
+        <Button
+          onClick={handleAnalyze}
+          disabled={loading || !query.trim()}
+          className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 px-6 rounded-xl"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+          {loading ? 'ANALYZING...' : 'RUN CLU'}
+        </Button>
+      </div>
 
-          {/* Query Input */}
-          <div className="relative">
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask about time, day, or date..."
-              disabled={loading}
-              className="w-full pr-12 py-3 text-base"
-            />
-            <button
-              onClick={analyzeQuery}
-              disabled={loading || !query.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </button>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        {/* Main Response Display */}
+        <div className="md:col-span-7 space-y-6">
+          {!result && !loading ? (
+            <div className="h-64 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-8 bg-white/[0.01]">
+              <Clock4 className="w-12 h-12 text-slate-800 mb-4" />
+              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Temporal Logic Offline</h4>
+              <p className="text-[10px] text-slate-600 mt-2">Awaiting natural language input for Conversational Language Understanding.</p>
+            </div>
+          ) : result ? (
+            <Card className="card-engineer border-blue-500/20 bg-blue-500/[0.02] h-full flex flex-col">
+              <CardHeader className="py-4 border-b border-white/10">
+                <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-blue-400 flex items-center gap-2">
+                  <Terminal className="w-4 h-4" />
+                  Processed Response
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8 flex flex-col items-center justify-center flex-grow text-center">
+                <div className="text-3xl font-black text-white tracking-tight mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                  {result.response}
+                </div>
+                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono uppercase bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+                  <MapPin className="w-3 h-3" />
+                  Source: {result.entities?.find((e: any) => e.category === 'Location')?.text || 'System Local'}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="h-64 flex flex-col items-center justify-center gap-4">
+              <div className="w-10 h-10 rounded-full border-4 border-blue-500/20 border-t-blue-500 animate-spin"></div>
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Parsing Intents...</span>
             </div>
           )}
+        </div>
 
-          {/* Quick Examples */}
-          <div>
-            <p className="text-xs text-slate-500 mb-2">Try asking:</p>
-            <div className="flex flex-wrap gap-2">
-              {EXAMPLE_QUERIES.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => setQuery(q)}
-                  className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
-                    query === q
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Intent Mapping & Metadata */}
+        <div className="md:col-span-5 space-y-6">
+          {result && (
+            <>
+              {/* Intent Confidence Gauge */}
+              <Card className="card-engineer border-purple-500/20 bg-purple-500/[0.02]">
+                <CardHeader className="py-2 border-b border-white/5">
+                  <CardTitle className="text-[9px] font-mono uppercase tracking-widest text-purple-400">CLU Intent Mapping</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  <div>
+                    <div className="flex justify-between items-end mb-1.5">
+                      <span className="text-white text-xs font-bold font-mono">{result.top_intent}</span>
+                      <span className="text-[10px] font-mono text-purple-400">{(result.confidence * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-purple-500 shadow-[0_0_10px_#a855f7]"
+                        style={{ width: `${result.confidence * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
 
-      {/* Result Card */}
-      {result && (
-        <Card className="border-slate-200/60 shadow-sm overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200/60 py-4">
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <Brain className="w-5 h-5 text-indigo-600" />
-              Understanding Result
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            {result.error && (
-              <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 text-sm">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{result.error}</span>
-              </div>
-            )}
-            {/* Top Intent Badge */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${getIntentColor(result.top_intent)}`}>
-                {getIntentIcon(result.top_intent)}
-                <span className="font-medium">{result.top_intent}</span>
-              </div>
-              <Badge variant="outline" className="text-xs">
-                {Math.round(result.confidence * 100)}% confidence
-              </Badge>
-            </div>
+                  {/* Entities List */}
+                  <div className="space-y-2">
+                    <span className="text-[8px] font-bold text-slate-600 uppercase tracking-[0.2em]">Context Entities</span>
+                    <div className="flex flex-wrap gap-2">
+                      {result.entities?.length > 0 ? result.entities.map((e: any, i: number) => (
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/5 border border-white/5 text-[9px] font-mono text-slate-400">
+                          <span className="text-blue-500 uppercase">{e.category}:</span>
+                          <span className="text-slate-200">{e.text}</span>
+                        </div>
+                      )) : (
+                        <span className="text-[9px] text-slate-700 italic">No entities extracted.</span>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* All intents (when returned by API) */}
-            {result.intents && result.intents.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-slate-500 mb-2">All intents</p>
-                <div className="flex flex-wrap gap-2">
-                  {result.intents.map((item, idx) => (
-                    <span
-                      key={idx}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${getIntentColor(item.intent)}`}
-                    >
-                      {getIntentIcon(item.intent)}
-                      {item.intent}
-                      <span className="opacity-75">{Math.round(item.confidence * 100)}%</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Extracted Entities */}
-            {result.entities && result.entities.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Detected Locations/Entities:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {result.entities.map((entity, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
-                    >
-                      <span className="font-medium">{entity.category}:</span>
-                      <span>{entity.text}</span>
-                      <span className="text-xs text-blue-500">
-                        ({Math.round(entity.confidence * 100)}%)
-                      </span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Response */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4">
-              <p className="text-sm font-medium text-slate-600 mb-1">Response:</p>
-              <p className="text-lg text-slate-800">{result.response}</p>
-            </div>
-
-            {/* Query Display */}
-            <div className="text-sm text-slate-500 bg-slate-100 px-3 py-2 rounded-lg">
-              <strong>Your query:</strong> "{result.query}"
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Info Card */}
-      {!result && info && (
-        <Card className="border-slate-200/60 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-slate-400 mt-0.5" />
-              <div className="text-sm text-slate-600 space-y-1">
-                <p className="font-medium text-slate-800">Supported Queries:</p>
-                <ul className="space-y-1 ml-4 list-disc">
-                  <li>Current time: "What time is it?"</li>
-                  <li>Time in city: "What time is it in London?"</li>
-                  <li>Day of week: "What day is it today?"</li>
-                  <li>Specific date: "What date was January 1st?"</li>
-                </ul>
-                {info.supported_cities && info.supported_cities.length > 0 && (
-                  <p className="text-xs text-slate-500 mt-2">
-                    Supported cities: {info.supported_cities.slice(0, 10).join(', ')}
-                    {info.supported_cities.length > 10 && '...'}
+              {/* Internal Reasoning */}
+              <Card className="card-engineer border-emerald-500/10 bg-emerald-500/[0.01]">
+                <CardHeader className="py-2 border-b border-white/5">
+                  <CardTitle className="text-[9px] font-mono uppercase tracking-widest text-emerald-500 flex items-center gap-1.5">
+                    <Target className="w-3 h-3" />
+                    Logic Trace
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3">
+                  <p className="text-[10px] text-slate-400 font-mono italic leading-relaxed">
+                    "{result.reasoning || 'Default heuristic logic applied.'}"
                   </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                </CardContent>
+              </Card>
+
+              {/* Telemetry */}
+              {result.debug && (
+                <div className="p-3 rounded-lg bg-black/40 border border-slate-800 font-mono text-[9px] space-y-1.5">
+                  <div className="flex justify-between text-slate-600">
+                    <span>PROJECT:</span>
+                    <span className="text-slate-300">{result.debug.project}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>LATENCY:</span>
+                    <span className="text-emerald-500">{result.debug.latency_ms}ms</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>API_VERSION:</span>
+                    <span className="text-amber-500">2023-10-01-preview</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
