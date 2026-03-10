@@ -109,6 +109,11 @@ export default function DashboardPage() {
     return result;
   };
 
+  const handleSelectDocument = (doc: any) => {
+    setSelectedDocument(doc);
+    addLog('info', 'System', `Context switch: Analyzing ${doc.filename}`);
+  };
+
   const closeWizard = () => {
     setShowWizard(false);
     localStorage.setItem('ai_studio_wizard_seen', 'true');
