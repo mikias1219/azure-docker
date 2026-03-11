@@ -14,11 +14,12 @@ import { AIVision } from '@/components/AIVision';
 import { InfoExtraction } from '@/components/InfoExtraction';
 import { KnowledgeMining } from '@/components/KnowledgeMining';
 import { RAGQA } from '@/components/RAGQA';
+import { SpeechClient } from '@/components/SpeechClient';
 import {
   FileText, LogOut, Brain, Languages, Sparkles, Clock, FolderOpen, X,
   Search, FileImage, CheckCircle, AlertCircle, ScanLine, Database,
   MessageSquare, Terminal, Activity, ChevronUp, ChevronDown, ListFilter,
-  HelpCircle, ChevronRight, Zap, ShieldCheck, Box
+  HelpCircle, ChevronRight, Zap, ShieldCheck, Box, Mic, Cpu
 } from 'lucide-react';
 import { servicesApi, type ServicesStatus } from '@/lib/api';
 
@@ -36,7 +37,7 @@ export default function DashboardPage() {
   const { documents, loading, uploadDocument, getDocument, fetchDocuments } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'documents' | 'text-analytics' | 'qna' | 'clock' | 'vision' | 'info-extraction' | 'knowledge' | 'rag'>('documents');
+  const [activeTab, setActiveTab] = useState<'documents' | 'text-analytics' | 'speech' | 'vision' | 'knowledge' | 'rag'>('documents');
   const [isClient, setIsClient] = useState(false);
   const [servicesStatus, setServicesStatus] = useState<ServicesStatus | null>(null);
 
@@ -133,14 +134,12 @@ export default function DashboardPage() {
   if (!user) return null;
 
   const tabs = [
-    { id: 'documents', label: '1. Ingest', icon: FolderOpen, desc: 'Source Aggregation' },
-    { id: 'text-analytics', label: '2. Audit', icon: Languages, desc: 'Linguistic Logic' },
-    { id: 'qna', label: '3. Reasoning', icon: Sparkles, desc: 'LLM Inference' },
-    { id: 'rag', label: '4. Memory', icon: MessageSquare, desc: 'Vector Context' },
-    { id: 'knowledge', label: '5. Mining', icon: Database, desc: 'Hybrid Discovery' },
-    { id: 'vision', label: '6. Spatial', icon: FileImage, desc: 'Visual Parsing' },
-    { id: 'info-extraction', label: '7. Schema', icon: ScanLine, desc: 'Structured OCR' },
-    { id: 'clock', label: '8. Temporal', icon: Clock, desc: 'CLU Intentions' },
+    { id: 'documents', label: 'Document Intelligence', icon: ScanLine, desc: 'Form & Field Extraction' },
+    { id: 'vision', label: 'AI Vision', icon: FileImage, desc: 'Spatial Image Audit' },
+    { id: 'text-analytics', label: 'AI Language', icon: Languages, desc: 'Linguistic Logic & CLU' },
+    { id: 'speech', label: 'AI Speech', icon: Mic, desc: 'Audio Transcription & TTS' },
+    { id: 'knowledge', label: 'AI Search', icon: Database, desc: 'Indexing & Mining' },
+    { id: 'rag', label: 'Azure OpenAI', icon: Brain, desc: 'RAG & Strategic reasoning' },
   ];
 
   const wizardSteps = [
@@ -157,15 +156,15 @@ export default function DashboardPage() {
       color: "bg-purple-600"
     },
     {
-      title: "Phase 2: Logic Audit",
-      desc: "Use the 'Audit' and 'Spatial' tabs to see how the model 'thinks'. Every response includes 'Technical Reasoning' and 'Performance Telemetry'.",
-      icon: Brain,
+      title: "6 Neural Dimensions",
+      desc: "Our architecture is now strictly aligned with Azure's 6 core AI pillars. Each service operates independently with deep logic auditing.",
+      icon: Box,
       color: "bg-emerald-600"
     },
     {
-      title: "Phase 3: Global Memory (RAG)",
-      desc: "Ingest your docs into the Vector Store to chat with your knowledge base across the entire platform. Real-time hybrid search ensures precision.",
-      icon: Database,
+      title: "Audio Intelligence",
+      desc: "New: Azure AI Speech is now live. Upload audio for transcription or synthesize text to neural speech directly from the dashboard.",
+      icon: Mic,
       color: "bg-amber-600"
     }
   ];
@@ -257,24 +256,38 @@ export default function DashboardPage() {
           <aside className="w-56 flex-shrink-0 hidden lg:block">
             <div className="sticky top-28 space-y-1.5">
               <h3 className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4 px-3 flex items-center gap-2">
-                <Box className="w-3 h-3" /> Core Pipeline
+                <Box className="w-3 h-3" /> Core AI Pillars
               </h3>
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === (tab.id as any);
+                const isLive = servicesStatus ? (
+                  tab.id === 'documents' ? servicesStatus.document_intelligence :
+                    tab.id === 'vision' ? servicesStatus.vision :
+                      tab.id === 'text-analytics' ? servicesStatus.text_analytics :
+                        tab.id === 'speech' ? servicesStatus.speech :
+                          tab.id === 'knowledge' ? servicesStatus.search :
+                            tab.id === 'rag' ? servicesStatus.rag : false
+                ) : false;
+
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group relative ${isActive
-                      ? 'bg-blue-600/10 text-blue-400 border border-blue-500/10 shadow-lg'
-                      : 'text-slate-500 hover:text-white hover:bg-white/[0.03]'
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-500 group relative ${isActive
+                      ? 'bg-blue-600/10 text-white border border-blue-500/20 shadow-[0_0_20px_rgba(37,99,235,0.1)]'
+                      : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.02]'
                       }`}
                   >
-                    {isActive && <div className="absolute left-0 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_10px_#3b82f6]"></div>}
-                    <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-blue-500' : 'group-hover:text-white'}`} />
-                    <div className="text-left">
-                      <div className={`text-[11px] font-black leading-tight uppercase tracking-tight ${isActive ? 'text-white' : ''}`}>{tab.label}</div>
+                    {isActive && <div className="absolute left-0 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_15px_#3b82f6]"></div>}
+                    <div className={`p-2 rounded-xl transition-all duration-500 ${isActive ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="text-left flex-grow">
+                      <div className={`text-[11px] font-black leading-tight uppercase tracking-tight flex items-center justify-between`}>
+                        {tab.label}
+                        <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-amber-500/50'}`}></div>
+                      </div>
                       <div className="text-[9px] opacity-40 font-mono italic">{tab.desc}</div>
                     </div>
                   </button>
@@ -285,6 +298,19 @@ export default function DashboardPage() {
 
           {/* Dynamic Content Area */}
           <section className="flex-grow min-w-0">
+            <div className="mb-8 flex items-center justify-between bg-white/[0.01] border border-white/5 rounded-3xl p-4 px-6">
+              <div className="flex items-center gap-4">
+                <span className="text-[10px] font-mono text-slate-600 uppercase tracking-[0.2em]">Context</span>
+                <ChevronRight className="w-3 h-3 text-slate-800" />
+                <span className="text-xs font-black text-white uppercase tracking-widest italic">{tabs.find(t => t.id === activeTab)?.label} Module</span>
+              </div>
+              <div className="flex items-center gap-3 text-[10px] font-mono text-slate-500">
+                <span className="flex items-center gap-1.5"><Cpu className="w-3 h-3 text-blue-500" /> PROVISIONED</span>
+                <div className="w-1 h-1 rounded-full bg-slate-800"></div>
+                <span className="flex items-center gap-1.5 uppercase tracking-tighter">Latency: 42ms</span>
+              </div>
+            </div>
+
             <div className="grid grid-cols-12 gap-8">
               {activeTab === 'documents' && (
                 <>
@@ -355,14 +381,29 @@ export default function DashboardPage() {
                 </>
               )}
 
-              {/* Module Content Switcher */}
               <div className="col-span-12">
                 <div className="animate-fadeIn">
-                  {activeTab === 'text-analytics' && <TextAnalysis />}
-                  {activeTab === 'qna' && <QuestionAnswering />}
-                  {activeTab === 'clock' && <ClockClient />}
-                  {activeTab === 'vision' && <AIVision />}
-                  {activeTab === 'info-extraction' && <InfoExtraction />}
+                  {activeTab === 'text-analytics' && (
+                    <div className="space-y-12">
+                      <TextAnalysis />
+                      <div className="h-px bg-white/5 mx-12"></div>
+                      <QuestionAnswering />
+                      <div className="h-px bg-white/5 mx-12"></div>
+                      <ClockClient />
+                    </div>
+                  )}
+                  {activeTab === 'speech' && <SpeechClient />}
+                  {activeTab === 'vision' && (
+                    <div className="space-y-12">
+                      <AIVision />
+                    </div>
+                  )}
+                  {activeTab === 'documents' && selectedDocument && (
+                    <div className="mt-12">
+                      <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-6 px-4">Neural Field Extraction</h3>
+                      <InfoExtraction />
+                    </div>
+                  )}
                   {activeTab === 'knowledge' && <KnowledgeMining />}
                   {activeTab === 'rag' && <RAGQA />}
                 </div>

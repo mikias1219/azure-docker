@@ -67,6 +67,19 @@ if [ -n "$SEARCH_NAME" ]; then
   mask_and_export "AZURE_SEARCH_ENDPOINT" "$SEARCH_EP"
   mask_and_export "AZURE_SEARCH_KEY" "$SEARCH_KEY"
 fi
+mask_and_export "AZURE_SEARCH_INDEX_NAME" "${AZURE_SEARCH_INDEX_NAME:-ai102-index}"
 mask_and_export "AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME" "${AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME:-text-embedding-ada-002}"
+
+# Azure AI Speech
+for SPEECH_NAME in ai-speech-ai102 docint-speech-service; do
+  AI_SPEECH_EP=$(az cognitiveservices account show --name "$SPEECH_NAME" --resource-group "$RESOURCE_GROUP" --query "properties.endpoint" -o tsv 2>/dev/null || true)
+  AI_SPEECH_KEY=$(az cognitiveservices account keys list --name "$SPEECH_NAME" --resource-group "$RESOURCE_GROUP" --query "key1" -o tsv 2>/dev/null || true)
+  AI_SPEECH_REGION=$(az cognitiveservices account show --name "$SPEECH_NAME" --resource-group "$RESOURCE_GROUP" --query "location" -o tsv 2>/dev/null || true)
+  if [ -n "$AI_SPEECH_KEY" ]; then
+    mask_and_export "AZURE_SPEECH_KEY" "$AI_SPEECH_KEY"
+    mask_and_export "AZURE_SPEECH_REGION" "$AI_SPEECH_REGION"
+    break
+  fi
+done
 
 echo "Credentials exported to GITHUB_ENV (or echoed if not in GHA)."

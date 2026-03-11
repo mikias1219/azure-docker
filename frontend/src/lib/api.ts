@@ -179,8 +179,9 @@ export interface ServicesStatus {
   qna: boolean;
   clock: boolean;
   vision: boolean;
-  search?: boolean;
-  rag?: boolean;
+  search: boolean;
+  rag: boolean;
+  speech: boolean;
 }
 
 export const servicesApi = {
@@ -310,6 +311,21 @@ export const ragApi = {
     // Make Q&A resilient: ensure index exists first
     try { await ragApi.ensureIndex(); } catch { }
     const response = await api.post('/api/rag/ask', { question });
+    return response.data;
+  },
+};
+
+export const speechApi = {
+  transcribe: async (file: File): Promise<any> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/speech/transcribe', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+  synthesize: async (text: string): Promise<any> => {
+    const response = await api.post('/api/speech/synthesize', { text });
     return response.data;
   },
 };

@@ -136,6 +136,28 @@ else
   log_ok "Created Azure AI Search: $SEARCH_NAME"
 fi
 
+# 8. Azure AI Speech
+SPEECH_EXISTS=""
+for SN in ai-speech-ai102 docint-speech-service; do
+  if az cognitiveservices account show --name "$SN" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+    log_ok "Azure AI Speech already exists: $SN"
+    SPEECH_EXISTS="true"
+    break
+  fi
+done
+
+if [ -z "$SPEECH_EXISTS" ]; then
+  log_info "Creating Azure AI Speech: ai-speech-ai102"
+  az cognitiveservices account create \
+    --name ai-speech-ai102 \
+    --resource-group "$RESOURCE_GROUP" \
+    --location "$LOCATION" \
+    --kind SpeechServices \
+    --sku S0 \
+    --yes --output none
+  log_ok "Created Azure AI Speech"
+fi
+
 echo ""
 log_ok "All Azure services are ready."
 echo ""

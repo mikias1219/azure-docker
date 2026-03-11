@@ -72,6 +72,11 @@ try:
 except Exception as e:
     logger.warning("info_extraction_service import failed: %s", e)
     info_extraction_service = None  # type: ignore
+try:
+    from app.speech_service import speech_service
+except Exception as e:
+    logger.warning("speech_service import failed: %s", e)
+    speech_service = None  # type: ignore
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -176,6 +181,7 @@ async def services_status(current_user: models.User = Depends(get_current_user))
         search_service and getattr(search_service, "is_configured", lambda: False)()
         and rag_service and rag_service.get_embedding_deployment()
     )
+    def _speech(): return speech_service is not None and speech_service.speech_config is not None
     return {
         "document_intelligence": _doc(),
         "openai": _openai(),
@@ -185,6 +191,7 @@ async def services_status(current_user: models.User = Depends(get_current_user))
         "vision": _vision(),
         "search": _search(),
         "rag": _rag(),
+        "speech": _speech(),
     }
 
 # Authentication endpoints
@@ -654,6 +661,47 @@ async def info_extraction_analyze(
     except Exception as e:
         logger.exception("Info extraction failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------- Azure AI Speech (Transcription & Synthesis) ----------
+@app.post("/api/speech/transcribe", response_model=dict)
+async def speech_transcribe(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Transcribe an uploaded audio file using Azure AI Speech."""
+    if not speech_service:
+        return {"error": "Speech service not initialized", "text": ""}
+    
+    # Save temp file
+    temp_dir = Path("temp_audio")
+    temp_dir.mkdir(exist_ok=True)
+    temp_path = temp_dir / file.filename
+    with open(temp_path, "wb") as buffer:
+        import shutil
+        shutil.copyfileobj(file.file, buffer)
+    
+    try:
+        result = await speech_service.transcribe_audio(str(temp_path))
+        return result
+    finally:
+        if temp_path.exists():
+            os.remove(temp_path)
+
+@app.post("/api/speech/synthesize", response_model=dict)
+async def speech_synthesize(
+    body: dict,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Synthesize text to speech using Azure AI Speech."""
+    if not speech_service:
+        return {"error": "Speech service not initialized"}
+    text = body.get("text", "").strip()
+    if not text:
+        return {"error": "No text provided for synthesis"}
+    
+    result = await speech_service.synthesize_speech(text)
+    return result
 
 
 # ---------- Knowledge Mining (Azure AI Search keyword search) ----------
