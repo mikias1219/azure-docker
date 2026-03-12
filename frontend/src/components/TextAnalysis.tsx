@@ -13,6 +13,9 @@ export function TextAnalysis() {
   const [loading, setLoading] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
 
+  const keyPhrases: string[] = Array.isArray(result?.key_phrases) ? result.key_phrases : [];
+  const entities: any[] = Array.isArray(result?.entities) ? result.entities : [];
+
   const handleAnalyze = async () => {
     if (!text.trim() || loading) return;
     setLoading(true);
@@ -134,11 +137,15 @@ export function TextAnalysis() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-4 flex flex-wrap gap-2">
-                      {result.key_phrases?.map((p: string, i: number) => (
-                        <span key={i} className="text-[10px] font-mono bg-white/5 border border-white/5 px-2 py-1 rounded text-slate-300">
-                          {p}
-                        </span>
-                      ))}
+                      {keyPhrases.length > 0 ? (
+                        keyPhrases.map((p: string, i: number) => (
+                          <span key={i} className="text-[10px] font-mono bg-white/5 border border-white/5 px-2 py-1 rounded text-slate-300">
+                            {p}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[10px] text-slate-600">No key phrases returned.</span>
+                      )}
                     </CardContent>
                   </Card>
 
@@ -152,15 +159,21 @@ export function TextAnalysis() {
                     </CardHeader>
                     <CardContent className="p-0 max-h-48 overflow-y-auto">
                       <div className="divide-y divide-white/5">
-                        {result.entities?.map((e: any, i: number) => (
-                          <div key={i} className="flex items-center justify-between p-3 hover:bg-white/[0.02]">
-                            <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-bold text-purple-400 font-mono w-24">[{e.category}]</span>
-                              <span className="text-xs text-white font-medium">{e.text}</span>
+                        {entities.length > 0 ? (
+                          entities.map((e: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between p-3 hover:bg-white/[0.02]">
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-bold text-purple-400 font-mono w-24">[{e?.category ?? 'Entity'}]</span>
+                                <span className="text-xs text-white font-medium">{e?.text ?? String(e ?? '')}</span>
+                              </div>
+                              <span className="text-[9px] font-mono text-slate-600">
+                                {typeof e?.confidenceScore === 'number' ? `${(e.confidenceScore * 100).toFixed(0)}%` : '--'}
+                              </span>
                             </div>
-                            <span className="text-[9px] font-mono text-slate-600">{(e.confidenceScore * 100).toFixed(0)}% CF</span>
-                          </div>
-                        ))}
+                          ))
+                        ) : (
+                          <div className="p-3 text-[10px] text-slate-600">No entities returned.</div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
