@@ -229,14 +229,14 @@ jobs:
           echo "Health check (exec then curl, 6x5s + 4x5s)..."
           for i in $(seq 1 6); do
             if az container exec --resource-group "$RG" --name "$CG" --container-name "$CONTAINER_NAME_ACTUAL" \
-              --exec-command "curl -sf --max-time 3 http://127.0.0.1:8000/health" 2>/dev/null; then
+              --exec-command "curl -sf --max-time 3 http://127.0.0.1:8000/health | python3 -c 'import sys,json; data=sys.stdin.read(); obj=json.loads(data); sys.exit(0 if obj.get(\"status\")==\"healthy\" else 1)'" 2>/dev/null; then
               echo "Health OK (exec, attempt $i)."
               exit 0
             fi
             sleep 5
           done
           for i in $(seq 1 4); do
-            if [ -n "$CONTAINER_IP" ] && curl -sf --connect-timeout 5 --max-time 8 "http://$CONTAINER_IP:8000/health" >/dev/null; then
+            if [ -n "$CONTAINER_IP" ] && curl -sf --connect-timeout 5 --max-time 8 "http://$CONTAINER_IP:8000/health" | python3 -c 'import sys,json; data=sys.stdin.read(); obj=json.loads(data); sys.exit(0 if obj.get(\"status\")==\"healthy\" else 1)'; then
               echo "Health OK (curl, attempt $i)."
               exit 0
             fi

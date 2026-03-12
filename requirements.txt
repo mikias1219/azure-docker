@@ -14,6 +14,7 @@ python-jose[cryptography]
 python-multipart
 email-validator
 pydantic[email]
+pydantic-settings
 
 # Azure services
 azure-ai-formrecognizer
