@@ -11,14 +11,14 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0b10] disabled:pointer-events-none disabled:opacity-50',
+          'inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50 disabled:pointer-events-none disabled:opacity-50',
           {
             'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20': variant === 'default',
             'bg-red-600 text-white hover:bg-red-500': variant === 'destructive',
-            'border border-white/10 bg-transparent text-slate-200 hover:bg-white/5': variant === 'outline',
-            'bg-white/10 text-slate-200 hover:bg-white/15': variant === 'secondary',
-            'text-slate-300 hover:bg-white/5 hover:text-white': variant === 'ghost',
-            'text-blue-400 underline-offset-4 hover:underline hover:text-blue-300': variant === 'link',
+            'border border-slate-200 bg-white text-slate-900 hover:bg-slate-50': variant === 'outline',
+            'bg-slate-100 text-slate-900 hover:bg-slate-200': variant === 'secondary',
+            'text-slate-700 hover:bg-slate-100 hover:text-slate-900': variant === 'ghost',
+            'text-blue-700 underline-offset-4 hover:underline hover:text-blue-800': variant === 'link',
           },
           {
             'h-10 px-4 py-2': size === 'default',

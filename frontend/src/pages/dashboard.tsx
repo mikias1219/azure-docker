@@ -150,8 +150,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0b10] text-slate-200 mesh-accent-1 relative overflow-x-hidden">
-      <div className="scanline"></div>
+    <div className="min-h-screen bg-slate-50 text-slate-900 mesh-accent-1 relative overflow-x-hidden">
 
       {/* Wizard Overlay */}
       {showWizard && (
@@ -198,16 +197,16 @@ export default function DashboardPage() {
               <Brain className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="font-semibold text-white tracking-tight">Azure AI Solution</div>
-              <div className="text-[10px] text-slate-500">Exam AI-102 — Designing and Implementing a Microsoft Azure AI Solution</div>
+              <div className="font-semibold text-slate-900 tracking-tight">Azure AI Solution</div>
+              <div className="text-[10px] text-slate-600">Exam AI-102 — Designing and Implementing a Microsoft Azure AI Solution</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => setShowWizard(true)} className="text-slate-400 hover:text-white text-xs">
+            <Button variant="ghost" size="sm" onClick={() => setShowWizard(true)} className="text-slate-600 hover:text-slate-900 text-xs">
               <HelpCircle className="w-4 h-4 mr-1.5" /> Get started
             </Button>
-            <span className="text-xs text-slate-400 hidden sm:inline">{user.username}</span>
-            <button onClick={logout} className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-colors" title="Sign out">
+            <span className="text-xs text-slate-600 hidden sm:inline">{user.username}</span>
+            <button onClick={logout} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-slate-900 transition-colors" title="Sign out">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -239,18 +238,18 @@ export default function DashboardPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-500 group relative ${isActive
-                      ? 'bg-blue-600/10 text-white border border-blue-500/20 shadow-[0_0_20px_rgba(37,99,235,0.1)]'
-                      : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.02]'
+                      ? 'bg-blue-50 text-slate-900 border border-blue-200'
+                      : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
                       }`}
                   >
-                    {isActive && <div className="absolute left-0 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_15px_#3b82f6]"></div>}
-                    <div className={`p-2 rounded-xl transition-all duration-500 ${isActive ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                    {isActive && <div className="absolute left-0 w-1 h-6 bg-blue-600 rounded-r-full"></div>}
+                    <div className={`p-2 rounded-xl transition-all duration-500 ${isActive ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-200 group-hover:bg-slate-50'}`}>
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="text-left flex-grow">
                       <div className={`text-[11px] font-black leading-tight uppercase tracking-tight flex items-center justify-between`}>
                         {tab.label}
-                        <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-amber-500/50'}`}></div>
+                        <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-600' : 'bg-amber-500'}`}></div>
                       </div>
                       <div className="text-[9px] opacity-40 font-mono italic">{tab.desc}</div>
                     </div>
@@ -272,7 +271,7 @@ export default function DashboardPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'}`}
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {tab.label}
@@ -284,48 +283,48 @@ export default function DashboardPage() {
             {activeTab === 'documents' && (
               <ServiceIntro
                 title="Document Intelligence"
-                description="Upload documents, extract text with Azure Form Recognizer, and ask questions. Select a document to view extracted text, AI analysis, and field extraction (business cards, invoices)."
-                steps={['Upload or select a document', 'View extracted text and analysis', 'Use Info Extraction (below) for structured fields']}
+                description="Practice exercise: upload a document, extract text/structure, then review the extracted content and run structured extraction (invoice/business card)."
+                steps={['Upload a document', 'Open it from the list', 'Review extracted text + analysis', 'Run structured extraction (Invoice/Business Card) if needed']}
                 isLive={!!servicesStatus?.document_intelligence}
               />
             )}
             {activeTab === 'vision' && (
               <ServiceIntro
                 title="Computer Vision"
-                description="Analyze images with Azure AI Vision: captions, tags, object detection, and OCR. Upload an image, select options, and view the response."
-                steps={['Upload an image', 'Choose features (caption, tags, objects, OCR)', 'View response']}
+                description="Practice exercise: upload an image, select features (caption/tags/objects/OCR), then run analysis and inspect results."
+                steps={['Upload an image', 'Choose features', 'Run', 'Review results (and OCR text if selected)']}
                 isLive={!!servicesStatus?.vision}
               />
             )}
             {activeTab === 'text-analytics' && (
               <ServiceIntro
                 title="Natural Language Processing"
-                description="Text Analytics (language, sentiment, key phrases, entities), Question Answering, and Conversational Language Understanding (Clock)."
-                steps={['Enter text or a question', 'Run analysis', 'View response']}
+                description="Practice exercises: run Text Analytics (sentiment/entities/key phrases), ask a question with QnA, and test intent recognition with CLU (Clock)."
+                steps={['Enter text or a question', 'Run', 'Review response and confidence/metadata']}
                 isLive={!!servicesStatus?.text_analytics}
               />
             )}
             {activeTab === 'speech' && (
               <ServiceIntro
                 title="Speech"
-                description="Speech-to-text (transcription) and text-to-speech (synthesis) using Azure AI Speech."
-                steps={['Upload audio for transcription or enter text for TTS', 'Run', 'View or play response']}
+                description="Practice exercises: transcribe audio (STT) and synthesize speech from text (TTS)."
+                steps={['Upload audio or enter text', 'Run STT or TTS', 'Review transcript or play audio']}
                 isLive={!!servicesStatus?.speech}
               />
             )}
             {activeTab === 'knowledge' && (
               <ServiceIntro
                 title="Knowledge Mining"
-                description="Keyword search over your indexed content using Azure AI Search. Ingest documents via the RAG service first to populate the index."
-                steps={['Enter search query', 'Run search', 'View matching documents']}
+                description="Practice exercise: search your indexed content with Azure AI Search. (Tip: ingest documents via RAG first to populate the index.)"
+                steps={['Enter a search query', 'Run search', 'Inspect matching documents and fields']}
                 isLive={!!servicesStatus?.search}
               />
             )}
             {activeTab === 'rag' && (
               <ServiceIntro
                 title="Generative AI (RAG)"
-                description="Ask questions over your documents. The app retrieves relevant chunks from the index and generates an answer using Azure OpenAI."
-                steps={['Enter a question', 'Run', 'View answer and sources']}
+                description="Practice exercise: ingest a document, then ask questions. The app retrieves sources from the index and answers with Azure OpenAI."
+                steps={['Ingest a document', 'Ask a question', 'Review answer + sources']}
                 isLive={!!servicesStatus?.rag}
               />
             )}

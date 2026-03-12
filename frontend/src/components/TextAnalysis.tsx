@@ -36,8 +36,8 @@ export function TextAnalysis() {
         {/* Input Pane */}
         <div className="col-span-12 lg:col-span-5 space-y-6">
           <p className="text-xs text-slate-500">Step 1: Paste text below. Step 2: Click &quot;Run linguistic audit&quot;. Step 3: See response (language, sentiment, phrases, entities) on the right.</p>
-          <Card className="card-engineer border-blue-500/20 bg-blue-500/[0.02]">
-            <CardHeader className="py-4 border-b border-white/5">
+          <Card className="card-engineer border-blue-200 bg-blue-50/40">
+            <CardHeader className="py-4 border-b border-slate-200">
               <CardTitle className="text-xs font-mono uppercase tracking-widest text-blue-400 flex items-center gap-2">
                 <Terminal className="w-4 h-4" />
                 Enter text
@@ -48,7 +48,7 @@ export function TextAnalysis() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Paste linguistic data for deep analysis..."
-                className="w-full h-64 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder:text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none font-mono resize-none transition-all mb-4"
+                className="w-full h-64 bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/40 outline-none font-mono resize-none transition-all mb-4"
               />
               <Button
                 onClick={handleAnalyze}
@@ -65,12 +65,12 @@ export function TextAnalysis() {
         {/* Results Pane */}
         <div className="col-span-12 lg:col-span-7 space-y-6">
           {result?.error && (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
               {result.error}
             </div>
           )}
           {!result && !loading ? (
-            <div className="h-full border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
+            <div className="h-full border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white">
               <Languages className="w-16 h-16 text-slate-800 mb-6" />
               <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Step 3: Response</h4>
               <p className="text-[10px] text-slate-600 mt-2 max-w-[250px]">Analysis results will appear here after you run the audit.</p>
