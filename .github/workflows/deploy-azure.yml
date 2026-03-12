@@ -199,16 +199,30 @@ jobs:
             sleep 5
           done
 
-          # Get container IP and FQDN
-          CONTAINER_IP=$(az container show \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --name ${{ env.CONTAINER_NAME }} \
-            --query "ipAddress.ip" -o tsv)
-          
-          CONTAINER_FQDN=$(az container show \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --name ${{ env.CONTAINER_NAME }} \
-            --query "ipAddress.fqdn" -o tsv)
+          # Get container IP and FQDN (poll until assigned)
+          CONTAINER_IP=""
+          CONTAINER_FQDN=""
+          echo "Waiting for public IP/FQDN assignment (poll 5s x 36 = 3 min)..."
+          for i in $(seq 1 36); do
+            CONTAINER_IP=$(az container show \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --name ${{ env.CONTAINER_NAME }} \
+              --query "ipAddress.ip" -o tsv 2>/dev/null || echo "")
+            CONTAINER_FQDN=$(az container show \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --name ${{ env.CONTAINER_NAME }} \
+              --query "ipAddress.fqdn" -o tsv 2>/dev/null || echo "")
+            echo "  [$i] ip='$CONTAINER_IP' fqdn='$CONTAINER_FQDN'"
+            if [ -n "$CONTAINER_IP" ] || [ -n "$CONTAINER_FQDN" ]; then
+              break
+            fi
+            sleep 5
+          done
+
+          if [ -z "$CONTAINER_IP" ] && [ -z "$CONTAINER_FQDN" ]; then
+            echo "::error::Public IP/FQDN was not assigned. Container may not be reachable externally."
+            exit 1
+          fi
           
           echo "Container deployed successfully!"
           echo "IP Address: $CONTAINER_IP"
@@ -225,6 +239,7 @@ jobs:
           RG="${{ env.RESOURCE_GROUP }}"
           CG="${{ env.CONTAINER_NAME }}"
           CONTAINER_IP="${{ steps.deploy.outputs.container_ip }}"
+          CONTAINER_FQDN="${{ steps.deploy.outputs.container_fqdn }}"
           CONTAINER_NAME_ACTUAL=$(az container show --resource-group "$RG" --name "$CG" --query "containers[0].name" -o tsv 2>/dev/null || echo "document-intelligence-app")
           echo "Health check (exec then curl, 6x5s + 4x5s)..."
           for i in $(seq 1 6); do
@@ -242,8 +257,10 @@ jobs:
             fi
             sleep 5
           done
-          echo "::warning::Health check did not pass. Container may still be starting. Logs:"
+          echo "::error::Health check did not pass. Logs:"
           az container logs --resource-group "$RG" --name "$CG" --container-name "$CONTAINER_NAME_ACTUAL" 2>&1 || true
+          echo "::error::Health check failed"
+          exit 1
 
       - name: Create Static IP Reservation (for future use)
         id: static-ip
@@ -269,9 +286,11 @@ jobs:
 
       - name: Deployment Summary
         run: |
+          BEST="${{ steps.deploy.outputs.container_ip }}"
+          if [ -z "$BEST" ]; then BEST="${{ steps.deploy.outputs.container_fqdn }}"; fi
           echo "=============================================="
-          echo "  OPEN APP:  http://${{ steps.deploy.outputs.container_ip }}:8000"
-          echo "  Health:    http://${{ steps.deploy.outputs.container_ip }}:8000/health"
+          echo "  OPEN APP:  http://$BEST:8000"
+          echo "  Health:    http://$BEST:8000/health"
           echo "=============================================="
           echo "FQDN: http://${{ steps.deploy.outputs.container_fqdn }}:8000"
           echo "IP:   http://${{ steps.deploy.outputs.container_ip }}:8000  (use this if FQDN is slow)"
