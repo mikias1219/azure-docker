@@ -45,10 +45,13 @@ The deployment workflow runs all setup scripts in GitHub Actions. You only need 
    - `SECRET_KEY`: JWT signing secret. If unset, the app uses a default; set this once so tokens stay valid across redeploys.
 
 **No other secrets are required.** The workflow automatically:
-- Runs `scripts/create_all_azure_services.sh` to create/ensure Azure resources (RG, ACR, Document Intelligence, OpenAI, Language, Vision, Search).
-- Runs `scripts/assess_azure_resources.sh` to verify resources.
-- Runs `scripts/get_credentials_for_ci.sh` to fetch ACR and all Azure service keys/endpoints from Azure and passes them into the deploy step.
-- Runs `scripts/ensure_openai_deployments.sh` to ensure Azure OpenAI **chat** + **embedding** deployments exist (so you don’t get `DeploymentNotFound` at runtime).
+- Runs `scripts/create_all_azure_services.sh` to create/ensure Azure resources (RG, ACR, Document Intelligence, OpenAI, Language, Vision, Search, Speech).
+- Runs `scripts/assess_azure_resources.sh` to verify resources (including Azure AI Speech).
+- Runs `scripts/get_credentials_for_ci.sh` and writes all endpoint/key env vars to `GITHUB_ENV` (ACR, Document Intelligence, OpenAI, Language, Vision, Search, Speech, etc.).
+- Runs `scripts/ensure_openai_deployments.sh` to ensure Azure OpenAI **chat** + **embedding** deployments exist.
+- Runs `scripts/ensure_aci_fileshare.sh` to create storage + file share and set `DATABASE_URL`, `UPLOADS_DIR`, `STORAGE_*`, `FILE_SHARE_NAME` in `GITHUB_ENV`.
+
+The **Deploy to Azure Container Instances** step receives all these env vars and passes them into `scripts/generate_aci_config.py`, which writes them into the container group JSON (including `AZURE_SEARCH_INDEX_NAME`, `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION`). The running container therefore gets all credentials from Azure; no manual secret setup besides `AZURE_CREDENTIALS` (and optional `SECRET_KEY`) is needed.
 
 ### One-time: get AZURE_CREDENTIALS
 ```bash

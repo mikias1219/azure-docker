@@ -67,7 +67,7 @@ if [ -n "$SEARCH_NAME" ]; then
   mask_and_export "AZURE_SEARCH_ENDPOINT" "$SEARCH_EP"
   mask_and_export "AZURE_SEARCH_KEY" "$SEARCH_KEY"
 fi
-mask_and_export "AZURE_SEARCH_INDEX_NAME" "${AZURE_SEARCH_INDEX_NAME:-ai102-index}"
+mask_and_export "AZURE_SEARCH_INDEX_NAME" "${AZURE_SEARCH_INDEX_NAME:-rag-content-index}"
 mask_and_export "AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME" "${AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME:-text-embedding-ada-002}"
 
 # Azure AI Speech

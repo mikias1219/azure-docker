@@ -46,7 +46,10 @@ def main():
         _env("AZURE_AI_VISION_KEY", os.environ.get("AZURE_AI_VISION_KEY", ""), secure=True),
         _env("AZURE_SEARCH_ENDPOINT", os.environ.get("AZURE_SEARCH_ENDPOINT", "")),
         _env("AZURE_SEARCH_KEY", os.environ.get("AZURE_SEARCH_KEY", ""), secure=True),
+        _env("AZURE_SEARCH_INDEX_NAME", os.environ.get("AZURE_SEARCH_INDEX_NAME", "rag-content-index")),
         _env("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME", os.environ.get("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME", "")),
+        _env("AZURE_SPEECH_KEY", os.environ.get("AZURE_SPEECH_KEY", ""), secure=True),
+        _env("AZURE_SPEECH_REGION", os.environ.get("AZURE_SPEECH_REGION", "")),
     ]
     container_props = data["properties"]["containers"][0]["properties"]
     container_props["environmentVariables"] = env_vars

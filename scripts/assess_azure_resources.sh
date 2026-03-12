@@ -91,13 +91,28 @@ else
   fail "Azure AI Search (run: ./scripts/create_azure_search.sh or az search service create -n $SEARCH_NAME -g $RESOURCE_GROUP -l $LOCATION --sku basic)"
 fi
 
+# Azure AI Speech (transcription & synthesis)
+SPEECH_FOUND=""
+for SN in ai-speech-ai102 docint-speech-service; do
+  if az cognitiveservices account show --name "$SN" --resource-group "$RESOURCE_GROUP" &>/dev/null; then
+    ok "Azure AI Speech: $SN"
+    SPEECH_FOUND="true"
+    break
+  fi
+done
+if [ -z "$SPEECH_FOUND" ]; then
+  fail "Azure AI Speech (create with: az cognitiveservices account create -n ai-speech-ai102 -g $RESOURCE_GROUP -l $LOCATION --kind SpeechServices --sku S0 --yes)"
+fi
+
 echo ""
 info "Endpoint and key commands (use the Language resource name you have):"
 echo "  Document Intelligence: az cognitiveservices account show -n document-intelligence-ai102 -g $RESOURCE_GROUP --query properties.endpoint -o tsv"
 echo "  OpenAI:                az cognitiveservices account show -n openai-ai102 -g $RESOURCE_GROUP --query properties.endpoint -o tsv"
 echo "  Language:              az cognitiveservices account show -n ai-language-ai102 -g $RESOURCE_GROUP --query properties.endpoint -o tsv"
 echo "  AI Vision:             az cognitiveservices account show -n ai-vision-ai102 -g $RESOURCE_GROUP --query properties.endpoint -o tsv"
-echo "  Azure Search:          az search service show -n $SEARCH_NAME -g $RESOURCE_GROUP --query hostName -o tsv (prefix https://)"
+echo "  Azure Search:          az search service show -n $SEARCH_NAME -g $RESOURCE_GROUP --query endpoint -o tsv"
+echo "  Speech:                az cognitiveservices account show -n docint-speech-service -g $RESOURCE_GROUP --query properties.endpoint -o tsv (or ai-speech-ai102)"
 echo ""
 info "Then run ./setup-secrets.sh to push credentials to GitHub secrets for CI/CD."
+info "RAG uses index name: rag-content-index (created by app at runtime if missing)."
 echo ""

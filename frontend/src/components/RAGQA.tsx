@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import {
   MessageSquare, Send, Loader2, Database, Zap, Terminal,
-  Layers, Search, Share2, Info, ChevronRight, BarChart3
+  Layers, Search, Share2, Info, ChevronRight, BarChart3, AlertCircle
 } from 'lucide-react';
 import { ragApi } from '@/lib/api';
 
@@ -54,15 +54,21 @@ export function RAGQA() {
       <div className="grid grid-cols-12 gap-8">
         {/* Main Answer Panel */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
+          {result?.error && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span>{result.error}</span>
+            </div>
+          )}
           {!result && !loading ? (
             <div className="h-[400px] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
               <div className="w-16 h-16 rounded-2xl bg-white/[0.02] flex items-center justify-center mb-6">
                 <Database className="w-8 h-8 text-slate-700" />
               </div>
               <h4 className="text-lg font-bold text-slate-500 uppercase tracking-widest">Knowledge Store Idle</h4>
-              <p className="text-slate-600 text-sm max-w-sm">Enter a query to perform hybrid search across all vectorized document fragments.</p>
+              <p className="text-slate-600 text-sm max-w-sm">Step 1: Enter a question above. Step 2: Click Run. Step 3: View the answer and sources here.</p>
             </div>
-          ) : result ? (
+          ) : result && !result.error ? (
             <>
               <Card className="card-engineer border-blue-500/20 bg-blue-500/[0.02]">
                 <CardHeader className="py-4 border-b border-white/10 flex flex-row items-center justify-between">
@@ -94,6 +100,10 @@ export function RAGQA() {
                 </CardContent>
               </Card>
             </>
+          ) : result?.error ? (
+            <div className="h-[300px] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-8 bg-white/[0.01]">
+              <p className="text-slate-500 text-sm">An error occurred. See the message above. Ensure Azure OpenAI and the RAG index are configured.</p>
+            </div>
           ) : (
             <div className="h-[400px] flex flex-col items-center justify-center gap-6">
               <div className="relative">

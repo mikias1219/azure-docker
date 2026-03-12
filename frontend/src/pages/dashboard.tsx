@@ -22,6 +22,7 @@ import {
   HelpCircle, ChevronRight, Zap, ShieldCheck, Box, Mic, Cpu
 } from 'lucide-react';
 import { servicesApi, type ServicesStatus } from '@/lib/api';
+import { ServiceIntro } from '@/components/ServiceIntro';
 
 interface ConsoleLog {
   id: string;
@@ -298,18 +299,54 @@ export default function DashboardPage() {
 
           {/* Dynamic Content Area */}
           <section className="flex-grow min-w-0">
-            <div className="mb-8 flex items-center justify-between bg-white/[0.01] border border-white/5 rounded-3xl p-4 px-6">
-              <div className="flex items-center gap-4">
-                <span className="text-[10px] font-mono text-slate-600 uppercase tracking-[0.2em]">Context</span>
-                <ChevronRight className="w-3 h-3 text-slate-800" />
-                <span className="text-xs font-black text-white uppercase tracking-widest italic">{tabs.find(t => t.id === activeTab)?.label} Module</span>
-              </div>
-              <div className="flex items-center gap-3 text-[10px] font-mono text-slate-500">
-                <span className="flex items-center gap-1.5"><Cpu className="w-3 h-3 text-blue-500" /> PROVISIONED</span>
-                <div className="w-1 h-1 rounded-full bg-slate-800"></div>
-                <span className="flex items-center gap-1.5 uppercase tracking-tighter">Latency: 42ms</span>
-              </div>
-            </div>
+            {activeTab === 'documents' && (
+              <ServiceIntro
+                title="Document Intelligence"
+                description="Upload documents, extract text with Azure Form Recognizer, and ask questions. Select a document to view extracted text, AI analysis, and field extraction (business cards, invoices)."
+                steps={['Upload or select a document', 'View extracted text and analysis', 'Use Info Extraction (below) for structured fields']}
+                isLive={!!servicesStatus?.document_intelligence}
+              />
+            )}
+            {activeTab === 'vision' && (
+              <ServiceIntro
+                title="AI Vision"
+                description="Analyze images: get captions, tags, object detection, and OCR. Upload an image, choose features, and run analysis."
+                steps={['Upload an image', 'Choose features (caption, tags, objects, OCR)', 'View response']}
+                isLive={!!servicesStatus?.vision}
+              />
+            )}
+            {activeTab === 'text-analytics' && (
+              <ServiceIntro
+                title="AI Language"
+                description="Text Analytics (language, sentiment, key phrases, entities), Question Answering, and Clock (time/date intents)."
+                steps={['Enter text or a question', 'Run analysis', 'View response']}
+                isLive={!!servicesStatus?.text_analytics}
+              />
+            )}
+            {activeTab === 'speech' && (
+              <ServiceIntro
+                title="AI Speech"
+                description="Transcribe audio to text (STT) and synthesize text to speech (TTS) using Azure AI Speech."
+                steps={['Upload audio for transcription or enter text for TTS', 'Run', 'View or play response']}
+                isLive={!!servicesStatus?.speech}
+              />
+            )}
+            {activeTab === 'knowledge' && (
+              <ServiceIntro
+                title="AI Search (Knowledge Mining)"
+                description="Keyword search over your indexed content. Ingest documents via RAG first to populate the index."
+                steps={['Enter search query', 'Run miner', 'View matching documents']}
+                isLive={!!servicesStatus?.search}
+              />
+            )}
+            {activeTab === 'rag' && (
+              <ServiceIntro
+                title="RAG (Retrieval-Augmented Generation)"
+                description="Ask questions over your ingested documents. The system retrieves relevant chunks and generates an answer using Azure OpenAI."
+                steps={['Enter a question', 'Run pipeline', 'View answer and sources']}
+                isLive={!!servicesStatus?.rag}
+              />
+            )}
 
             <div className="grid grid-cols-12 gap-8">
               {activeTab === 'documents' && (

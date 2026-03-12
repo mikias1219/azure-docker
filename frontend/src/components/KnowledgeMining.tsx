@@ -52,6 +52,11 @@ export function KnowledgeMining() {
         </Button>
       </div>
 
+      {result?.error && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+          <span>{result.error}</span>
+        </div>
+      )}
       <div className="grid grid-cols-12 gap-8">
         {/* Results Feed */}
         <div className="col-span-12 lg:col-span-8 space-y-4">
@@ -60,14 +65,18 @@ export function KnowledgeMining() {
               <div className="w-16 h-16 rounded-2xl bg-white/[0.02] flex items-center justify-center mb-6">
                 <Database className="w-8 h-8 text-slate-700" />
               </div>
-              <h4 className="text-lg font-bold text-slate-500 uppercase tracking-widest">Mining Corpus Idle</h4>
-              <p className="text-slate-600 text-sm max-w-sm mt-3">Perform semantic discovery across documented datasets using Azure AI Search.</p>
+              <h4 className="text-lg font-bold text-slate-500 uppercase tracking-widest">Step 3: Response</h4>
+              <p className="text-slate-600 text-sm max-w-sm mt-3">Step 1: Enter a search query. Step 2: Click Run miner. Results will appear here.</p>
             </div>
-          ) : result ? (
+          ) : result?.error ? (
+            <div className="h-[300px] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
+              <p className="text-slate-500 text-sm">See the error message above. Check that Azure AI Search is configured and the index exists.</p>
+            </div>
+          ) : result && !result.error ? (
             <div className="space-y-4 animate-fadeIn">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-                  Found {result.results?.length || 0} Relevant Documents
+                  Response: Found {result.results?.length || 0} relevant documents
                 </span>
               </div>
               {result.results?.map((item: any, i: number) => (

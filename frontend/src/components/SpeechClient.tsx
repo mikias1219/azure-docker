@@ -26,6 +26,7 @@ export const SpeechClient: React.FC = () => {
     const [synthText, setSynthText] = useState('');
     const [isSynthesizing, setIsSynthesizing] = useState(false);
     const [synthResult, setSynthResult] = useState<any>(null);
+    const [synthError, setSynthError] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,11 +55,17 @@ export const SpeechClient: React.FC = () => {
     const handleSynthesize = async () => {
         if (!synthText.trim()) return;
         setIsSynthesizing(true);
+        setSynthError(null);
+        setSynthResult(null);
         try {
             const data = await speechApi.synthesize(synthText);
-            setSynthResult(data);
-        } catch (err) {
-            console.error(err);
+            if (data?.error) {
+                setSynthError(data.error);
+            } else {
+                setSynthResult(data);
+            }
+        } catch (err: any) {
+            setSynthError(err.message || 'Synthesis failed');
         } finally {
             setIsSynthesizing(false);
         }
@@ -196,10 +203,17 @@ export const SpeechClient: React.FC = () => {
                                 className="w-full bg-blue-600 hover:bg-blue-500 text-white h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-blue-900/20 disabled:opacity-20"
                             >
                                 {isSynthesizing ? <RefreshCw className="w-5 h-5 animate-spin mr-2" /> : <Play className="w-5 h-5 mr-2" />}
-                                {isSynthesizing ? 'Modulating Voice...' : 'Synthesize Audio'}
+                                {isSynthesizing ? 'Synthesizing…' : 'Synthesize (Step 2)'}
                             </Button>
 
-                            {synthResult && (
+                            {synthError && (
+                                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-sm">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    {synthError}
+                                </div>
+                            )}
+
+                            {synthResult && !synthResult.error && (
                                 <div className="p-6 rounded-3xl bg-blue-500/5 border border-blue-500/20 space-y-4">
                                     <div className="flex items-center justify-between">
                                         <span className="text-[10px] font-black uppercase text-blue-400 tracking-widest">Synthesis Pipeline: Success</span>

@@ -32,11 +32,12 @@ export function TextAnalysis() {
       <div className="grid grid-cols-12 gap-8">
         {/* Input Pane */}
         <div className="col-span-12 lg:col-span-5 space-y-6">
+          <p className="text-xs text-slate-500">Step 1: Paste text below. Step 2: Click &quot;Run linguistic audit&quot;. Step 3: See response (language, sentiment, phrases, entities) on the right.</p>
           <Card className="card-engineer border-blue-500/20 bg-blue-500/[0.02]">
             <CardHeader className="py-4 border-b border-white/5">
               <CardTitle className="text-xs font-mono uppercase tracking-widest text-blue-400 flex items-center gap-2">
                 <Terminal className="w-4 h-4" />
-                Text Ingest Buffer
+                Enter text
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
@@ -52,7 +53,7 @@ export function TextAnalysis() {
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 shadow-[0_4px_15px_rgba(37,99,235,0.3)]"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
-                {loading ? 'AUDITING...' : 'RUN LINGUISTIC AUDIT'}
+                {loading ? 'Analyzing…' : 'Step 2: Run analysis'}
               </Button>
             </CardContent>
           </Card>
@@ -60,18 +61,23 @@ export function TextAnalysis() {
 
         {/* Results Pane */}
         <div className="col-span-12 lg:col-span-7 space-y-6">
+          {result?.error && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+              {result.error}
+            </div>
+          )}
           {!result && !loading ? (
             <div className="h-full border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
               <Languages className="w-16 h-16 text-slate-800 mb-6" />
-              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Pipeline Idle</h4>
-              <p className="text-[10px] text-slate-600 mt-2 max-w-[250px]">Ingest text on the left to activate the Multi-service Linguistic Audit engine.</p>
+              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Step 3: Response</h4>
+              <p className="text-[10px] text-slate-600 mt-2 max-w-[250px]">Analysis results will appear here after you run the audit.</p>
             </div>
-          ) : result ? (
+          ) : result && !result.error ? (
             <div className="space-y-6">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-xs font-mono font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <BarChart2 className="w-4 h-4" />
-                  Audit Results
+                  Step 3: Response — Audit results
                 </h3>
                 <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
                   <button

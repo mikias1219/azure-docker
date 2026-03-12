@@ -34,11 +34,11 @@ export function QuestionAnswering() {
           <CardHeader className="py-4 border-b border-white/5">
             <CardTitle className="text-xs font-mono uppercase tracking-widest text-blue-400 flex items-center gap-2">
               <Terminal className="w-4 h-4" />
-              Inference Request
+              Step 1: Ask a question
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <p className="text-[11px] text-slate-500 mb-4 font-mono">Input a natural language query for the Knowledge Base.</p>
+            <p className="text-[11px] text-slate-500 mb-4 font-mono">Step 2: Click Run. Step 3: Response appears on the right.</p>
             <div className="space-y-4">
               <textarea
                 value={question}
@@ -72,7 +72,7 @@ export function QuestionAnswering() {
                 <CardHeader className="py-3 border-b border-white/10">
                   <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 flex items-center gap-2">
                     <MessageSquare className="w-4 h-4" />
-                    Synthesized Answer
+                    Step 3: Response — Answer
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-5">

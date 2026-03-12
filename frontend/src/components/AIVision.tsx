@@ -319,11 +319,20 @@ export function AIVision() {
 
         {/* Right: Results Dash */}
         <div className="col-span-12 lg:col-span-7 space-y-6">
+          {error && (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+              {error}
+            </div>
+          )}
           {!result && !loading ? (
             <div className="h-full border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
               <Maximize2 className="w-12 h-12 text-slate-800 mb-6" />
-              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Visual Pipeline Offline</h4>
-              <p className="text-[10px] text-slate-600 mt-2 max-w-[200px]">Synchronize visual data to initialize neural object detection and captioning.</p>
+              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Step 3: Response</h4>
+              <p className="text-[10px] text-slate-600 mt-2 max-w-[200px]">Upload an image, choose features, then run. Results appear here.</p>
+            </div>
+          ) : result?.error ? (
+            <div className="h-[200px] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-8 bg-white/[0.01]">
+              <p className="text-red-400 text-sm">{result.error}</p>
             </div>
           ) : result ? (
             <div className="space-y-6 animate-fadeIn">
