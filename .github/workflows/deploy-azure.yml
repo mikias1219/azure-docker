@@ -43,6 +43,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # If an AI service does not exist, it is created here. Credentials are then fetched and passed to the container.
       - name: Ensure Azure resources
         run: |
           chmod +x scripts/create_all_azure_services.sh
@@ -57,6 +58,7 @@ jobs:
           ./scripts/assess_azure_resources.sh
         continue-on-error: true
 
+      # Fetches endpoint + key for each Azure service and exports to GITHUB_ENV (used by generate_aci_config.py for the container).
       - name: Get deployment credentials from Azure
         run: |
           chmod +x scripts/get_credentials_for_ci.sh

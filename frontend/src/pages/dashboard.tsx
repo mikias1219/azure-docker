@@ -16,10 +16,9 @@ import { KnowledgeMining } from '@/components/KnowledgeMining';
 import { RAGQA } from '@/components/RAGQA';
 import { SpeechClient } from '@/components/SpeechClient';
 import {
-  FileText, LogOut, Brain, Languages, Sparkles, Clock, FolderOpen, X,
-  Search, FileImage, CheckCircle, AlertCircle, ScanLine, Database,
-  MessageSquare, Terminal, Activity, ChevronUp, ChevronDown, ListFilter,
-  HelpCircle, ChevronRight, Zap, ShieldCheck, Box, Mic, Cpu
+  FileText, LogOut, Brain, Languages, FolderOpen, X,
+  Search, FileImage, ScanLine, Database, Terminal, ChevronUp, ChevronDown, ListFilter,
+  HelpCircle, ChevronRight, Zap, Box, Mic
 } from 'lucide-react';
 import { servicesApi, type ServicesStatus } from '@/lib/api';
 import { ServiceIntro } from '@/components/ServiceIntro';
@@ -135,39 +134,19 @@ export default function DashboardPage() {
   if (!user) return null;
 
   const tabs = [
-    { id: 'documents', label: 'Document Intelligence', icon: ScanLine, desc: 'Form & Field Extraction' },
-    { id: 'vision', label: 'AI Vision', icon: FileImage, desc: 'Spatial Image Audit' },
-    { id: 'text-analytics', label: 'AI Language', icon: Languages, desc: 'Linguistic Logic & CLU' },
-    { id: 'speech', label: 'AI Speech', icon: Mic, desc: 'Audio Transcription & TTS' },
-    { id: 'knowledge', label: 'AI Search', icon: Database, desc: 'Indexing & Mining' },
-    { id: 'rag', label: 'Azure OpenAI', icon: Brain, desc: 'RAG & Strategic reasoning' },
+    { id: 'documents', label: 'Document Intelligence', icon: ScanLine, desc: 'Extract text, forms, invoices' },
+    { id: 'vision', label: 'Computer Vision', icon: FileImage, desc: 'Analyze images, OCR' },
+    { id: 'text-analytics', label: 'Natural Language', icon: Languages, desc: 'Text analytics, QnA, CLU' },
+    { id: 'speech', label: 'Speech', icon: Mic, desc: 'Transcription & synthesis' },
+    { id: 'knowledge', label: 'Knowledge Mining', icon: Database, desc: 'Azure AI Search' },
+    { id: 'rag', label: 'Generative AI (RAG)', icon: Brain, desc: 'Question answering over docs' },
   ];
 
   const wizardSteps = [
-    {
-      title: "Welcome to AI Studio",
-      desc: "This platform is designed for AI Engineers to inspect, audit, and pipe Azure AI services. Let's walk through the neural pipeline.",
-      icon: Terminal,
-      color: "bg-blue-600"
-    },
-    {
-      title: "Phase 1: Source Ingestion",
-      desc: "Upload documents or images. Our system performs deep OCR and AI elaboration automatically. Check the 'Ingest' tab to see extracted metadata.",
-      icon: FolderOpen,
-      color: "bg-purple-600"
-    },
-    {
-      title: "6 Neural Dimensions",
-      desc: "Our architecture is now strictly aligned with Azure's 6 core AI pillars. Each service operates independently with deep logic auditing.",
-      icon: Box,
-      color: "bg-emerald-600"
-    },
-    {
-      title: "Audio Intelligence",
-      desc: "New: Azure AI Speech is now live. Upload audio for transcription or synthesize text to neural speech directly from the dashboard.",
-      icon: Mic,
-      color: "bg-amber-600"
-    }
+    { title: 'Welcome', desc: 'This app demonstrates Azure AI services aligned with Exam AI-102. Register or log in, then use each service from the sidebar.', icon: Terminal, color: 'bg-blue-600' },
+    { title: 'Document Intelligence', desc: 'Upload documents to extract text and structure. Use prebuilt models for invoices and business cards.', icon: FolderOpen, color: 'bg-purple-600' },
+    { title: 'All services in one place', desc: 'Computer Vision, Natural Language, Speech, Knowledge Mining, and Generative AI (RAG). Each tab runs one service and shows the response clearly.', icon: Box, color: 'bg-emerald-600' },
+    { title: 'You\'re ready', desc: 'Pick a service from the left, follow the steps, and see results. No repetitive setup — everything is automated.', icon: Mic, color: 'bg-amber-600' },
   ];
 
   return (
@@ -176,39 +155,33 @@ export default function DashboardPage() {
 
       {/* Wizard Overlay */}
       {showWizard && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <Card className="max-w-xl w-full card-engineer border-white/10 shadow-[0_0_100px_rgba(37,99,235,0.2)]">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          <Card className="max-w-lg w-full card-engineer border-white/10 shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 py-4">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${wizardSteps[wizardStep - 1].color} shadow-lg`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${wizardSteps[wizardStep - 1].color}`}>
                   {(() => { const Icon = wizardSteps[wizardStep - 1].icon; return <Icon className="w-5 h-5" /> })()}
                 </div>
-                <CardTitle className="text-lg font-black tracking-tight uppercase italic">SYSTEM_GUIDE :: STEP_0{wizardStep}</CardTitle>
+                <CardTitle className="text-base font-semibold text-white">Step {wizardStep} of 4</CardTitle>
               </div>
-              <button onClick={closeWizard} className="p-2 hover:bg-white/5 rounded-full"><X className="w-5 h-5 text-slate-600" /></button>
+              <button onClick={closeWizard} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
             </CardHeader>
-            <CardContent className="p-8 space-y-6">
-              <h3 className="text-2xl font-black text-white">{wizardSteps[wizardStep - 1].title}</h3>
-              <p className="text-slate-400 leading-relaxed font-medium">{wizardSteps[wizardStep - 1].desc}</p>
-
+            <CardContent className="p-6 space-y-5">
+              <h3 className="text-xl font-semibold text-white">{wizardSteps[wizardStep - 1].title}</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">{wizardSteps[wizardStep - 1].desc}</p>
               <div className="flex gap-2">
                 {[1, 2, 3, 4].map(s => (
-                  <div key={s} className={`h-1 flex-1 rounded-full transition-all duration-300 ${s === wizardStep ? 'bg-blue-500 shadow-[0_0_10px_#3b82f6]' : s < wizardStep ? 'bg-emerald-500' : 'bg-white/5'}`}></div>
+                  <div key={s} className={`h-1 flex-1 rounded-full ${s === wizardStep ? 'bg-blue-500' : s < wizardStep ? 'bg-emerald-500' : 'bg-white/10'}`} />
                 ))}
               </div>
-
-              <div className="flex items-center justify-between pt-4">
-                <button onClick={closeWizard} className="text-xs font-mono text-slate-600 hover:text-slate-400 uppercase tracking-widest">Skip Initiative</button>
-                <div className="flex gap-3">
+              <div className="flex justify-between pt-2">
+                <button type="button" onClick={closeWizard} className="text-xs text-slate-500 hover:text-slate-400">Skip</button>
+                <div className="flex gap-2">
                   {wizardStep > 1 && (
-                    <Button variant="outline" onClick={() => setWizardStep(prev => prev - 1)} className="border-white/10 text-white hover:bg-white/5">BACK</Button>
+                    <Button variant="outline" onClick={() => setWizardStep(prev => prev - 1)} className="border-white/10 text-white hover:bg-white/5">Back</Button>
                   )}
-                  <Button
-                    onClick={() => wizardStep < 4 ? setWizardStep(prev => prev + 1) : closeWizard()}
-                    className="bg-blue-600 hover:bg-blue-500 px-8 font-black"
-                  >
-                    {wizardStep === 4 ? 'DISENGAGE' : 'CONTINUE'}
-                    <ChevronRight className="w-4 h-4 ml-2" />
+                  <Button onClick={() => wizardStep < 4 ? setWizardStep(prev => prev + 1) : closeWizard()} className="bg-blue-600 hover:bg-blue-500">
+                    {wizardStep === 4 ? 'Done' : 'Next'} <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
               </div>
@@ -217,36 +190,26 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* AI Studio Header */}
+      {/* Header */}
       <header className="glass-studio border-b border-white/5 sticky top-0 z-[60]">
         <div className="max-w-[1700px] mx-auto px-6 h-14 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)]">
-              <Terminal className="w-4 h-4 text-white" />
+            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shadow-[0_0_12px_rgba(37,99,235,0.35)]">
+              <Brain className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black tracking-tighter text-white">AI STUDIO <span className="text-blue-500 font-mono text-[10px] ml-1">TERMINAL_v2</span></span>
-                <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-mono border border-emerald-500/20 uppercase tracking-tighter">DECRYPTED</span>
-              </div>
+              <div className="font-semibold text-white tracking-tight">Azure AI Solution</div>
+              <div className="text-[10px] text-slate-500">Exam AI-102 — Designing and Implementing a Microsoft Azure AI Solution</div>
             </div>
           </div>
-
-          <div className="flex items-center gap-6">
-            <div className="hidden xl:flex items-center gap-6 text-[11px] font-mono text-slate-500 px-6 border-x border-white/5 h-14">
-              <div className="flex items-center gap-2"><Activity className="w-3.5 h-3.5 text-blue-500" /> <span>OPS: 284/s</span></div>
-              <div className="flex items-center gap-2 font-bold text-emerald-500"><ShieldCheck className="w-3.5 h-3.5" /> <span>FIREWALL: SECURE</span></div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => setShowWizard(true)} className="text-slate-500 hover:text-white hover:bg-white/5 font-mono text-[10px]">
-                <HelpCircle className="w-3.5 h-3.5 mr-1" /> GUIDE
-              </Button>
-              <div className="h-6 w-px bg-white/5"></div>
-              <span className="text-[11px] font-mono text-white tracking-widest uppercase">{user.username}</span>
-              <button onClick={logout} className="p-2 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-colors">
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => setShowWizard(true)} className="text-slate-400 hover:text-white text-xs">
+              <HelpCircle className="w-4 h-4 mr-1.5" /> Get started
+            </Button>
+            <span className="text-xs text-slate-400 hidden sm:inline">{user.username}</span>
+            <button onClick={logout} className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-colors" title="Sign out">
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -256,8 +219,8 @@ export default function DashboardPage() {
           {/* Vertical Stepper Navigation */}
           <aside className="w-56 flex-shrink-0 hidden lg:block">
             <div className="sticky top-28 space-y-1.5">
-              <h3 className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-4 px-3 flex items-center gap-2">
-                <Box className="w-3 h-3" /> Core AI Pillars
+              <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-4 px-3">
+                Azure AI services
               </h3>
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -299,6 +262,25 @@ export default function DashboardPage() {
 
           {/* Dynamic Content Area */}
           <section className="flex-grow min-w-0">
+            {/* Mobile: service tabs */}
+            <div className="lg:hidden overflow-x-auto pb-4 mb-4 -mx-1 px-1">
+              <div className="flex gap-2 min-w-max">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === (tab.id as typeof activeTab);
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${isActive ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             {activeTab === 'documents' && (
               <ServiceIntro
                 title="Document Intelligence"
@@ -309,41 +291,41 @@ export default function DashboardPage() {
             )}
             {activeTab === 'vision' && (
               <ServiceIntro
-                title="AI Vision"
-                description="Analyze images: get captions, tags, object detection, and OCR. Upload an image, choose features, and run analysis."
+                title="Computer Vision"
+                description="Analyze images with Azure AI Vision: captions, tags, object detection, and OCR. Upload an image, select options, and view the response."
                 steps={['Upload an image', 'Choose features (caption, tags, objects, OCR)', 'View response']}
                 isLive={!!servicesStatus?.vision}
               />
             )}
             {activeTab === 'text-analytics' && (
               <ServiceIntro
-                title="AI Language"
-                description="Text Analytics (language, sentiment, key phrases, entities), Question Answering, and Clock (time/date intents)."
+                title="Natural Language Processing"
+                description="Text Analytics (language, sentiment, key phrases, entities), Question Answering, and Conversational Language Understanding (Clock)."
                 steps={['Enter text or a question', 'Run analysis', 'View response']}
                 isLive={!!servicesStatus?.text_analytics}
               />
             )}
             {activeTab === 'speech' && (
               <ServiceIntro
-                title="AI Speech"
-                description="Transcribe audio to text (STT) and synthesize text to speech (TTS) using Azure AI Speech."
+                title="Speech"
+                description="Speech-to-text (transcription) and text-to-speech (synthesis) using Azure AI Speech."
                 steps={['Upload audio for transcription or enter text for TTS', 'Run', 'View or play response']}
                 isLive={!!servicesStatus?.speech}
               />
             )}
             {activeTab === 'knowledge' && (
               <ServiceIntro
-                title="AI Search (Knowledge Mining)"
-                description="Keyword search over your indexed content. Ingest documents via RAG first to populate the index."
-                steps={['Enter search query', 'Run miner', 'View matching documents']}
+                title="Knowledge Mining"
+                description="Keyword search over your indexed content using Azure AI Search. Ingest documents via the RAG service first to populate the index."
+                steps={['Enter search query', 'Run search', 'View matching documents']}
                 isLive={!!servicesStatus?.search}
               />
             )}
             {activeTab === 'rag' && (
               <ServiceIntro
-                title="RAG (Retrieval-Augmented Generation)"
-                description="Ask questions over your ingested documents. The system retrieves relevant chunks and generates an answer using Azure OpenAI."
-                steps={['Enter a question', 'Run pipeline', 'View answer and sources']}
+                title="Generative AI (RAG)"
+                description="Ask questions over your documents. The app retrieves relevant chunks from the index and generates an answer using Azure OpenAI."
+                steps={['Enter a question', 'Run', 'View answer and sources']}
                 isLive={!!servicesStatus?.rag}
               />
             )}

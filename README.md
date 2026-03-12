@@ -1,22 +1,26 @@
-# 🚀 Document Intelligence App - Azure Deployment
+# Azure AI Solution — Exam AI-102
 
-[![Deploy to Azure](https://github.com/mikias1219/azure-docker/actions/workflows/deploy-azure.yml/badge.svg)](https://github.com/mikias1219/azure-docker/actions/workflows/deploy-azure.yml)
+A full-stack **Azure AI** application aligned with **Exam AI-102: Designing and Implementing a Microsoft Azure AI Solution**. One-time setup (single GitHub secret), then push to `main` — all Azure services are created and configured automatically; no repetitive manual steps.
 
-A modern FastAPI application with **Azure Document Intelligence** and **OpenAI** integration, featuring automated deployment to Azure Container Instances with fixed IP addressing.
+## What’s automated
 
-## ✨ Features
+- **Azure resources**: Missing services (Document Intelligence, OpenAI, Language, Vision, Search, Speech, ACR, storage) are created by the GitHub Actions workflow.
+- **Credentials**: Endpoints and keys are fetched from Azure and passed to the running container; you do not copy-paste them.
+- **Deploy**: Build, push to ACR, and deploy to Azure Container Instances on every push to `main`.
 
-- 📄 **Document Upload & Analysis**: Support for PDF, Word, text, and image files
-- 🧠 **AI-Powered Insights**: Extract text and get AI analysis using Azure services
-- 👁️ **AI Vision**: Image analysis (caption, tags, objects, people) and OCR via Azure AI Vision (aligned with [Microsoft Learn AI Vision](https://github.com/MicrosoftLearning/mslearn-ai-vision))
-- 📇 **Information Extraction**: Extract structured fields (e.g. business card: Name, Company, Email, Phone) from images/documents ([mslearn-ai-information-extraction](https://github.com/microsoftlearning/mslearn-ai-information-extraction))
-- 🔍 **Knowledge Mining**: Keyword search over indexed documents via Azure AI Search
-- 💬 **RAG Q&A**: Ingest documents into a vector index and ask questions with retrieval-augmented generation
-- 🔐 **Secure Authentication**: JWT-based user authentication system
-- 🎨 **Modern UI**: Responsive, user-friendly interface
-- 🚀 **Automated CI/CD**: GitHub Actions pipeline with zero-downtime deployment
-- 📍 **Fixed IP Address**: Static IP reservation for consistent access
-- 💾 **Persistent Storage**: Azure File Storage for uploaded documents
+**You do once**: Set **`AZURE_CREDENTIALS`** in repo Secrets (e.g. via `./setup-secrets.sh`). Optional: set **`SECRET_KEY`** for stable login. See [docs/AUTOMATION.md](docs/AUTOMATION.md).
+
+## ✨ Features (aligned with AI-102 skills)
+
+- 📄 **Document Intelligence**: Upload documents; extract text and structured data (invoices, business cards) with Azure Document Intelligence
+- 👁️ **Computer Vision**: Image analysis (caption, tags, objects, people) and OCR via Azure AI Vision
+- 🌐 **Natural Language**: Text Analytics (sentiment, entities, key phrases, language), Question Answering, and CLU (e.g. Clock)
+- 🎤 **Speech**: Speech-to-text and text-to-speech with Azure AI Speech
+- 🔍 **Knowledge Mining**: Keyword search over indexed content with Azure AI Search
+- 🧠 **Generative AI (RAG)**: Ingest documents, then ask questions with retrieval-augmented generation (Azure OpenAI)
+- 🔐 **Auth**: Register and sign in; use each service with clear steps and visible responses
+- 🚀 **CI/CD**: One secret (`AZURE_CREDENTIALS`); workflow creates missing Azure resources, fetches keys, and deploys. See [docs/AUTOMATION.md](docs/AUTOMATION.md).
+- 💾 **Persistence**: Azure File Share for database and uploads
 
 ## 🚀 Quick Start
 
@@ -41,18 +45,15 @@ git push origin main
 ./deploy.sh
 ```
 
-### Create all Azure services and push secrets (one-time)
-
-To create every required Azure resource and push their endpoints/keys to GitHub secrets:
+**If you prefer to create Azure resources and GitHub secrets locally (optional):**
 
 ```bash
 az login
-./scripts/create_all_azure_services.sh   # Creates RG, ACR, Document Intelligence, OpenAI, Language, Vision, Search
-# In Azure OpenAI Studio: create chat + embedding deployments (e.g. gpt-35-turbo, text-embedding-ada-002)
-./setup-secrets.sh                         # Pushes all credentials to GitHub secrets
+./scripts/create_all_azure_services.sh   # Creates any missing services
+./setup-secrets.sh                        # Sets AZURE_CREDENTIALS (and optionally SECRET_KEY) in GitHub
 ```
 
-Then push to `main` to deploy. See [docs/AZURE_RESOURCES.md](docs/AZURE_RESOURCES.md) for details.
+The deploy workflow does the same automatically: it creates missing resources and fetches credentials from Azure, so you only need `AZURE_CREDENTIALS` in GitHub. See [docs/AUTOMATION.md](docs/AUTOMATION.md) and [docs/CI-CD-AND-SECRETS.md](docs/CI-CD-AND-SECRETS.md).
 
 ## 📋 Prerequisites
 

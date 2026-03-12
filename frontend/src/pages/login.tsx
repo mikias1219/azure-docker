@@ -70,10 +70,10 @@ export default function LoginPage() {
   };
 
   const features = [
-    { icon: Brain, label: 'Document Intelligence', desc: 'Extract text and structure from any document' },
-    { icon: Globe, label: 'Language & Text AI', desc: 'Sentiment, entities, key phrases' },
-    { icon: Zap, label: 'Vision & OCR', desc: 'Analyze images and read text' },
-    { icon: Shield, label: 'Secure & Private', desc: 'Your data stays yours' },
+    { icon: Brain, label: 'Document Intelligence', desc: 'Extract text and data from documents' },
+    { icon: Globe, label: 'Natural Language', desc: 'Text analytics, QnA, CLU' },
+    { icon: Zap, label: 'Computer Vision', desc: 'Image analysis and OCR' },
+    { icon: Shield, label: 'Secure', desc: 'Register once, use all services' },
   ];
 
   return (
@@ -88,16 +88,16 @@ export default function LoginPage() {
             <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shadow-glow-sm">
               <Brain className="w-6 h-6 text-blue-400" />
             </div>
-            <span className="text-white font-bold text-xl tracking-tight">Azure AI Studio</span>
+            <span className="text-white font-bold text-xl tracking-tight">Azure AI Solution</span>
           </div>
           <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight mb-4">
-            Unlock the power of
-            <span className="block mt-1 bg-gradient-to-r from-blue-300 to-indigo-300 bg-clip-text text-transparent">
-              Azure AI Services
+            Azure AI Solution
+            <span className="block mt-1 text-xl font-normal text-slate-400">
+              Exam AI-102 — Designing and Implementing a Microsoft Azure AI Solution
             </span>
           </h1>
           <p className="text-slate-400 text-lg leading-relaxed max-w-md mb-12">
-            Document intelligence, language, vision, speech, and knowledge mining in one modern dashboard.
+            Sign in to use Document Intelligence, Computer Vision, Natural Language, Speech, Knowledge Mining, and Generative AI (RAG) in one place.
           </p>
           <div className="space-y-4">
             {features.map((f, i) => (
@@ -125,7 +125,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
               <Brain className="w-5 h-5 text-blue-400" />
             </div>
-            <span className="font-bold text-white text-lg">Azure AI Studio</span>
+            <span className="font-bold text-white text-lg">Azure AI Solution</span>
           </div>
 
           <h2 className="text-2xl font-bold text-white mb-1">

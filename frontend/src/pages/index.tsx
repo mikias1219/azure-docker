@@ -55,10 +55,9 @@ export default function HomePage() {
 
         <div className="animate-fade-in">
           <h1 className="text-4xl font-black text-white tracking-tight mb-2">
-            Azure AI{' '}
-            <span className="bg-gradient-to-r from-blue-300 to-indigo-300 bg-clip-text text-transparent">Studio</span>
+            Azure AI Solution
           </h1>
-          <p className="text-slate-500 text-lg">Document, Language, Vision, Speech & RAG</p>
+          <p className="text-slate-500 text-lg">Exam AI-102 — Document Intelligence, Vision, Language, Speech, Knowledge Mining, RAG</p>
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 max-w-sm animate-fade-in">
