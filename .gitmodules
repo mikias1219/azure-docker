@@ -1,0 +1,3 @@
+[submodule "ai-102-exercise"]
+	path = ai-102-exercise
+	url = https://github.com/mikias1219/AI-102-Exercise.git
