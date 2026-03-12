@@ -320,7 +320,7 @@ export const speechApi = {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post('/api/speech/transcribe', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: multipartHeaders(),
     });
     return response.data;
   },
