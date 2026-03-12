@@ -30,8 +30,8 @@ export function QuestionAnswering() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Input Terminal */}
-        <Card className="card-engineer border-blue-500/20 bg-blue-500/[0.02]">
-          <CardHeader className="py-4 border-b border-white/5">
+        <Card className="card-engineer border-blue-200 bg-blue-50/40">
+          <CardHeader className="py-4 border-b border-slate-200">
             <CardTitle className="text-xs font-mono uppercase tracking-widest text-blue-400 flex items-center gap-2">
               <Terminal className="w-4 h-4" />
               Step 1: Ask a question
@@ -44,7 +44,7 @@ export function QuestionAnswering() {
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Query syntax or natural language..."
-                className="w-full h-32 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder:text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none font-mono resize-none transition-all"
+                className="w-full h-32 bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/40 outline-none font-mono resize-none transition-all"
               />
               <Button
                 onClick={handleAsk}
@@ -61,37 +61,37 @@ export function QuestionAnswering() {
         {/* Results / Reasoning Terminal */}
         <div className="space-y-6">
           {!result && !loading ? (
-            <div className="h-full border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-8 bg-white/[0.01]">
+            <div className="h-full border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-center p-8 bg-white">
               <Sparkles className="w-12 h-12 text-slate-800 mb-4" />
               <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Awaiting Signal</h4>
               <p className="text-[10px] text-slate-600 mt-2 max-w-[200px]">Send a query to initialize the AI Language Q&A reasoning engine.</p>
             </div>
           ) : result ? (
             <>
-              <Card className="card-engineer border-emerald-500/20 bg-emerald-500/[0.02]">
-                <CardHeader className="py-3 border-b border-white/10">
+              <Card className="card-engineer border-emerald-200 bg-emerald-50/40">
+                <CardHeader className="py-3 border-b border-slate-200">
                   <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 flex items-center gap-2">
                     <MessageSquare className="w-4 h-4" />
                     Step 3: Response — Answer
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-5">
-                  <p className="text-sm text-slate-200 leading-relaxed text-shadow-sm">
+                  <p className="text-sm text-slate-800 leading-relaxed">
                     {result.answer}
                   </p>
                 </CardContent>
               </Card>
 
               {result.reasoning && (
-                <Card className="card-engineer border-purple-500/20 bg-purple-500/[0.02]">
-                  <CardHeader className="py-2 border-b border-white/10">
+                <Card className="card-engineer border-purple-200 bg-purple-50/40">
+                  <CardHeader className="py-2 border-b border-slate-200">
                     <CardTitle className="text-[9px] font-mono uppercase tracking-widest text-purple-400 flex items-center gap-2">
                       <History className="w-3.5 h-3.5" />
                       Internal Reasoning
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4">
-                    <p className="text-[11px] text-purple-200/60 italic font-mono leading-relaxed">
+                    <p className="text-[11px] text-purple-700 italic font-mono leading-relaxed">
                       "{result.reasoning}"
                     </p>
                   </CardContent>
@@ -99,7 +99,7 @@ export function QuestionAnswering() {
               )}
 
               {result.debug && (
-                <div className="p-4 rounded-xl bg-black/40 border border-slate-800/50 font-mono text-[10px] space-y-2">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 font-mono text-[10px] space-y-2">
                   <div className="flex justify-between items-center text-slate-500">
                     <span>DOC_MODEL:</span>
                     <span className="text-blue-400">{result.debug.model || 'cognitiveservices-qna'}</span>
@@ -124,7 +124,7 @@ export function QuestionAnswering() {
       </div>
 
       {/* Suggested Queries */}
-      <div className="glass-studio p-4 rounded-xl border-white/5">
+      <div className="glass-studio p-4 rounded-xl">
         <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
           <ChevronRight className="w-3 h-3" />
           Pre-approved Context Queries
@@ -134,7 +134,7 @@ export function QuestionAnswering() {
             <button
               key={q}
               onClick={() => setQuestion(q)}
-              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-[10px] text-slate-400 hover:bg-white/10 hover:border-white/10 transition-all"
+              className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-[10px] text-slate-700 hover:bg-slate-50 transition-all"
             >
               {q}
             </button>

@@ -29,7 +29,7 @@ export function ClockClient() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Search Bar / Input */}
-      <div className="glass-studio p-2 rounded-2xl flex items-center gap-2 border-white/5 shadow-2xl">
+      <div className="glass-studio p-2 rounded-2xl flex items-center gap-2 shadow-sm">
         <div className="flex-1 relative">
           <Navigation className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 rotate-45" />
           <input
@@ -38,7 +38,7 @@ export function ClockClient() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
             placeholder="Natural language temporal query (e.g. 'What time is it in Tokyo?')"
-            className="w-full bg-black/20 border-none rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder:text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none font-mono"
+            className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/40 outline-none font-mono"
           />
         </div>
         <Button
@@ -55,24 +55,24 @@ export function ClockClient() {
         {/* Main Response Display */}
         <div className="md:col-span-7 space-y-6">
           {!result && !loading ? (
-            <div className="h-64 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-8 bg-white/[0.01]">
+            <div className="h-64 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-center p-8 bg-white">
               <Clock4 className="w-12 h-12 text-slate-800 mb-4" />
               <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Temporal Logic Offline</h4>
               <p className="text-[10px] text-slate-600 mt-2">Awaiting natural language input for Conversational Language Understanding.</p>
             </div>
           ) : result ? (
-            <Card className="card-engineer border-blue-500/20 bg-blue-500/[0.02] h-full flex flex-col">
-              <CardHeader className="py-4 border-b border-white/10">
+            <Card className="card-engineer border-blue-200 bg-blue-50/40 h-full flex flex-col">
+              <CardHeader className="py-4 border-b border-slate-200">
                 <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-blue-400 flex items-center gap-2">
                   <Terminal className="w-4 h-4" />
                   Processed Response
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-8 flex flex-col items-center justify-center flex-grow text-center">
-                <div className="text-3xl font-black text-white tracking-tight mb-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                <div className="text-3xl font-black text-slate-900 tracking-tight mb-4">
                   {result.response}
                 </div>
-                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono uppercase bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+                <div className="flex items-center gap-2 text-[10px] text-slate-600 font-mono uppercase bg-white px-3 py-1.5 rounded-full border border-slate-200">
                   <MapPin className="w-3 h-3" />
                   Source: {result.entities?.find((e: any) => e.category === 'Location')?.text || 'System Local'}
                 </div>
@@ -91,17 +91,17 @@ export function ClockClient() {
           {result && (
             <>
               {/* Intent Confidence Gauge */}
-              <Card className="card-engineer border-purple-500/20 bg-purple-500/[0.02]">
-                <CardHeader className="py-2 border-b border-white/5">
+              <Card className="card-engineer border-purple-200 bg-purple-50/40">
+                <CardHeader className="py-2 border-b border-slate-200">
                   <CardTitle className="text-[9px] font-mono uppercase tracking-widest text-purple-400">CLU Intent Mapping</CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-4">
                   <div>
                     <div className="flex justify-between items-end mb-1.5">
-                      <span className="text-white text-xs font-bold font-mono">{result.top_intent}</span>
+                      <span className="text-slate-900 text-xs font-bold font-mono">{result.top_intent}</span>
                       <span className="text-[10px] font-mono text-purple-400">{(result.confidence * 100).toFixed(1)}%</span>
                     </div>
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-purple-500 shadow-[0_0_10px_#a855f7]"
                         style={{ width: `${result.confidence * 100}%` }}
@@ -114,9 +114,9 @@ export function ClockClient() {
                     <span className="text-[8px] font-bold text-slate-600 uppercase tracking-[0.2em]">Context Entities</span>
                     <div className="flex flex-wrap gap-2">
                       {result.entities?.length > 0 ? result.entities.map((e: any, i: number) => (
-                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/5 border border-white/5 text-[9px] font-mono text-slate-400">
+                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded bg-white border border-slate-200 text-[9px] font-mono text-slate-700">
                           <span className="text-blue-500 uppercase">{e.category}:</span>
-                          <span className="text-slate-200">{e.text}</span>
+                          <span className="text-slate-900">{e.text}</span>
                         </div>
                       )) : (
                         <span className="text-[9px] text-slate-700 italic">No entities extracted.</span>
@@ -143,10 +143,10 @@ export function ClockClient() {
 
               {/* Telemetry */}
               {result.debug && (
-                <div className="p-3 rounded-lg bg-black/40 border border-slate-800 font-mono text-[9px] space-y-1.5">
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 font-mono text-[9px] space-y-1.5">
                   <div className="flex justify-between text-slate-600">
                     <span>PROJECT:</span>
-                    <span className="text-slate-300">{result.debug.project}</span>
+                    <span className="text-slate-900">{result.debug.project}</span>
                   </div>
                   <div className="flex justify-between text-slate-600">
                     <span>LATENCY:</span>

@@ -72,7 +72,7 @@ export const SpeechClient: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8 animate-fadeIn pb-24">
+        <div className="space-y-8 animate-fadeIn pb-24 text-slate-900">
             {/* Header Context */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
@@ -80,16 +80,16 @@ export const SpeechClient: React.FC = () => {
                         <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
                             <Mic className="w-5 h-5 text-amber-500" />
                         </div>
-                        <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">Azure AI Speech</h1>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Azure AI Speech</h1>
                     </div>
-                    <p className="text-slate-400 text-sm font-medium max-w-2xl leading-relaxed">
+                    <p className="text-slate-600 text-sm font-medium max-w-2xl leading-relaxed">
                         Neural Audio Processing: Convert spoken language to structured text and synthesize human-like speech with context-aware prosody.
                     </p>
                 </div>
                 <div className="flex gap-4">
-                    <div className="px-4 py-2 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center gap-3">
+                    <div className="px-4 py-2 rounded-2xl bg-white border border-slate-200 flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest leading-none">Acoustic Model: Active</span>
+                        <span className="text-[10px] font-mono text-slate-600 uppercase tracking-widest leading-none">Acoustic Model: Active</span>
                     </div>
                 </div>
             </div>
@@ -99,7 +99,7 @@ export const SpeechClient: React.FC = () => {
                 <div className="col-span-12 lg:col-span-6 space-y-6">
                     <Card className="card-engineer overflow-hidden group">
                         <div className="h-1 w-full bg-gradient-to-r from-amber-500/50 to-transparent"></div>
-                        <CardHeader className="border-b border-white/5 bg-white/[0.02] py-4">
+                        <CardHeader className="border-b border-slate-200 bg-slate-50 py-4">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-amber-500 flex items-center gap-2">
                                     <Fingerprint className="w-4 h-4" />
@@ -116,14 +116,14 @@ export const SpeechClient: React.FC = () => {
                                     className={`
                     cursor-pointer border-2 border-dashed rounded-[32px] p-10
                     flex flex-col items-center justify-center text-center transition-all duration-500
-                    ${file ? 'border-amber-500/40 bg-amber-500/5' : 'border-slate-800 hover:border-amber-500/30 hover:bg-white/[0.02]'}
+                    ${file ? 'border-amber-500/40 bg-amber-50' : 'border-slate-200 hover:border-amber-500/30 hover:bg-slate-50'}
                   `}
                                 >
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="audio/*" />
-                                    <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center mb-4 transition-transform duration-500 ${file ? 'bg-amber-500 text-white scale-110' : 'bg-white/5 text-slate-500'}`}>
+                                    <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center mb-4 transition-transform duration-500 ${file ? 'bg-amber-500 text-white scale-110' : 'bg-slate-50 border border-slate-200 text-slate-500'}`}>
                                         <FileAudio className="w-8 h-8" />
                                     </div>
-                                    <h4 className="text-white font-black uppercase italic tracking-wider mb-2">
+                                    <h4 className="text-slate-900 font-black tracking-tight mb-2">
                                         {file ? file.name : 'Select Audio Stream'}
                                     </h4>
                                     <p className="text-slate-500 text-xs font-mono lowercase">
@@ -152,18 +152,18 @@ export const SpeechClient: React.FC = () => {
 
                     {/* Transcript Result */}
                     {result && (
-                        <Card className="card-engineer border-amber-500/20 bg-amber-500/[0.02] animate-slideIn">
-                            <CardHeader className="py-3 border-b border-white/5">
+                        <Card className="card-engineer border-amber-200 bg-amber-50/40 animate-slideIn">
+                            <CardHeader className="py-3 border-b border-slate-200">
                                 <div className="flex items-center gap-2">
                                     <CheckCircle className="w-4 h-4 text-emerald-500" />
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Linguistic Output</span>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-6">
-                                <p className="text-lg font-medium text-slate-200 leading-relaxed italic">
+                                <p className="text-lg font-medium text-slate-900 leading-relaxed italic">
                                     "{result.text}"
                                 </p>
-                                <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-slate-500">
+                                <div className="mt-6 pt-6 border-t border-slate-200 flex items-center justify-between text-[10px] font-mono text-slate-500">
                                     <div className="flex items-center gap-2 uppercase">
                                         <Activity className="w-3 h-3 text-amber-500" />
                                         Confidence: <span className="text-emerald-400">{(result.confidence * 100).toFixed(0)}%</span>
@@ -178,7 +178,7 @@ export const SpeechClient: React.FC = () => {
                 <div className="col-span-12 lg:col-span-6 space-y-6">
                     <Card className="card-engineer overflow-hidden group h-full">
                         <div className="h-1 w-full bg-gradient-to-r from-blue-500/50 to-transparent"></div>
-                        <CardHeader className="border-b border-white/5 bg-white/[0.02] py-4">
+                        <CardHeader className="border-b border-slate-200 bg-slate-50 py-4">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-blue-500 flex items-center gap-2">
                                     <Volume2 className="w-4 h-4" />
@@ -193,7 +193,7 @@ export const SpeechClient: React.FC = () => {
                                     value={synthText}
                                     onChange={(e) => setSynthText(e.target.value)}
                                     placeholder="Enter text context for synthesis..."
-                                    className="w-full bg-[#0a0b10] border border-slate-800 rounded-[28px] p-6 text-slate-200 placeholder:text-slate-700 min-h-[160px] focus:border-blue-500/50 focus:ring-0 transition-all outline-none resize-none font-medium"
+                                    className="w-full bg-white border border-slate-200 rounded-[28px] p-6 text-slate-900 placeholder:text-slate-400 min-h-[160px] focus:border-blue-500/40 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none resize-none font-medium"
                                 />
                             </div>
 
@@ -221,12 +221,12 @@ export const SpeechClient: React.FC = () => {
                                             {[1, 2, 3, 4].map(i => <div key={i} className="w-1 h-3 bg-blue-500 rounded-full"></div>)}
                                         </div>
                                     </div>
-                                    <div className="p-4 rounded-xl bg-black/40 border border-slate-800 flex items-center justify-between">
+                                    <div className="p-4 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 rounded-lg bg-blue-500 text-white"><Play className="w-4 h-4 fill-current" /></div>
                                             <div>
                                                 <p className="text-[10px] font-mono text-slate-500 uppercase">Voice Profile</p>
-                                                <p className="text-xs font-bold text-white">{synthResult.voice || 'AvaMultilingual'}</p>
+                                                <p className="text-xs font-bold text-slate-900">{synthResult.voice || 'AvaMultilingual'}</p>
                                             </div>
                                         </div>
                                         <span className="text-[10px] font-mono text-slate-600 italic">2.4s duration</span>

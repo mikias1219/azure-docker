@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { servicesApi, type ServicesStatus } from '@/lib/api';
 import { ServiceIntro } from '@/components/ServiceIntro';
+import { ExerciseCard, NotSupportedLab } from '@/components/exercises';
 
 interface ConsoleLog {
   id: string;
@@ -329,103 +330,213 @@ export default function DashboardPage() {
               />
             )}
 
-            <div className="grid grid-cols-12 gap-8">
+            <div className="space-y-6">
               {activeTab === 'documents' && (
-                <>
-                  <div className="col-span-12 xl:col-span-4 space-y-6">
-                    <Card className="card-engineer">
-                      <CardHeader className="border-b border-white/5 bg-white/[0.02] py-3">
-                        <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-amber-500" />
-                          Source Stream
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <DocumentUpload onUpload={handleUpload} getDocument={getDocument} compact />
-                      </CardContent>
-                    </Card>
-
-                    <Card className="card-engineer border-none bg-transparent shadow-none">
-                      <CardHeader className="px-0 py-2">
-                        <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-slate-600 flex items-center gap-2">
-                          <ListFilter className="w-3.5 h-3.5" /> Repository Registry
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-0">
-                        <DocumentList
-                          documents={documents}
-                          loading={loading}
-                          onSelectDocument={handleSelectDocument}
-                          selectedDocumentId={selectedDocument?.id}
-                          compact
-                        />
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <div className="col-span-12 xl:col-span-8">
-                    {selectedDocument ? (
-                      <div className="space-y-6 glass-studio p-1 rounded-3xl border-white/5 shadow-2xl overflow-hidden">
-                        <div className="bg-white/[0.02] p-5 border-b border-white/5 flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
-                              <FileText className="w-6 h-6 text-blue-400" />
-                            </div>
-                            <div>
-                              <h2 className="text-xl font-black text-white tracking-tighter uppercase">{selectedDocument.filename}</h2>
-                              <div className="text-[10px] font-mono text-slate-500 flex items-center gap-3">
-                                <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ID: {selectedDocument.id}</span>
-                                <span className="opacity-40">|</span>
-                                <span>STATUS: DEPLOYED</span>
-                              </div>
-                            </div>
-                          </div>
-                          <button onClick={() => setSelectedDocument(null)} className="p-2 hover:bg-white/5 rounded-full text-slate-500"><X className="w-5 h-5" /></button>
+                <div className="space-y-6">
+                  <ExerciseCard
+                    title="Lab: Upload and extract content"
+                    objective="Upload a file, then select it to view extracted text and AI analysis."
+                    steps={['Upload a document', 'Select it from the list', 'Review extracted text + analysis']}
+                    status={servicesStatus?.document_intelligence ? 'live' : 'not_configured'}
+                    statusDetail={servicesStatus?.document_intelligence ? undefined : 'Document Intelligence is not configured for this deployment.'}
+                  >
+                    <div className="grid grid-cols-12 gap-6">
+                      <div className="col-span-12 lg:col-span-5">
+                        <div className="space-y-4">
+                          <div className="text-sm font-semibold text-slate-900">Step 1: Upload</div>
+                          <DocumentUpload onUpload={handleUpload} getDocument={getDocument} compact />
                         </div>
-                        <div className="p-6 bg-[#0f111a]/80">
+                      </div>
+                      <div className="col-span-12 lg:col-span-7">
+                        <div className="space-y-3">
+                          <div className="text-sm font-semibold text-slate-900">Step 2: Select a document</div>
+                          <DocumentList
+                            documents={documents}
+                            loading={loading}
+                            onSelectDocument={handleSelectDocument}
+                            selectedDocumentId={selectedDocument?.id}
+                            compact
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </ExerciseCard>
+
+                  <ExerciseCard
+                    title="Lab: Review extracted text and analysis"
+                    objective="Open the selected document to see extracted text and AI analysis generated by the backend pipeline."
+                    steps={['Select a document', 'Review extracted text', 'Refresh if needed']}
+                    status={selectedDocument ? 'live' : 'not_configured'}
+                    statusDetail={selectedDocument ? undefined : 'Select a document above to enable this lab.'}
+                  >
+                    {selectedDocument ? (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div className="flex items-center justify-between gap-3 pb-4 border-b border-slate-200">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-slate-900 truncate">{selectedDocument.filename}</div>
+                            <div className="text-xs text-slate-600">Document ID: {selectedDocument.id}</div>
+                          </div>
+                          <Button variant="outline" onClick={() => setSelectedDocument(null)}>Clear</Button>
+                        </div>
+                        <div className="pt-4">
                           <DocumentViewer document={selectedDocument} onRefresh={fetchDocuments} />
                         </div>
                       </div>
                     ) : (
-                      <div className="h-[600px] border border-white/5 rounded-[40px] flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
-                        <div className="w-24 h-24 rounded-[40px] bg-white/[0.02] flex items-center justify-center mb-8 border border-white/5 shadow-2xl">
-                          <FolderOpen className="w-10 h-10 text-slate-800" />
-                        </div>
-                        <h4 className="text-2xl font-black text-slate-500 tracking-tight uppercase mb-3 italic">Awaiting Context</h4>
-                        <p className="text-slate-600 text-sm max-w-sm font-medium leading-relaxed">System state: IDLE. Initialize the neural pipeline by selecting a source from the registry or uploading a new bitstream.</p>
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-600">
+                        Select a document in the previous lab to view results here.
                       </div>
                     )}
-                  </div>
-                </>
+                  </ExerciseCard>
+
+                  <ExerciseCard
+                    title="Lab: Structured extraction (Invoice / Business Card)"
+                    objective="Extract structured fields from a document using prebuilt models (where applicable)."
+                    steps={['Select a document', 'Run structured extraction', 'Review extracted fields']}
+                    status={selectedDocument ? 'live' : 'not_configured'}
+                    statusDetail={selectedDocument ? undefined : 'Select a document first.'}
+                  >
+                    {selectedDocument ? <InfoExtraction /> : null}
+                  </ExerciseCard>
+                </div>
               )}
 
-              <div className="col-span-12">
-                <div className="animate-fadeIn">
-                  {activeTab === 'text-analytics' && (
-                    <div className="space-y-12">
-                      <TextAnalysis />
-                      <div className="h-px bg-white/5 mx-12"></div>
-                      <QuestionAnswering />
-                      <div className="h-px bg-white/5 mx-12"></div>
-                      <ClockClient />
-                    </div>
-                  )}
-                  {activeTab === 'speech' && <SpeechClient />}
-                  {activeTab === 'vision' && (
-                    <div className="space-y-12">
-                      <AIVision />
-                    </div>
-                  )}
-                  {activeTab === 'documents' && selectedDocument && (
-                    <div className="mt-12">
-                      <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-6 px-4">Neural Field Extraction</h3>
-                      <InfoExtraction />
-                    </div>
-                  )}
-                  {activeTab === 'knowledge' && <KnowledgeMining />}
-                  {activeTab === 'rag' && <RAGQA />}
+              {activeTab === 'vision' && (
+                <div className="space-y-6">
+                  <ExerciseCard
+                    title="Lab: Analyze images"
+                    objective="Upload an image and run feature extraction (caption, tags, objects)."
+                    steps={['Upload an image', 'Select features', 'Run analyze and review output']}
+                    status={servicesStatus?.vision ? 'live' : 'not_configured'}
+                    statusDetail={servicesStatus?.vision ? undefined : 'Azure AI Vision is not configured for this deployment.'}
+                  >
+                    <AIVision />
+                  </ExerciseCard>
+
+                  <ExerciseCard
+                    title="Lab: Face detection, classification, object detection, Video Indexer"
+                    objective="These labs require additional Azure resource types beyond what this deployment provisions."
+                    steps={[]}
+                    status="not_supported"
+                    statusDetail="Not supported in this deployment (resource types not provisioned by CI/CD)."
+                  >
+                    <NotSupportedLab
+                      title="Not supported labs in this deployment"
+                      reason="To enable these labs, we would need to provision additional Azure services and wire their keys/endpoints into CI/CD."
+                      requiredResources={[
+                        'Custom Vision (training + prediction) resources',
+                        'Azure AI Video Indexer',
+                        'Azure OpenAI image generation / DALL·E (if used)',
+                      ]}
+                    />
+                  </ExerciseCard>
                 </div>
-              </div>
+              )}
+
+              {activeTab === 'text-analytics' && (
+                <div className="space-y-6">
+                  <ExerciseCard
+                    title="Lab: Analyze text"
+                    objective="Run language detection, sentiment analysis, key phrase extraction, and entity recognition."
+                    steps={['Enter text', 'Run analysis', 'Review key phrases + entities']}
+                    status={servicesStatus?.text_analytics ? 'live' : 'not_configured'}
+                    statusDetail={servicesStatus?.text_analytics ? undefined : 'Azure AI Language / Text Analytics is not configured for this deployment.'}
+                  >
+                    <TextAnalysis />
+                  </ExerciseCard>
+
+                  <ExerciseCard
+                    title="Lab: Question Answering"
+                    objective="Ask a question against your QnA project and review the answer and confidence."
+                    steps={['Enter a question', 'Run', 'Review answer and confidence']}
+                    status={servicesStatus?.qna ? 'live' : 'not_configured'}
+                    statusDetail={servicesStatus?.qna ? undefined : 'Question Answering is not configured for this deployment.'}
+                  >
+                    <QuestionAnswering />
+                  </ExerciseCard>
+
+                  <ExerciseCard
+                    title="Lab: Language Understanding (CLU)"
+                    objective="Test intent recognition (Clock) and inspect the detected intent and extracted entities."
+                    steps={['Enter a phrase', 'Run', 'Review intent + entities']}
+                    status={servicesStatus?.clock ? 'live' : 'not_configured'}
+                    statusDetail={servicesStatus?.clock ? undefined : 'CLU/Clock is not configured for this deployment.'}
+                  >
+                    <ClockClient />
+                  </ExerciseCard>
+
+                  <ExerciseCard
+                    title="Lab: Translation, custom entity recognition, custom classification"
+                    objective="These labs require additional resource types or studio training flows not provisioned in this deployment."
+                    steps={[]}
+                    status="not_supported"
+                  >
+                    <NotSupportedLab
+                      title="Not supported labs in this deployment"
+                      reason="To enable, we’d need to provision additional Azure services and/or support training workflows."
+                      requiredResources={[
+                        'Azure AI Translator',
+                        'Custom text classification / custom NER training resources',
+                      ]}
+                    />
+                  </ExerciseCard>
+                </div>
+              )}
+
+              {activeTab === 'speech' && (
+                <div className="space-y-6">
+                  <ExerciseCard
+                    title="Lab: Speech services (STT + TTS)"
+                    objective="Transcribe audio to text and synthesize speech from text."
+                    steps={['Upload audio or enter text', 'Run STT or TTS', 'Review results']}
+                    status={servicesStatus?.speech ? 'live' : 'not_configured'}
+                    statusDetail={servicesStatus?.speech ? undefined : 'Azure AI Speech is not configured for this deployment.'}
+                  >
+                    <SpeechClient />
+                  </ExerciseCard>
+
+                  <ExerciseCard
+                    title="Lab: Speech translation and advanced speech scenarios"
+                    objective="These labs require additional configuration beyond basic Speech keys/region."
+                    steps={[]}
+                    status="not_supported"
+                  >
+                    <NotSupportedLab
+                      title="Not supported labs in this deployment"
+                      reason="To enable, we’d add speech translation and additional APIs/configuration to the backend."
+                      requiredResources={['Speech translation configuration / additional APIs']}
+                    />
+                  </ExerciseCard>
+                </div>
+              )}
+
+              {activeTab === 'knowledge' && (
+                <div className="space-y-6">
+                  <ExerciseCard
+                    title="Lab: Knowledge mining (keyword search)"
+                    objective="Query the Azure AI Search index and review matching documents."
+                    steps={['Enter query', 'Run search', 'Review matches']}
+                    status={servicesStatus?.search ? 'live' : 'not_configured'}
+                    statusDetail={servicesStatus?.search ? undefined : 'Azure AI Search is not configured for this deployment.'}
+                  >
+                    <KnowledgeMining />
+                  </ExerciseCard>
+                </div>
+              )}
+
+              {activeTab === 'rag' && (
+                <div className="space-y-6">
+                  <ExerciseCard
+                    title="Lab: RAG (ingest + ask)"
+                    objective="Ingest content into the index, then ask grounded questions and inspect sources."
+                    steps={['Ensure index', 'Ingest document', 'Ask question and review sources']}
+                    status={servicesStatus?.rag ? 'live' : 'not_configured'}
+                    statusDetail={servicesStatus?.rag ? undefined : 'RAG requires Azure AI Search + Azure OpenAI embeddings + chat deployment.'}
+                  >
+                    <RAGQA />
+                  </ExerciseCard>
+                </div>
+              )}
             </div>
           </section>
         </div>

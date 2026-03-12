@@ -29,7 +29,7 @@ export function RAGQA() {
   return (
     <div className="space-y-6">
       {/* Search Header */}
-      <div className="glass-studio p-1.5 rounded-2xl flex items-center gap-2 border-white/5 shadow-2xl">
+      <div className="glass-studio p-1.5 rounded-2xl flex items-center gap-2 shadow-sm">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
@@ -38,7 +38,7 @@ export function RAGQA() {
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
             placeholder="Query global vectorized knowledge store..."
-            className="w-full bg-black/20 border-none rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder:text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none font-mono"
+            className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/40 outline-none font-mono"
           />
         </div>
         <Button
@@ -55,14 +55,14 @@ export function RAGQA() {
         {/* Main Answer Panel */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
           {result?.error && (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span>{result.error}</span>
             </div>
           )}
           {!result && !loading ? (
-            <div className="h-[400px] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white/[0.01]">
-              <div className="w-16 h-16 rounded-2xl bg-white/[0.02] flex items-center justify-center mb-6">
+            <div className="h-[400px] border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white">
+              <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-6">
                 <Database className="w-8 h-8 text-slate-700" />
               </div>
               <h4 className="text-lg font-bold text-slate-500 uppercase tracking-widest">Knowledge Store Idle</h4>
@@ -70,8 +70,8 @@ export function RAGQA() {
             </div>
           ) : result && !result.error ? (
             <>
-              <Card className="card-engineer border-blue-500/20 bg-blue-500/[0.02]">
-                <CardHeader className="py-4 border-b border-white/10 flex flex-row items-center justify-between">
+              <Card className="card-engineer border-blue-200 bg-blue-50/40">
+                <CardHeader className="py-4 border-b border-slate-200 flex flex-row items-center justify-between">
                   <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-blue-400 flex items-center gap-2">
                     <Terminal className="w-4 h-4" />
                     Synthesized Knowledge Result
@@ -79,29 +79,29 @@ export function RAGQA() {
                   <span className="text-[9px] font-mono text-slate-500">ENGINE: RAG-V3-ALPHA</span>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <p className="text-base text-slate-100 leading-relaxed font-sans">
+                  <p className="text-base text-slate-900 leading-relaxed font-sans">
                     {result.answer}
                   </p>
                 </CardContent>
               </Card>
 
               {/* Internal Reasoning Section */}
-              <Card className="card-engineer border-purple-500/20 bg-purple-500/[0.02]">
-                <CardHeader className="py-3 border-b border-white/5">
+              <Card className="card-engineer border-purple-200 bg-purple-50/40">
+                <CardHeader className="py-3 border-b border-slate-200">
                   <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-purple-400 flex items-center gap-2">
                     <Zap className="w-4 h-4" />
                     Strategic Reasoning
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4">
-                  <p className="text-xs text-purple-200/70 italic font-mono leading-relaxed">
+                  <p className="text-xs text-purple-700 italic font-mono leading-relaxed">
                     "{result.reasoning || 'Heuristic logic applied to retrieved chunks.'}"
                   </p>
                 </CardContent>
               </Card>
             </>
           ) : result?.error ? (
-            <div className="h-[300px] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-center p-8 bg-white/[0.01]">
+            <div className="h-[300px] border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-center p-8 bg-white">
               <p className="text-slate-500 text-sm">An error occurred. See the message above. Ensure Azure OpenAI and the RAG index are configured.</p>
             </div>
           ) : (
@@ -121,27 +121,27 @@ export function RAGQA() {
         {/* Sidebar: Chunks & Metadata */}
         <div className="col-span-12 lg:col-span-4 space-y-6">
           {result?.debug && (
-            <Card className="card-engineer bg-black/40 border-slate-800">
-              <CardHeader className="py-3 border-b border-white/5">
+            <Card className="card-engineer">
+              <CardHeader className="py-3 border-b border-slate-200">
                 <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" />
                   Pipeline Telemetry
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3 font-mono text-[10px]">
-                <div className="flex justify-between border-b border-white/5 pb-2">
+                <div className="flex justify-between border-b border-slate-200 pb-2">
                   <span className="text-slate-500">RETRIEVAL ENGINE:</span>
                   <span className="text-blue-400">AZURE SEARCH</span>
                 </div>
-                <div className="flex justify-between border-b border-white/5 pb-2">
+                <div className="flex justify-between border-b border-slate-200 pb-2">
                   <span className="text-slate-500">LATENCY:</span>
                   <span className="text-emerald-500">{result.debug.latency_ms}ms</span>
                 </div>
-                <div className="flex justify-between border-b border-white/5 pb-2">
+                <div className="flex justify-between border-b border-slate-200 pb-2">
                   <span className="text-slate-500">MODEL_ID:</span>
                   <span className="text-amber-500">{result.debug.model}</span>
                 </div>
-                <div className="flex justify-between pb-2 text-[11px] text-white font-bold">
+                <div className="flex justify-between pb-2 text-[11px] text-slate-900 font-bold">
                   <span className="text-slate-500">TOKENS:</span>
                   <span>{result.debug.tokens || 'N/A'}</span>
                 </div>
@@ -156,17 +156,17 @@ export function RAGQA() {
                 Semantic Source Chunks
               </h4>
               {result.sources.map((src: any, i: number) => (
-                <Card key={i} className="card-engineer bg-white/[0.01] border-white/5 group hover:border-blue-500/30">
+                <Card key={i} className="card-engineer group hover:border-blue-500/30">
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-[9px] font-mono text-blue-500 uppercase tracking-tight font-bold truncate max-w-[150px]">
                         FILE: {src.file_name}
                       </div>
-                      <div className="text-[9px] font-mono text-slate-600 bg-white/5 px-1.5 py-0.5 rounded">
+                      <div className="text-[9px] font-mono text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
                         SCORE: {src.score?.toFixed(3) || '0.00'}
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-500 line-clamp-3 leading-relaxed group-hover:text-slate-300 transition-colors">
+                    <p className="text-[10px] text-slate-700 line-clamp-3 leading-relaxed group-hover:text-slate-900 transition-colors">
                       "{src.content_preview}"
                     </p>
                   </div>
