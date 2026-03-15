@@ -14,7 +14,10 @@ class QuestionAnsweringService:
         self.project_name = os.getenv("AZURE_QNA_PROJECT_NAME", "LearnFAQ")
         self.deployment_name = os.getenv("AZURE_QNA_DEPLOYMENT_NAME", "production")
         self.client = None
-        self.llm_enabled = os.getenv("AZURE_OPENAI_KEY") is not None
+        # Use same OpenAI env as rest of app (OPENAI_API_*) so CI/provisioning works
+        self.llm_enabled = bool(
+            os.getenv("OPENAI_API_KEY") or os.getenv("AZURE_OPENAI_KEY")
+        )
         
         if self.endpoint and self.key:
             try:
@@ -37,9 +40,16 @@ class QuestionAnsweringService:
         
         try:
             import openai
-            openai.api_key = os.getenv("AZURE_OPENAI_KEY")
-            openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT", "https://api.openai.com/v1")
-            
+            api_key = os.getenv("OPENAI_API_KEY") or os.getenv("AZURE_OPENAI_KEY")
+            api_base = (os.getenv("OPENAI_API_BASE") or os.getenv("AZURE_OPENAI_ENDPOINT") or "").rstrip("/")
+            deployment = os.getenv("OPENAI_DEPLOYMENT_NAME") or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-35-turbo")
+            if not api_key or not api_base:
+                return kb_answer
+            openai.api_key = api_key
+            openai.api_base = api_base if api_base.startswith("http") else f"https://{api_base}"
+            openai.api_type = "azure"
+            openai.api_version = os.getenv("OPENAI_API_VERSION", "2024-02-15-preview")
+
             system_prompt = """You are a helpful HR assistant. Enhance the given answer from the knowledge base to be:
 1. Clear and well-structured
 2. Professional and friendly
@@ -49,7 +59,7 @@ class QuestionAnsweringService:
 Base your enhancement on the knowledge base answer provided. Do not add information that is not in the original answer."""
 
             response = await openai.ChatCompletion.acreate(
-                engine=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4"),
+                engine=deployment,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Question: {question}\n\nKnowledge Base Answer: {kb_answer}\n\nPlease enhance this answer for better presentation."}
