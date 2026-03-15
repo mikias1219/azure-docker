@@ -54,6 +54,13 @@ export function InfoExtraction() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3 text-sm text-slate-700">
+        <strong className="text-slate-800">Steps:</strong>{' '}
+        <span className="font-medium">1.</span> Choose <strong>Business Card</strong> or <strong>Invoice</strong> above →
+        <span className="font-medium"> 2.</span> Upload a PDF or image of the document →
+        <span className="font-medium"> 3.</span> Click &quot;Execute extraction&quot; →
+        <span className="font-medium"> 4.</span> Review the extracted fields (name, company, totals, etc.) in the results.
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
         {/* Input Panel */}
         <div className="md:col-span-5 space-y-6">

@@ -28,6 +28,12 @@ export function QuestionAnswering() {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3 text-sm text-slate-700">
+        <strong className="text-slate-800">Steps:</strong>{' '}
+        <span className="font-medium">1.</span> Type your question in the box below →
+        <span className="font-medium"> 2.</span> Click &quot;Run inference&quot; →
+        <span className="font-medium"> 3.</span> Read the answer and confidence in the response panel on the right.
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Input Terminal */}
         <Card className="card-engineer border-blue-200 bg-blue-50/40">
@@ -38,7 +44,6 @@ export function QuestionAnswering() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <p className="text-[11px] text-slate-500 mb-4 font-mono">Step 2: Click Run. Step 3: Response appears on the right.</p>
             <div className="space-y-4">
               <textarea
                 value={question}

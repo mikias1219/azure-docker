@@ -28,6 +28,13 @@ export function RAGQA() {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3 text-sm text-slate-700">
+        <strong className="text-slate-800">Steps:</strong>{' '}
+        <span className="font-medium">1.</span> (Optional) Ingest a document from the Documents tab and note its ID if your deployment supports ingest from this UI. →
+        <span className="font-medium"> 2.</span> Type your question in the box below →
+        <span className="font-medium"> 3.</span> Click &quot;Run pipeline&quot; →
+        <span className="font-medium"> 4.</span> Read the answer and the source chunks used to generate it.
+      </div>
       {/* Search Header */}
       <div className="glass-studio p-1.5 rounded-2xl flex items-center gap-2 shadow-sm">
         <div className="flex-1 relative">
@@ -65,8 +72,8 @@ export function RAGQA() {
               <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-6">
                 <Database className="w-8 h-8 text-slate-700" />
               </div>
-              <h4 className="text-lg font-bold text-slate-500 uppercase tracking-widest">Knowledge Store Idle</h4>
-              <p className="text-slate-600 text-sm max-w-sm">Step 1: Enter a question above. Step 2: Click Run. Step 3: View the answer and sources here.</p>
+              <h4 className="text-lg font-bold text-slate-500 uppercase tracking-widest">Step 3: Answer and sources</h4>
+              <p className="text-slate-600 text-sm max-w-sm">The generated answer and the source chunks will appear here after you run the pipeline.</p>
             </div>
           ) : result && !result.error ? (
             <>

@@ -15,13 +15,15 @@ import { InfoExtraction } from '@/components/InfoExtraction';
 import { KnowledgeMining } from '@/components/KnowledgeMining';
 import { RAGQA } from '@/components/RAGQA';
 import { SpeechClient } from '@/components/SpeechClient';
+import { ServicesOverview, type ServiceTabId } from '@/components/ServicesOverview';
 import {
   FileText, LogOut, Brain, Languages, FolderOpen, X,
   Search, FileImage, ScanLine, Database, Terminal, ChevronUp, ChevronDown, ListFilter,
-  HelpCircle, ChevronRight, Zap, Box, Mic
+  HelpCircle, ChevronRight, Zap, Box, Mic, LayoutDashboard
 } from 'lucide-react';
 import { servicesApi, type ServicesStatus } from '@/lib/api';
-import { ServiceIntro } from '@/components/ServiceIntro';
+import { SERVICE_USAGE } from '@/lib/serviceUsage';
+import { ServiceUsagePanel } from '@/components/ServiceUsagePanel';
 import { ExerciseCard, NotSupportedLab } from '@/components/exercises';
 
 interface ConsoleLog {
@@ -38,7 +40,7 @@ export default function DashboardPage() {
   const { documents, loading, uploadDocument, getDocument, fetchDocuments } = useDocuments();
   const router = useRouter();
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'documents' | 'text-analytics' | 'speech' | 'vision' | 'knowledge' | 'rag'>('documents');
+  const [activeTab, setActiveTab] = useState<ServiceTabId>('overview');
   const [isClient, setIsClient] = useState(false);
   const [servicesStatus, setServicesStatus] = useState<ServicesStatus | null>(null);
 
@@ -134,7 +136,8 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
-  const tabs = [
+  const tabs: Array<{ id: ServiceTabId; label: string; icon: typeof ScanLine; desc: string }> = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard, desc: 'All services at a glance' },
     { id: 'documents', label: 'Document Intelligence', icon: ScanLine, desc: 'Extract text, forms, invoices' },
     { id: 'vision', label: 'Computer Vision', icon: FileImage, desc: 'Analyze images, OCR' },
     { id: 'text-analytics', label: 'Natural Language', icon: Languages, desc: 'Text analytics, QnA, CLU' },
@@ -203,21 +206,27 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => setShowWizard(true)} className="text-slate-600 hover:text-slate-900 text-xs">
+            {servicesStatus && (
+              <span className="text-xs text-slate-600 hidden md:inline flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200" role="status">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden />
+                {Object.values(servicesStatus).filter(Boolean).length} of 6 services live
+              </span>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => setShowWizard(true)} className="text-slate-600 hover:text-slate-900 text-xs" aria-label="Get started guide">
               <HelpCircle className="w-4 h-4 mr-1.5" /> Get started
             </Button>
-            <span className="text-xs text-slate-600 hidden sm:inline">{user.username}</span>
-            <button onClick={logout} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-slate-900 transition-colors" title="Sign out">
+            <span className="text-xs text-slate-600 hidden sm:inline" aria-label={`Signed in as ${user.username}`}>{user.username}</span>
+            <button onClick={logout} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" title="Sign out" aria-label="Sign out">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[1700px] mx-auto px-6 py-8 pb-32">
+      <main className="max-w-[1700px] mx-auto px-6 py-8 pb-32" id="main-content">
         <div className="flex gap-8">
           {/* Vertical Stepper Navigation */}
-          <aside className="w-56 flex-shrink-0 hidden lg:block">
+          <nav className="w-56 flex-shrink-0 hidden lg:block" aria-label="AI services">
             <div className="sticky top-28 space-y-1.5">
               <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-4 px-3">
                 Azure AI services
@@ -225,14 +234,15 @@ export default function DashboardPage() {
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === (tab.id as any);
-                const isLive = servicesStatus ? (
-                  tab.id === 'documents' ? servicesStatus.document_intelligence :
-                    tab.id === 'vision' ? servicesStatus.vision :
-                      tab.id === 'text-analytics' ? servicesStatus.text_analytics :
-                        tab.id === 'speech' ? servicesStatus.speech :
-                          tab.id === 'knowledge' ? servicesStatus.search :
-                            tab.id === 'rag' ? servicesStatus.rag : false
-                ) : false;
+                const isLive = servicesStatus && tab.id !== 'overview'
+                  ? (tab.id === 'documents' ? servicesStatus.document_intelligence :
+                      tab.id === 'vision' ? servicesStatus.vision :
+                        tab.id === 'text-analytics' ? servicesStatus.text_analytics :
+                          tab.id === 'speech' ? servicesStatus.speech :
+                            tab.id === 'knowledge' ? servicesStatus.search :
+                              tab.id === 'rag' ? servicesStatus.rag : false)
+                  : (tab.id === 'overview' ? null : false);
+                const showDot = tab.id !== 'overview';
 
                 return (
                   <button
@@ -250,7 +260,7 @@ export default function DashboardPage() {
                     <div className="text-left flex-grow">
                       <div className={`text-[11px] font-black leading-tight uppercase tracking-tight flex items-center justify-between`}>
                         {tab.label}
-                        <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-600' : 'bg-amber-500'}`}></div>
+                        {showDot && <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-600' : 'bg-amber-500'}`} aria-hidden />}
                       </div>
                       <div className="text-[9px] opacity-40 font-mono italic">{tab.desc}</div>
                     </div>
@@ -258,7 +268,7 @@ export default function DashboardPage() {
                 );
               })}
             </div>
-          </aside>
+          </nav>
 
           {/* Dynamic Content Area */}
           <section className="flex-grow min-w-0">
@@ -281,55 +291,32 @@ export default function DashboardPage() {
                 })}
               </div>
             </div>
-            {activeTab === 'documents' && (
-              <ServiceIntro
-                title="Document Intelligence"
-                description="Practice exercise: upload a document, extract text/structure, then review the extracted content and run structured extraction (invoice/business card)."
-                steps={['Upload a document', 'Open it from the list', 'Review extracted text + analysis', 'Run structured extraction (Invoice/Business Card) if needed']}
-                isLive={!!servicesStatus?.document_intelligence}
+            {activeTab === 'overview' && (
+              <ServicesOverview
+                servicesStatus={servicesStatus}
+                onOpenService={(tab) => setActiveTab(tab)}
               />
             )}
-            {activeTab === 'vision' && (
-              <ServiceIntro
-                title="Computer Vision"
-                description="Practice exercise: upload an image, select features (caption/tags/objects/OCR), then run analysis and inspect results."
-                steps={['Upload an image', 'Choose features', 'Run', 'Review results (and OCR text if selected)']}
-                isLive={!!servicesStatus?.vision}
-              />
+            {activeTab === 'documents' && SERVICE_USAGE.documents && (
+              <ServiceUsagePanel content={SERVICE_USAGE.documents} isLive={!!servicesStatus?.document_intelligence} />
             )}
-            {activeTab === 'text-analytics' && (
-              <ServiceIntro
-                title="Natural Language Processing"
-                description="Practice exercises: run Text Analytics (sentiment/entities/key phrases), ask a question with QnA, and test intent recognition with CLU (Clock)."
-                steps={['Enter text or a question', 'Run', 'Review response and confidence/metadata']}
-                isLive={!!servicesStatus?.text_analytics}
-              />
+            {activeTab === 'vision' && SERVICE_USAGE.vision && (
+              <ServiceUsagePanel content={SERVICE_USAGE.vision} isLive={!!servicesStatus?.vision} />
             )}
-            {activeTab === 'speech' && (
-              <ServiceIntro
-                title="Speech"
-                description="Practice exercises: transcribe audio (STT) and synthesize speech from text (TTS)."
-                steps={['Upload audio or enter text', 'Run STT or TTS', 'Review transcript or play audio']}
-                isLive={!!servicesStatus?.speech}
-              />
+            {activeTab === 'text-analytics' && SERVICE_USAGE['text-analytics'] && (
+              <ServiceUsagePanel content={SERVICE_USAGE['text-analytics']} isLive={!!servicesStatus?.text_analytics} />
             )}
-            {activeTab === 'knowledge' && (
-              <ServiceIntro
-                title="Knowledge Mining"
-                description="Practice exercise: search your indexed content with Azure AI Search. (Tip: ingest documents via RAG first to populate the index.)"
-                steps={['Enter a search query', 'Run search', 'Inspect matching documents and fields']}
-                isLive={!!servicesStatus?.search}
-              />
+            {activeTab === 'speech' && SERVICE_USAGE.speech && (
+              <ServiceUsagePanel content={SERVICE_USAGE.speech} isLive={!!servicesStatus?.speech} />
             )}
-            {activeTab === 'rag' && (
-              <ServiceIntro
-                title="Generative AI (RAG)"
-                description="Practice exercise: ingest a document, then ask questions. The app retrieves sources from the index and answers with Azure OpenAI."
-                steps={['Ingest a document', 'Ask a question', 'Review answer + sources']}
-                isLive={!!servicesStatus?.rag}
-              />
+            {activeTab === 'knowledge' && SERVICE_USAGE.knowledge && (
+              <ServiceUsagePanel content={SERVICE_USAGE.knowledge} isLive={!!servicesStatus?.search} />
+            )}
+            {activeTab === 'rag' && SERVICE_USAGE.rag && (
+              <ServiceUsagePanel content={SERVICE_USAGE.rag} isLive={!!servicesStatus?.rag} />
             )}
 
+            {activeTab !== 'overview' && (
             <div className="space-y-6">
               {activeTab === 'documents' && (
                 <div className="space-y-6">
@@ -391,12 +378,12 @@ export default function DashboardPage() {
 
                   <ExerciseCard
                     title="Lab: Structured extraction (Invoice / Business Card)"
-                    objective="Extract structured fields from a document using prebuilt models (where applicable)."
-                    steps={['Select a document', 'Run structured extraction', 'Review extracted fields']}
-                    status={selectedDocument ? 'live' : 'not_configured'}
-                    statusDetail={selectedDocument ? undefined : 'Select a document first.'}
+                    objective="Extract structured fields from a document using prebuilt models. Upload a file directly — no need to select from the list first."
+                    steps={['Choose Invoice or Business Card', 'Upload a PDF or image', 'Run extraction', 'Review extracted fields']}
+                    status={servicesStatus?.document_intelligence ? 'live' : 'not_configured'}
+                    statusDetail={servicesStatus?.document_intelligence ? undefined : 'Document Intelligence is not configured for this deployment.'}
                   >
-                    {selectedDocument ? <InfoExtraction /> : null}
+                    <InfoExtraction />
                   </ExerciseCard>
                 </div>
               )}
@@ -538,6 +525,7 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+            )}
           </section>
         </div>
       </main>

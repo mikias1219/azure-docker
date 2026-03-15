@@ -138,8 +138,8 @@ export default function LoginPage() {
           </p>
 
           {sessionExpired && (
-            <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 px-4 py-3 text-sm mb-6">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <div className="flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm mb-6" role="alert">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" aria-hidden />
               Your session expired. Please sign in again.
             </div>
           )}
@@ -147,8 +147,8 @@ export default function LoginPage() {
           <div className="glass-studio rounded-2xl p-8 shadow-xl">
             <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
-                <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-300 px-4 py-3 rounded-xl text-sm">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm" role="alert">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" aria-hidden />
                   {error}
                 </div>
               )}

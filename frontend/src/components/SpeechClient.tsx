@@ -73,6 +73,11 @@ export const SpeechClient: React.FC = () => {
 
     return (
         <div className="space-y-8 animate-fadeIn pb-24 text-slate-900">
+            <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3 text-sm text-slate-700">
+                <strong className="text-slate-800">Steps:</strong>{' '}
+                <span className="font-medium">Speech-to-Text:</span> 1. Select an audio file → 2. Click &quot;Execute Transcription&quot; → 3. Read the transcript below.{' '}
+                <span className="font-medium">Text-to-Speech:</span> 1. Type text in the TTS box → 2. Click &quot;Synthesize&quot; → 3. Play or review the generated audio.
+            </div>
             {/* Header Context */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>

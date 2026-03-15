@@ -232,6 +232,13 @@ export function AIVision() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3 text-sm text-slate-700">
+        <strong className="text-slate-800">Steps:</strong>{' '}
+        <span className="font-medium">1.</span> Upload an image (JPEG, PNG) →
+        <span className="font-medium"> 2.</span> Select one or more features (Caption, Tags, Objects, People, OCR) →
+        <span className="font-medium"> 3.</span> Click &quot;Analyze&quot; for image analysis or &quot;Read text&quot; for OCR →
+        <span className="font-medium"> 4.</span> View caption, tags, detected objects/people, and extracted text in the results.
+      </div>
       <div className="grid grid-cols-12 gap-8">
         {/* Left: Control Panel */}
         <div className="col-span-12 lg:col-span-5 space-y-6">

@@ -17,8 +17,12 @@ export function ServiceIntro({ title, description, steps, isLive = false, childr
           <h2 className="text-lg font-semibold text-slate-900 mb-1">{title}</h2>
           <p className="text-sm text-slate-600 max-w-2xl">{description}</p>
         </div>
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${isLive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-          {isLive ? <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> : <AlertCircle className="w-3.5 h-3.5 text-amber-600" />}
+        <div
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${isLive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}
+          role="status"
+          aria-label={isLive ? 'Service available' : 'Service not configured'}
+        >
+          {isLive ? <CheckCircle className="w-3.5 h-3.5 text-emerald-600" aria-hidden /> : <AlertCircle className="w-3.5 h-3.5 text-amber-600" aria-hidden />}
           {isLive ? 'Service live' : 'Service not configured'}
         </div>
       </div>

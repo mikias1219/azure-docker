@@ -32,15 +32,20 @@ export function TextAnalysis() {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3 text-sm text-slate-700">
+        <strong className="text-slate-800">Steps:</strong>{' '}
+        <span className="inline font-medium">1.</span> Paste your text in the box below →
+        <span className="inline font-medium"> 2.</span> Click &quot;Run analysis&quot; →
+        <span className="inline font-medium"> 3.</span> View language, sentiment, key phrases, and entities in the results panel.
+      </div>
       <div className="grid grid-cols-12 gap-8">
         {/* Input Pane */}
         <div className="col-span-12 lg:col-span-5 space-y-6">
-          <p className="text-xs text-slate-500">Step 1: Paste text below. Step 2: Click &quot;Run linguistic audit&quot;. Step 3: See response (language, sentiment, phrases, entities) on the right.</p>
           <Card className="card-engineer border-blue-200 bg-blue-50/40">
             <CardHeader className="py-4 border-b border-slate-200">
               <CardTitle className="text-xs font-mono uppercase tracking-widest text-blue-400 flex items-center gap-2">
                 <Terminal className="w-4 h-4" />
-                Enter text
+                Step 1: Enter text
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
@@ -72,8 +77,8 @@ export function TextAnalysis() {
           {!result && !loading ? (
             <div className="h-full border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-center p-12 bg-white">
               <Languages className="w-16 h-16 text-slate-800 mb-6" />
-              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Step 3: Response</h4>
-              <p className="text-[10px] text-slate-600 mt-2 max-w-[250px]">Analysis results will appear here after you run the audit.</p>
+              <h4 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Step 3: Results</h4>
+              <p className="text-[10px] text-slate-600 mt-2 max-w-[250px]">Language, sentiment, key phrases, and entities will appear here after you run the analysis.</p>
             </div>
           ) : result && !result.error ? (
             <div className="space-y-6">

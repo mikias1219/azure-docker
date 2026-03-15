@@ -28,6 +28,12 @@ export function ClockClient() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3 text-sm text-slate-700">
+        <strong className="text-slate-800">Steps:</strong>{' '}
+        <span className="font-medium">1.</span> Enter a phrase (e.g. &quot;What time is it?&quot; or &quot;What time is it in Tokyo?&quot;) →
+        <span className="font-medium"> 2.</span> Click &quot;Run CLU&quot; →
+        <span className="font-medium"> 3.</span> See the response and the detected intent and entities (e.g. location, time).
+      </div>
       {/* Search Bar / Input */}
       <div className="glass-studio p-2 rounded-2xl flex items-center gap-2 shadow-sm">
         <div className="flex-1 relative">
