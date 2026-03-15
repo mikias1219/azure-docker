@@ -147,12 +147,7 @@ class TextAnalyticsService:
         """Perform complete text analysis"""
         if not self.client:
             return {
-                "language": {"language": "Demo Mode", "confidence": 1.0},
-                "sentiment": {"sentiment": "positive", "confidence": {"positive": 0.8, "neutral": 0.15, "negative": 0.05}},
-                "key_phrases": {"key_phrases": ["demo mode", "azure ai", "text analytics"]},
-                "entities": {"entities": [{"text": "Azure", "category": "Organization", "confidence": 0.95}]},
-                "linked_entities": {"linked_entities": []},
-                "note": "Azure AI Language not configured - showing demo results"
+                "error": "Azure AI Language not configured. Set AZURE_LANGUAGE_ENDPOINT and AZURE_LANGUAGE_KEY."
             }
         
         try:

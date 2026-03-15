@@ -29,9 +29,9 @@ export function DocumentViewer({ document, onRefresh }: DocumentViewerProps) {
       if (document.ai_analysis.trim().startsWith('{')) {
         return JSON.parse(document.ai_analysis);
       }
-      return { report: document.ai_analysis, reasoning: 'Legacy analysis format.' };
+      return { report: document.ai_analysis, reasoning: null };
     } catch (e) {
-      return { report: document.ai_analysis, reasoning: 'Text-only analysis.' };
+      return { report: document.ai_analysis, reasoning: null };
     }
   }, [document.ai_analysis]);
 
@@ -154,20 +154,21 @@ export function DocumentViewer({ document, onRefresh }: DocumentViewerProps) {
           </div>
 
           <div className="col-span-12 lg:col-span-4 space-y-6">
-            {/* Reasoning Module */}
+            {analysisData.reasoning != null && analysisData.reasoning !== '' && (
             <Card className="card-engineer border-purple-500/20 bg-purple-500/5">
               <CardHeader className="py-3 border-b border-white/5">
                 <CardTitle className="text-[10px] font-mono uppercase tracking-widest text-purple-400 flex items-center gap-2">
                   <Zap className="w-4 h-4" />
-                  Internal Reasoning
+                  Backend reasoning
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-                <p className="text-xs text-purple-200/70 italic leading-relaxed">
-                  "{analysisData.reasoning}"
+                <p className="text-xs text-slate-600 italic leading-relaxed">
+                  {analysisData.reasoning}
                 </p>
               </CardContent>
             </Card>
+            )}
 
             {/* Performance/Debug Metadata */}
             {analysisData.debug && (

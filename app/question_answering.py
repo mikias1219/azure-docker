@@ -184,54 +184,6 @@ Base your enhancement on the knowledge base answer provided. Do not add informat
                 "deployment_name": self.deployment_name
             }
     
-    def _get_demo_answer(self, question: str) -> Dict[str, Any]:
-        """Return demo answers when service is not configured"""
-        demo_answers = {
-            "what is microsoft learn": {
-                "answers": [{
-                    "answer": "Microsoft Learn is a free, online training platform that provides interactive learning for Microsoft products and services. It offers modules, learning paths, and hands-on labs to help you build skills.",
-                    "confidence": 0.95,
-                    "source": "Demo Knowledge Base",
-                    "questions": ["What is Microsoft Learn?", "Tell me about Microsoft Learn"]
-                }],
-                "note": "Demo mode - Azure AI Language Question Answering not configured"
-            },
-            "hello": {
-                "answers": [{
-                    "answer": "Hello! I'm here to help answer your questions about Microsoft Learn and other topics. What would you like to know?",
-                    "confidence": 0.90,
-                    "source": "Demo Chit Chat",
-                    "questions": ["Hi", "Hello", "Hey there"]
-                }],
-                "note": "Demo mode - Azure AI Language Question Answering not configured"
-            },
-            "default": {
-                "answers": [{
-                    "answer": f"I received your question: \"{question}\". In production mode with Azure AI Language Question Answering configured, I would search the knowledge base for the best answer. To set up the full service, configure AZURE_LANGUAGE_ENDPOINT, AZURE_LANGUAGE_KEY, AZURE_QNA_PROJECT_NAME, and AZURE_QNA_DEPLOYMENT_NAME environment variables.",
-                    "confidence": 0.50,
-                    "source": "Demo Fallback",
-                    "questions": []
-                }],
-                "note": "Demo mode - Azure AI Language Question Answering not configured"
-            }
-        }
-        
-        question_lower = question.lower().strip()
-        
-        for key in demo_answers:
-            if key in question_lower:
-                result = demo_answers[key].copy()
-                result["question"] = question
-                result["project_name"] = self.project_name
-                result["deployment_name"] = self.deployment_name
-                return result
-        
-        result = demo_answers["default"].copy()
-        result["question"] = question
-        result["project_name"] = self.project_name
-        result["deployment_name"] = self.deployment_name
-        return result
-    
     async def get_knowledge_base_info(self) -> Dict[str, Any]:
         """Get information about the configured knowledge base"""
         return {

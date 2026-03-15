@@ -13,8 +13,8 @@ export function TextAnalysis() {
   const [loading, setLoading] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
 
-  const keyPhrases: string[] = Array.isArray(result?.key_phrases) ? result.key_phrases : [];
-  const entities: any[] = Array.isArray(result?.entities) ? result.entities : [];
+  const keyPhrases: string[] = Array.isArray(result?.key_phrases?.key_phrases) ? result.key_phrases.key_phrases : (Array.isArray(result?.key_phrases) ? result.key_phrases : []);
+  const entities: any[] = Array.isArray(result?.entities?.entities) ? result.entities.entities : (Array.isArray(result?.entities) ? result.entities : []);
 
   const handleAnalyze = async () => {
     if (!text.trim() || loading) return;
@@ -118,7 +118,7 @@ export function TextAnalysis() {
                         <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500"><Languages className="w-4 h-4" /></div>
                         <div>
                           <div className="text-[8px] text-slate-500 uppercase font-bold tracking-widest">Detected Language</div>
-                          <div className="text-sm font-bold text-white">{result.language?.name || 'EN'} ({((result.language?.confidence || 1) * 100).toFixed(0)}%)</div>
+                          <div className="text-sm font-bold text-slate-900">{result.language?.language ?? result.language?.name ?? '—'} ({((result.language?.confidence ?? 0) * 100).toFixed(0)}%)</div>
                         </div>
                       </CardContent>
                     </Card>
@@ -127,7 +127,7 @@ export function TextAnalysis() {
                         <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500"><Binary className="w-4 h-4" /></div>
                         <div>
                           <div className="text-[8px] text-slate-500 uppercase font-bold tracking-widest">Global Sentiment</div>
-                          <div className="text-sm font-bold text-white uppercase">{result.sentiment?.sentiment || 'NEUTRAL'}</div>
+                          <div className="text-sm font-bold text-slate-900 uppercase">{result.sentiment?.sentiment ?? '—'}</div>
                         </div>
                       </CardContent>
                     </Card>
@@ -172,7 +172,7 @@ export function TextAnalysis() {
                                 <span className="text-xs text-white font-medium">{e?.text ?? String(e ?? '')}</span>
                               </div>
                               <span className="text-[9px] font-mono text-slate-600">
-                                {typeof e?.confidenceScore === 'number' ? `${(e.confidenceScore * 100).toFixed(0)}%` : '--'}
+                                {typeof (e?.confidence ?? e?.confidenceScore) === 'number' ? `${((e.confidence ?? e.confidenceScore) * 100).toFixed(0)}%` : '—'}
                               </span>
                             </div>
                           ))

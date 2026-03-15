@@ -6,6 +6,7 @@ import {
   MapPin, Calendar, Clock4, Info, Target
 } from 'lucide-react';
 import { clockApi } from '@/lib/api';
+import { BackendResponseCard } from '@/components/BackendResponseCard';
 
 export function ClockClient() {
   const [query, setQuery] = useState('');
@@ -142,7 +143,7 @@ export function ClockClient() {
                 </CardHeader>
                 <CardContent className="p-3">
                   <p className="text-[10px] text-slate-400 font-mono italic leading-relaxed">
-                    "{result.reasoning || 'Default heuristic logic applied.'}"
+                    {result.reasoning ?? '—'}
                   </p>
                 </CardContent>
               </Card>
@@ -168,6 +169,7 @@ export function ClockClient() {
           )}
         </div>
       </div>
+      {result != null && <BackendResponseCard data={result} stepLabel="Backend response" />}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   MessageSquare, History, ChevronRight
 } from 'lucide-react';
 import { qnaApi } from '@/lib/api';
+import { BackendResponseCard } from '@/components/BackendResponseCard';
 
 export function QuestionAnswering() {
   const [question, setQuestion] = useState('');
@@ -97,7 +98,7 @@ export function QuestionAnswering() {
                   </CardHeader>
                   <CardContent className="p-4">
                     <p className="text-[11px] text-purple-700 italic font-mono leading-relaxed">
-                      "{result.reasoning}"
+                      {result.reasoning ?? '—'}
                     </p>
                   </CardContent>
                 </Card>
@@ -128,11 +129,15 @@ export function QuestionAnswering() {
         </div>
       </div>
 
+      {result != null && (
+        <BackendResponseCard data={result} stepLabel="Backend response" />
+      )}
+
       {/* Suggested Queries */}
       <div className="glass-studio p-4 rounded-xl">
         <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
           <ChevronRight className="w-3 h-3" />
-          Pre-approved Context Queries
+          Suggested queries
         </h4>
         <div className="flex flex-wrap gap-2">
           {['How do I reset my password?', 'What services can I use?', 'Contact support hours'].map(q => (

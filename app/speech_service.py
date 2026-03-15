@@ -12,7 +12,7 @@ class SpeechService:
         self.speech_region = os.getenv("AZURE_SPEECH_REGION")
         
         if not self.speech_key or not self.speech_region:
-            logger.warning("Azure Speech Key or Region not found. Speech service will run in demo mode.")
+            logger.warning("Azure Speech Key or Region not found. Speech service not available.")
             self.speech_config = None
         else:
             try:
@@ -31,16 +31,9 @@ class SpeechService:
         start_time = datetime.now()
         
         if not self.speech_config:
-            # Demo Fallback
             return {
-                "text": "This is a demo transcription. To enable real Azure Speech, configure AZURE_SPEECH_KEY.",
-                "confidence": 0.95,
-                "reasoning": "Azure Speech SDK not configured. Returning simulated transcription logic for UI testing.",
-                "debug": {
-                    "engine": "Demo-Speech-Engine",
-                    "latency_ms": 150,
-                    "status": "DEMO_MODE"
-                }
+                "error": "Azure Speech not configured. Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION to use transcription.",
+                "text": ""
             }
 
         try:
@@ -81,12 +74,7 @@ class SpeechService:
         
         if not self.speech_config:
             return {
-                "message": "Demo synthesis initiated.",
-                "reasoning": "Speech synthesis requires AZURE_SPEECH_KEY configuration.",
-                "debug": {
-                    "engine": "Demo-TTS",
-                    "latency_ms": 100
-                }
+                "error": "Azure Speech not configured. Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION to use synthesis."
             }
 
         try:
@@ -115,7 +103,7 @@ class SpeechService:
         return {
             "service": "Azure AI Speech",
             "capabilities": ["Speech-to-Text", "Text-to-Speech", "Neural Voices"],
-            "status": "Healthy" if self.speech_config else "Demo Mode"
+            "status": "Healthy" if self.speech_config else "Not configured"
         }
 
 # Global instance

@@ -7,6 +7,7 @@ import {
   ExternalLink, FileText
 } from 'lucide-react';
 import { searchApi } from '@/lib/api';
+import { BackendResponseCard } from '@/components/BackendResponseCard';
 
 export function KnowledgeMining() {
   const [query, setQuery] = useState('');
@@ -160,6 +161,7 @@ export function KnowledgeMining() {
           </Card>
         </div>
       </div>
+      {result != null && !result.error && <BackendResponseCard data={result} stepLabel="Backend response" />}
     </div>
   );
 }

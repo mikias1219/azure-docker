@@ -21,6 +21,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import { visionApi } from '@/lib/api';
+import { BackendResponseCard } from '@/components/BackendResponseCard';
 
 interface VisionResult {
   caption?: {
@@ -423,6 +424,7 @@ export function AIVision() {
           )}
         </div>
       </div>
+      {result != null && !result.error && <BackendResponseCard data={result} stepLabel="Backend response" />}
     </div>
   );
 }

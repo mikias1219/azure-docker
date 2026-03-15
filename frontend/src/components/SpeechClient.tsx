@@ -17,6 +17,7 @@ import {
     Fingerprint
 } from 'lucide-react';
 import { speechApi } from '@/lib/api';
+import { BackendResponseCard } from '@/components/BackendResponseCard';
 
 export const SpeechClient: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -255,7 +256,7 @@ export const SpeechClient: React.FC = () => {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-xs text-purple-200/70 italic leading-relaxed font-medium">
-                                        "{(result?.reasoning || synthResult?.reasoning)}"
+                                        {(result?.reasoning ?? synthResult?.reasoning) ?? '—'}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -270,11 +271,11 @@ export const SpeechClient: React.FC = () => {
                                 <CardContent className="space-y-2 font-mono text-[10px]">
                                     <div className="flex justify-between">
                                         <span className="text-slate-600 uppercase italic">ENGINE:</span>
-                                        <span className="text-blue-400">{(result?.debug?.engine || synthResult?.debug?.engine)}</span>
+                                        <span className="text-blue-400">{(result?.debug?.engine ?? synthResult?.debug?.engine) ?? '—'}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-slate-600 uppercase italic">LATENCY:</span>
-                                        <span className="text-emerald-400">{(result?.debug?.latency_ms || synthResult?.debug?.latency_ms)}ms</span>
+                                        <span className="text-emerald-400">{(result?.debug?.latency_ms ?? synthResult?.debug?.latency_ms) != null ? `${(result?.debug?.latency_ms ?? synthResult?.debug?.latency_ms)}ms` : '—'}</span>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -282,6 +283,9 @@ export const SpeechClient: React.FC = () => {
                     </>
                 )}
             </div>
+            {(result != null || synthResult != null) && (
+                <BackendResponseCard data={result ?? synthResult} stepLabel="Backend response" />
+            )}
         </div>
     );
 };

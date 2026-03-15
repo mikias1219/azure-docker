@@ -7,6 +7,7 @@ import {
   ShieldCheck, Info, Database, Search
 } from 'lucide-react';
 import { infoExtractionApi } from '@/lib/api';
+import { BackendResponseCard } from '@/components/BackendResponseCard';
 
 const FIELD_LABELS: Record<string, { label: string; icon: any; color: string }> = {
   Name: { label: 'ENTITY_NAME', icon: User, color: 'text-blue-400' },
@@ -166,6 +167,7 @@ export function InfoExtraction() {
                   </CardContent>
                 </Card>
               )}
+              {result != null && <BackendResponseCard data={result} stepLabel="Backend response" />}
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center gap-6">

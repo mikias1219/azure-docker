@@ -12,7 +12,7 @@ from azure.ai.language.conversations import ConversationAnalysisClient
 
 logger = logging.getLogger(__name__)
 
-# Supported cities with their UTC offsets (simplified for demo)
+# Supported cities with their UTC offsets
 CITY_TIMEZONES = {
     "london": 0,
     "paris": 1,
@@ -77,7 +77,7 @@ class ClockService:
     async def analyze_conversation(self, query: str) -> Dict[str, Any]:
         """Analyze a conversation query to predict intent and extract entities"""
         if not self.client:
-            logger.error("CLU client not initialized - returning error instead of demo")
+            logger.error("CLU client not initialized")
             return {
                 "query": query,
                 "error": "Azure AI Language CLU not configured. Please set AZURE_LANGUAGE_ENDPOINT and AZURE_LANGUAGE_KEY.",
@@ -160,11 +160,7 @@ class ClockService:
             }
         except Exception as e:
             err_msg = str(e).lower()
-            # If CLU project/deployment not found, use demo so the Clock still works
-            if "not found" in err_msg or "deployment" in err_msg or "cannot be found" in err_msg:
-                logger.warning(f"CLU deployment not found ({e}); using demo mode for query: {query[:50]}")
-                return await self._demo_analyze(query)
-            logger.error(f"Error analyzing conversation: {e}")
+            logger.error("Error analyzing conversation: %s", e)
             return {
                 "query": query,
                 "error": f"Azure CLU Error: {str(e)}",
@@ -276,76 +272,6 @@ class ClockService:
         else:
             today = datetime.now()
             return f"Today is {today.strftime('%B %d, %Y')}."
-    
-    async def _demo_analyze(self, query: str) -> Dict[str, Any]:
-        """Demo mode - simulate CLU analysis"""
-        query_lower = query.lower()
-        
-        # Simple pattern matching for demo
-        if "time" in query_lower:
-            intent = "GetTime"
-            confidence = 0.95
-            entities = []
-            
-            # Check for location
-            for city in CITY_TIMEZONES.keys():
-                if city in query_lower and city != "local":
-                    entities.append({
-                        "category": "Location",
-                        "text": city.title(),
-                        "confidence": 0.9,
-                        "offset": query_lower.find(city),
-                        "length": len(city)
-                    })
-                    break
-            
-            response = self._get_time(entities[0]["text"] if entities else "local")
-            
-        elif "day" in query_lower or "week" in query_lower:
-            intent = "GetDay"
-            confidence = 0.9
-            entities = []
-            response = self._get_day()
-            
-        elif "date" in query_lower:
-            intent = "GetDate"
-            confidence = 0.9
-            entities = []
-            
-            # Check for weekday
-            weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
-            short_days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat", "thurs", "tues", "weds"]
-            all_days = weekdays + short_days
-            
-            for day in all_days:
-                if day in query_lower:
-                    entities.append({
-                        "category": "Weekday",
-                        "text": day.title(),
-                        "confidence": 0.85,
-                        "offset": query_lower.find(day),
-                        "length": len(day)
-                    })
-                    break
-            
-            weekday = entities[0]["text"] if entities else None
-            response = self._get_date(weekday)
-            
-        else:
-            intent = "None"
-            confidence = 0.0
-            entities = []
-            response = "I'm not sure what you're asking. Try asking for the time, the day, or the date."
-        
-        return {
-            "query": query,
-            "top_intent": intent,
-            "confidence": confidence,
-            "intents": [{"intent": intent, "confidence": confidence}],
-            "entities": entities,
-            "response": response,
-            "demo_mode": True
-        }
     
     async def get_info(self) -> Dict[str, Any]:
         """Get information about the CLU service"""

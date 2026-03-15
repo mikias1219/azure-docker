@@ -6,6 +6,7 @@ import {
   Layers, Search, Share2, Info, ChevronRight, BarChart3, AlertCircle
 } from 'lucide-react';
 import { ragApi } from '@/lib/api';
+import { BackendResponseCard } from '@/components/BackendResponseCard';
 
 export function RAGQA() {
   const [question, setQuestion] = useState('');
@@ -102,7 +103,7 @@ export function RAGQA() {
                 </CardHeader>
                 <CardContent className="p-4">
                   <p className="text-xs text-purple-700 italic font-mono leading-relaxed">
-                    "{result.reasoning || 'Heuristic logic applied to retrieved chunks.'}"
+                    {result.reasoning ?? '—'}
                   </p>
                 </CardContent>
               </Card>
@@ -170,11 +171,11 @@ export function RAGQA() {
                         FILE: {src.file_name}
                       </div>
                       <div className="text-[9px] font-mono text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
-                        SCORE: {src.score?.toFixed(3) || '0.00'}
+                        SCORE: {src.score?.toFixed(3) ?? '0.00'}
                       </div>
                     </div>
                     <p className="text-[10px] text-slate-700 line-clamp-3 leading-relaxed group-hover:text-slate-900 transition-colors">
-                      "{src.content_preview}"
+                      {src.content_preview ?? '—'}
                     </p>
                   </div>
                 </Card>
@@ -183,6 +184,7 @@ export function RAGQA() {
           )}
         </div>
       </div>
+      {result != null && !result.error && <BackendResponseCard data={result} stepLabel="Backend response" />}
     </div>
   );
 }
