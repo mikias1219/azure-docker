@@ -34,22 +34,23 @@ class QuestionAnsweringService:
         return self.client is not None
     
     async def _enhance_with_llm(self, question: str, kb_answer: str, confidence: float) -> str:
-        """Enhance knowledge base answer with LLM for better presentation"""
+        """Enhance knowledge base answer with LLM for better presentation. Uses same OpenAI env as rest of app."""
         if not self.llm_enabled:
             return kb_answer
-        
+        import asyncio
+        api_key = os.getenv("OPENAI_API_KEY") or os.getenv("AZURE_OPENAI_KEY")
+        api_base = (os.getenv("OPENAI_API_BASE") or os.getenv("AZURE_OPENAI_ENDPOINT") or "").rstrip("/")
+        deployment = os.getenv("OPENAI_DEPLOYMENT_NAME") or os.getenv("OPENAI_DEPLOYMENT_NAME") or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-35-turbo")
+        api_version = os.getenv("OPENAI_API_VERSION", "2024-02-15-preview")
+        if not api_key or not api_base:
+            return kb_answer
         try:
-            import openai
-            api_key = os.getenv("OPENAI_API_KEY") or os.getenv("AZURE_OPENAI_KEY")
-            api_base = (os.getenv("OPENAI_API_BASE") or os.getenv("AZURE_OPENAI_ENDPOINT") or "").rstrip("/")
-            deployment = os.getenv("OPENAI_DEPLOYMENT_NAME") or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-35-turbo")
-            if not api_key or not api_base:
-                return kb_answer
-            openai.api_key = api_key
-            openai.api_base = api_base if api_base.startswith("http") else f"https://{api_base}"
-            openai.api_type = "azure"
-            openai.api_version = os.getenv("OPENAI_API_VERSION", "2024-02-15-preview")
-
+            from openai import AzureOpenAI
+            client = AzureOpenAI(
+                api_key=api_key,
+                api_version=api_version,
+                azure_endpoint=api_base if api_base.startswith("http") else f"https://{api_base}",
+            )
             system_prompt = """You are a helpful HR assistant. Enhance the given answer from the knowledge base to be:
 1. Clear and well-structured
 2. Professional and friendly
@@ -58,21 +59,25 @@ class QuestionAnsweringService:
 
 Base your enhancement on the knowledge base answer provided. Do not add information that is not in the original answer."""
 
-            response = await openai.ChatCompletion.acreate(
-                engine=deployment,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Question: {question}\n\nKnowledge Base Answer: {kb_answer}\n\nPlease enhance this answer for better presentation."}
-                ],
-                max_tokens=500,
-                temperature=0.3
-            )
-            
-            enhanced = response.choices[0].message.content.strip()
-            logger.info(f"LLM enhancement successful for question: {question[:50]}...")
+            def _call():
+                resp = client.chat.completions.create(
+                    model=deployment,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Question: {question}\n\nKnowledge Base Answer: {kb_answer}\n\nPlease enhance this answer for better presentation."},
+                    ],
+                    max_tokens=500,
+                    temperature=0.3,
+                )
+                if resp.choices and resp.choices[0].message:
+                    return resp.choices[0].message.content.strip()
+                return kb_answer
+
+            enhanced = await asyncio.to_thread(_call)
+            logger.info("LLM enhancement successful for question: %s...", question[:50])
             return enhanced
         except Exception as e:
-            logger.warning(f"LLM enhancement failed, using original answer: {e}")
+            logger.warning("LLM enhancement failed, using original answer: %s", e)
             return kb_answer
 
     async def get_answer(self, question: str, enhance_with_llm: bool = True) -> Dict[str, Any]:
