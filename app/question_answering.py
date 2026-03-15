@@ -40,7 +40,7 @@ class QuestionAnsweringService:
         import asyncio
         api_key = os.getenv("OPENAI_API_KEY") or os.getenv("AZURE_OPENAI_KEY")
         api_base = (os.getenv("OPENAI_API_BASE") or os.getenv("AZURE_OPENAI_ENDPOINT") or "").rstrip("/")
-        deployment = os.getenv("OPENAI_DEPLOYMENT_NAME") or os.getenv("OPENAI_DEPLOYMENT_NAME") or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-35-turbo")
+        deployment = os.getenv("OPENAI_DEPLOYMENT_NAME") or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-35-turbo")
         api_version = os.getenv("OPENAI_API_VERSION", "2024-02-15-preview")
         if not api_key or not api_base:
             return kb_answer
